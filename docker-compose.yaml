@@ -1,4 +1,0 @@
-services:
-  strien
-  hello_world:
-    image: hello-world
