@@ -17,30 +17,30 @@ const (
 
 func PrintError(format string, a ...any) {
 	message := fmt.Sprintf(format, a...)
-	fmt.Printf("%s[ERROR] %s%s\n", colorRed, message, colorReset)
+	fmt.Printf("%s[ERROR]\t%s%s\n", colorRed, message, colorReset)
 }
 
 func PrintWarn(format string, a ...any) {
 	message := fmt.Sprintf(format, a...)
-	fmt.Printf("%s[WARNING] %s%s\n", colorYellow, message, colorReset)
+	fmt.Printf("%s[WARNING]\t%s%s\n", colorYellow, message, colorReset)
 }
 
 func PrintInfo(format string, a ...any) {
 	message := fmt.Sprintf(format, a...)
-	fmt.Printf("%s[INFO] %s%s\n", colorBlue, message, colorReset)
+	fmt.Printf("%s[INFO]\t%s%s\n", colorBlue, message, colorReset)
 }
 
 func PrintStep(format string, a ...any) {
 	message := fmt.Sprintf(format, a...)
-	fmt.Printf("%s[STEP] %s%s\n", colorCyan, message, colorReset)
+	fmt.Printf("%s[STEP]\t%s%s\n", colorCyan, message, colorReset)
 }
 
 func PrintWait(format string, a ...any) {
 	message := fmt.Sprintf(format, a...)
-	fmt.Printf("%s[WAITING] %s%s\n", colorPurple, message, colorReset)
+	fmt.Printf("%s[WAITING]\t%s%s\n", colorPurple, message, colorReset)
 }
 
 func PrintDone(format string, a ...any) {
 	message := fmt.Sprintf(format, a...)
-	fmt.Printf("%s[DONE] %s%s\n", colorGreen, message, colorReset)
+	fmt.Printf("%s[DONE]\t%s%s\n", colorGreen, message, colorReset)
 }

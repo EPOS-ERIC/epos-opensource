@@ -59,7 +59,8 @@ func NewEnvDir(customEnvFile, customComposeFile, customPath, name string) (strin
 		return "", err
 	}
 	if _, err := os.Stat(p); !os.IsNotExist(err) {
-		return "", fmt.Errorf("directory %s already exists", p)
+		// return "", fmt.Errorf("directory %s already exists", p)
+		return p, nil
 	}
 	err = os.MkdirAll(p, 0755) // TODO check permissions
 	if err != nil {
@@ -118,5 +119,8 @@ func DeleteEnvDir(path string) error {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return fmt.Errorf("directory %s does not exist", path)
 	}
-	return os.RemoveAll(path)
+	if err := os.RemoveAll(path); err != nil {
+		return fmt.Errorf("failed to remove directory %s: %w", path, err)
+	}
+	return nil
 }

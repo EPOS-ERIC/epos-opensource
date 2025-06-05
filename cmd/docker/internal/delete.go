@@ -3,13 +3,14 @@ package internal
 import (
 	_ "embed"
 	"epos-cli/common"
+	"fmt"
 	"os/exec"
 )
 
 func Delete(customPath, name string) error {
 	dir, err := GetEnvDir(customPath, name)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to resolve environment directory: %w", err)
 	}
 
 	common.PrintInfo("Using environment in dir: %s", dir)
@@ -19,7 +20,7 @@ func Delete(customPath, name string) error {
 	cmd.Dir = dir
 	err = common.RunCommand(cmd)
 	if err != nil {
-		return err
+		return fmt.Errorf("docker compose down failed: %w", err)
 	}
 
 	common.PrintDone("Stopped environment: %s", name)
@@ -27,7 +28,7 @@ func Delete(customPath, name string) error {
 
 	err = DeleteEnvDir(dir)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to remove directory %s: %w", dir, err)
 	}
 
 	common.PrintDone("Deleted env dir: %s", dir)
