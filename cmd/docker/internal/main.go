@@ -9,10 +9,10 @@ import (
 	"runtime"
 )
 
-//go:embed docker-compose.yaml
+//go:embed static/docker-compose.yaml
 var composeFile string
 
-//go:embed .env
+//go:embed static/.env
 var envFile string
 
 var configPath string
