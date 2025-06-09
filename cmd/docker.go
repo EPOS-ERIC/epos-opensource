@@ -8,7 +8,7 @@ import (
 
 var dockerCmd = &cobra.Command{
 	Use:   "docker",
-	Short: "Docker sub-command TODO",
+	Short: "Manage local Docker Compose environments",
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},

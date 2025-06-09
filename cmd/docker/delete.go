@@ -9,7 +9,7 @@ import (
 
 var DeleteCmd = &cobra.Command{
 	Use:   "delete <name of an existing environment>",
-	Short: "docker delete cmd TODO",
+	Short: "Stop and remove an environment",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
@@ -23,5 +23,5 @@ var DeleteCmd = &cobra.Command{
 }
 
 func init() {
-	DeleteCmd.Flags().StringVarP(&path, "path", "p", "", "Custom path for the creation of the dir with the env and compose files")
+	DeleteCmd.Flags().StringVarP(&path, "path", "p", "", "Location for the environment files")
 }

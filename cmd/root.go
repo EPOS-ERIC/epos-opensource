@@ -11,13 +11,10 @@ var Version = "dev"
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "epos-cli",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Manage ePOS environments and utilities",
+	Long: `epos-cli provides commands for working with local Docker environments
+used by the ePOS project. Use the "docker" group of commands to deploy, update
+or delete an environment.`,
 
 	// If no subcommand is provided, show help.
 	Run: func(cmd *cobra.Command, args []string) {

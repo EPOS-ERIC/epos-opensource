@@ -9,7 +9,7 @@ import (
 
 var DeployCmd = &cobra.Command{
 	Use:   "deploy <name to give to the environment>",
-	Short: "docker deploy cmd TODO",
+	Short: "Create a new environment using Docker Compose",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
@@ -23,8 +23,8 @@ var DeployCmd = &cobra.Command{
 }
 
 func init() {
-	DeployCmd.Flags().StringVarP(&envFile, "env-file", "e", "", "Environment variable file, use default if not provided")
-	DeployCmd.Flags().StringVarP(&path, "path", "p", "", "Custom path for the creation of the dir with the env and compose files")
-	DeployCmd.Flags().StringVarP(&composeFile, "compose-file", "c", "", "Docker compose file, use default if not provided")
-	DeployCmd.Flags().BoolVarP(&pullImages, "update-images", "u", false, "If set the images for the environment will be pulled before deploying")
+	DeployCmd.Flags().StringVarP(&envFile, "env-file", "e", "", "Path to the environment variables file (.env)")
+	DeployCmd.Flags().StringVarP(&path, "path", "p", "", "Location for the environment files")
+	DeployCmd.Flags().StringVarP(&composeFile, "compose-file", "c", "", "Path to the Docker Compose file")
+	DeployCmd.Flags().BoolVarP(&pullImages, "update-images", "u", false, "Download Docker images before starting")
 }

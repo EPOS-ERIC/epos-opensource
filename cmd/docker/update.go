@@ -11,7 +11,7 @@ var force bool
 
 var UpdateCmd = &cobra.Command{
 	Use:   "update <name of an existing environment>",
-	Short: "docker update cmd TODO",
+	Short: "Recreate an environment with new settings",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
@@ -25,7 +25,7 @@ var UpdateCmd = &cobra.Command{
 }
 
 func init() {
-	UpdateCmd.Flags().StringVarP(&path, "path", "p", "", "Custom path for the creation of the dir with the env and compose files")
-	UpdateCmd.Flags().BoolVarP(&force, "force", "f", false, "Force the updating of an environment by putting it down before deploying it again")
-	UpdateCmd.Flags().BoolVarP(&pullImages, "update-images", "u", false, "If set the images for the environment will be pulled before deploying")
+	UpdateCmd.Flags().StringVarP(&path, "path", "p", "", "Location for the environment files")
+	UpdateCmd.Flags().BoolVarP(&force, "force", "f", false, "Remove the current containers before redeploying")
+	UpdateCmd.Flags().BoolVarP(&pullImages, "update-images", "u", false, "Download Docker images before starting")
 }
