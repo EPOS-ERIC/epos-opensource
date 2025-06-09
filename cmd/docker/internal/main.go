@@ -52,67 +52,79 @@ func init() {
 	}
 }
 
-// take the env file contents, a compose file contents and a path, and create a tmp dir in that path for the environment, and return the path
-func NewEnvDir(customEnvFile, customComposeFile, customPath, name string) (string, error) {
-	p, err := GetEnvDir(customPath, name)
-	if err != nil {
-		return "", err
-	}
-	if _, err := os.Stat(p); !os.IsNotExist(err) {
-		// return "", fmt.Errorf("directory %s already exists", p)
-		return p, nil
-	}
-	err = os.MkdirAll(p, 0755) // TODO check permissions
-	if err != nil {
-		return "", fmt.Errorf("failed to create env directory %s: %w", p, err)
-	}
-
-	// create the .env file
-	envPath := path.Join(p, ".env")
-	env, err := os.Create(envPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to create .env file at %s: %w", envPath, err)
-	}
-	defer env.Close()
-
-	var envContent string
-	if customEnvFile != "" {
-		envContent = customEnvFile
+// buildEnvPath constructs the environment directory path
+func buildEnvPath(customPath, name string) string {
+	var basePath string
+	if customPath != "" {
+		basePath = customPath
 	} else {
-		envContent = envFile
+		basePath = configPath
 	}
-
-	if _, err := env.WriteString(envContent); err != nil {
-		return "", fmt.Errorf("failed to write content to .env file at %s: %w", envPath, err)
-	}
-
-	// create the docker-compose.yaml file
-	composePath := path.Join(p, "docker-compose.yaml")
-	compose, err := os.Create(composePath)
-	if err != nil {
-		return "", fmt.Errorf("failed to create docker-compose.yaml file at %s: %w", composePath, err)
-	}
-	defer compose.Close()
-
-	var composeContent string
-	if customComposeFile != "" {
-		composeContent = customComposeFile
-	} else {
-		composeContent = composeFile
-	}
-
-	if _, err := compose.WriteString(composeContent); err != nil {
-		return "", fmt.Errorf("failed to write content to docker-compose.yaml file at %s: %w", composePath, err)
-	}
-
-	return p, nil
+	return path.Join(basePath, name)
 }
 
+// GetEnvDir validates that the full directory path exists and returns it
 func GetEnvDir(customPath, name string) (string, error) {
-	if customPath != "" {
-		return path.Join(customPath, name), nil
+	envPath := buildEnvPath(customPath, name)
+
+	if _, err := os.Stat(envPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("directory %s does not exist: %w", envPath, err)
+	} else if err != nil {
+		return "", fmt.Errorf("failed to check directory %s: %w", envPath, err)
 	}
-	return path.Join(configPath, name), nil
+	return envPath, nil
+}
+
+// NewEnvDir creates a new environment directory with .env and docker-compose.yaml files
+func NewEnvDir(customEnvFile, customComposeFile, customPath, name string) (string, error) {
+	envPath := buildEnvPath(customPath, name)
+
+	// Check if directory already exists
+	if _, err := os.Stat(envPath); err == nil {
+		return "", fmt.Errorf("directory %s already exists", envPath)
+	} else if !os.IsNotExist(err) {
+		return "", fmt.Errorf("failed to check directory %s: %w", envPath, err)
+	}
+
+	// Create the directory
+	if err := os.MkdirAll(envPath, 0755); err != nil {
+		return "", fmt.Errorf("failed to create env directory %s: %w", envPath, err)
+	}
+
+	// Create .env file
+	if err := createFileWithContent(path.Join(envPath, ".env"), getContentOrDefault(customEnvFile, envFile)); err != nil {
+		return "", fmt.Errorf("failed to create .env file: %w", err)
+	}
+
+	// Create docker-compose.yaml file
+	if err := createFileWithContent(path.Join(envPath, "docker-compose.yaml"), getContentOrDefault(customComposeFile, composeFile)); err != nil {
+		return "", fmt.Errorf("failed to create docker-compose.yaml file: %w", err)
+	}
+
+	return envPath, nil
+}
+
+// Helper function to create a file with given content
+func createFileWithContent(filePath, content string) error {
+	file, err := os.Create(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to create file %s: %w", filePath, err)
+	}
+	defer file.Close()
+
+	if _, err := file.WriteString(content); err != nil {
+		return fmt.Errorf("failed to write content to file %s: %w", filePath, err)
+	}
+
+	return nil
+}
+
+// Helper function to return custom content or default
+func getContentOrDefault(custom, defaultContent string) string {
+	if custom != "" {
+		return custom
+	}
+	return defaultContent
 }
 
 func DeleteEnvDir(path string) error {

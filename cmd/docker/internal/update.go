@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"epos-cli/common"
 	"fmt"
-	"os/exec"
 )
 
 func Update(envFile, composeFile, path, name string, force, pullImages bool) error {
@@ -18,10 +17,7 @@ func Update(envFile, composeFile, path, name string, force, pullImages bool) err
 	common.PrintStep("Updating stack")
 
 	if force {
-		cmd := exec.Command("docker", "compose", "down")
-		cmd.Dir = dir
-		err = common.RunCommand(cmd)
-		if err != nil {
+		if err := downStack(dir); err != nil {
 			return fmt.Errorf("docker compose down failed: %w", err)
 		}
 
@@ -29,12 +25,9 @@ func Update(envFile, composeFile, path, name string, force, pullImages bool) err
 	}
 	common.PrintStep("Removing old env dir...")
 
-	err = DeleteEnvDir(dir)
-	if err != nil {
+	if err := removeEnvDir(dir); err != nil {
 		return fmt.Errorf("failed to remove directory %s: %w", dir, err)
 	}
-
-	common.PrintDone("Deleted old env dir: %s", dir)
 	common.PrintStep("Creating new env dir...")
 
 	dir, err = NewEnvDir(envFile, composeFile, path, name)
@@ -45,39 +38,22 @@ func Update(envFile, composeFile, path, name string, force, pullImages bool) err
 	common.PrintDone("Updated environment created in dir: %s", dir)
 
 	if pullImages {
-		common.PrintStep("Pulling images for updated environment %s", name)
-		cmd := exec.Command("docker", "compose", "pull")
-		cmd.Dir = dir
-		if err := common.RunCommand(cmd); err != nil {
+		if err := pullEnvImages(dir, name); err != nil {
 			common.PrintError("Pulling images failed: %v", err)
-			common.PrintStep("Deleting environment dir: %s", dir)
-
-			if err := DeleteEnvDir(dir); err != nil {
+			if err := removeEnvDir(dir); err != nil {
 				return fmt.Errorf("error deleting environment %s: %w", dir, err)
 			}
-			common.PrintDone("Deleted invalid updated environment at: %s", dir)
 			return err
 		}
-		common.PrintDone("Images pulled for updated environment %s", name)
 	}
 
-	common.PrintStep("Deploying updated stack")
-
-	cmd := exec.Command("docker", "compose", "up", "-d")
-	cmd.Dir = dir
-	cmd.Env = append(cmd.Env, "ENV_NAME="+name)
-	if err := common.RunCommand(cmd); err != nil {
-		common.PrintError("Deploying updated stack failed: %v", err)
-		common.PrintStep("Deleting updated environment dir: %s", dir)
-
-		if err := DeleteEnvDir(dir); err != nil {
+	if err := deployStack(dir, name); err != nil {
+		common.PrintError("%v", err)
+		if err := removeEnvDir(dir); err != nil {
 			return fmt.Errorf("error deleting updated environment %s: %w", dir, err)
 		}
-		common.PrintDone("Deleted invalid updated environment at: %s", dir)
 		return err
 	}
-
-	common.PrintDone("Deployed updated environment: %s", name)
 
 	return nil
 }
