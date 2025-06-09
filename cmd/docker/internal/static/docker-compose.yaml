@@ -71,8 +71,6 @@ services:
       - FACETS_DEFAULT
       - FACETS_TYPE_DEFAULT
 
-      - APIHOST=${API_HOST:-localhost}
-
       - MONITORING
       - MONITORING_URL
       - MONITORING_USER

@@ -43,10 +43,33 @@ func downStack(dir string) error {
 
 // removeEnvDir deletes the environment directory with logs
 func removeEnvDir(dir string) error {
-	common.PrintStep("Deleting environment dir: %s", dir)
+	common.PrintStep("Deleting environment directory: %s", dir)
 	if err := DeleteEnvDir(dir); err != nil {
 		return err
 	}
-	common.PrintDone("Deleted environment at: %s", dir)
+	common.PrintDone("Deleted environment directory: %s", dir)
+	return nil
+}
+
+// deployMetadataCache deploys an nginx docker container running a file server exposing a volume
+func deployMetadataCache(dir, envName string) error {
+	cmd := exec.Command(
+		"docker",
+		"run",
+		"-d",
+		"--name",
+		envName+"-metadata-cache",
+		"-p",
+		"8080:80", // TODO use a free port
+		"-v",
+		dir+":/usr/share/nginx/html",
+		"nginx",
+	)
+
+	err := common.RunCommand(cmd)
+	if err != nil {
+		return fmt.Errorf("error deploying metadata-cache: %w", err)
+	}
+
 	return nil
 }

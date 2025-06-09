@@ -8,12 +8,13 @@ import (
 
 func Update(envFile, composeFile, path, name string, force, pullImages bool) error {
 	common.PrintStep("Updating environment: %s", name)
+
 	dir, err := GetEnvDir(path, name)
 	if err != nil {
 		return fmt.Errorf("failed to get environment directory: %w", err)
 	}
 
-	common.PrintDone("Environment found in dir: %s", dir)
+	common.PrintInfo("Environment directory: %s", dir)
 	common.PrintStep("Updating stack")
 
 	if force {
@@ -23,19 +24,19 @@ func Update(envFile, composeFile, path, name string, force, pullImages bool) err
 
 		common.PrintDone("Stopped environment: %s", name)
 	}
-	common.PrintStep("Removing old env dir...")
+	common.PrintStep("Removing old environment directory")
 
 	if err := removeEnvDir(dir); err != nil {
 		return fmt.Errorf("failed to remove directory %s: %w", dir, err)
 	}
-	common.PrintStep("Creating new env dir...")
+	common.PrintStep("Creating new environment directory")
 
 	dir, err = NewEnvDir(envFile, composeFile, path, name)
 	if err != nil {
 		return fmt.Errorf("failed to prepare environment directory: %w", err)
 	}
 
-	common.PrintDone("Updated environment created in dir: %s", dir)
+	common.PrintDone("Updated environment created in directory: %s", dir)
 
 	if pullImages {
 		if err := pullEnvImages(dir, name); err != nil {
