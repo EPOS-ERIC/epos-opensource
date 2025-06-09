@@ -14,7 +14,7 @@ func RunCommand(cmd *exec.Cmd) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 
-	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, os.Environ()...)
 	cmd.Env = append(cmd.Env, "COMPOSE_STATUS_STDOUT=1")
 
 	// Create a pipe to capture stderr

@@ -17,6 +17,6 @@ var dockerCmd = &cobra.Command{
 func init() {
 	dockerCmd.AddCommand(docker.DeployCmd)
 	dockerCmd.AddCommand(docker.DeleteCmd)
-	dockerCmd.AddCommand(docker.RestartCmd)
+	dockerCmd.AddCommand(docker.UpdateCmd)
 	rootCmd.AddCommand(dockerCmd)
 }

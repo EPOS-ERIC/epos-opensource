@@ -8,7 +8,7 @@ import (
 )
 
 var DeleteCmd = &cobra.Command{
-	Use:   "delete <name>",
+	Use:   "delete <name of an existing environment>",
 	Short: "docker delete cmd TODO",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
