@@ -3,7 +3,10 @@ package internal
 import (
 	"epos-cli/common"
 	"fmt"
+	"io"
+	"os"
 	"os/exec"
+	"path/filepath"
 )
 
 // composeCommand creates a docker compose command configured with the given directory and environment name
@@ -71,5 +74,112 @@ func deployMetadataCache(dir, envName string) error {
 		return fmt.Errorf("error deploying metadata-cache: %w", err)
 	}
 
+	return nil
+}
+
+// createTmpCopy creates a backup copy of the environment directory in a temporary location
+func createTmpCopy(dir string) (string, error) {
+	common.PrintStep("Creating backup copy of environment")
+
+	tmpDir, err := os.MkdirTemp("", "env-backup-*")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temporary directory: %w", err)
+	}
+
+	if err := copyDir(dir, tmpDir); err != nil {
+		os.RemoveAll(tmpDir)
+		return "", fmt.Errorf("failed to copy environment to backup: %w", err)
+	}
+
+	common.PrintDone("Backup created at: %s", tmpDir)
+	return tmpDir, nil
+}
+
+// restoreTmpDir restores the environment from temporary backup to target directory
+func restoreTmpDir(tmpDir, targetDir string) error {
+	common.PrintStep("Restoring environment from backup")
+
+	if err := os.MkdirAll(targetDir, 0700); err != nil {
+		return fmt.Errorf("failed to create target directory: %w", err)
+	}
+
+	if err := copyDir(tmpDir, targetDir); err != nil {
+		return fmt.Errorf("failed to restore from backup: %w", err)
+	}
+
+	common.PrintDone("Environment restored from backup")
+	return nil
+}
+
+// copyDir recursively copies a directory from src to dst
+func copyDir(src, dst string) error {
+	srcInfo, err := os.Stat(src)
+	if err != nil {
+		return fmt.Errorf("failed to stat source directory %s: %w", src, err)
+	}
+
+	if err := os.MkdirAll(dst, srcInfo.Mode()); err != nil {
+		return fmt.Errorf("failed to create destination directory %s: %w", dst, err)
+	}
+
+	entries, err := os.ReadDir(src)
+	if err != nil {
+		return fmt.Errorf("failed to read source directory %s: %w", src, err)
+	}
+
+	for _, entry := range entries {
+		srcPath := filepath.Join(src, entry.Name())
+		dstPath := filepath.Join(dst, entry.Name())
+
+		if entry.IsDir() {
+			if err := copyDir(srcPath, dstPath); err != nil {
+				return fmt.Errorf("failed to copy subdirectory %s to %s: %w", srcPath, dstPath, err)
+			}
+		} else {
+			if err := copyFile(srcPath, dstPath); err != nil {
+				return fmt.Errorf("failed to copy file %s to %s: %w", srcPath, dstPath, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// copyFile copies a file from src to dst
+func copyFile(src, dst string) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("failed to open source file %s: %w", src, err)
+	}
+	defer srcFile.Close()
+
+	srcInfo, err := srcFile.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to stat source file %s: %w", src, err)
+	}
+
+	dstFile, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, srcInfo.Mode())
+	if err != nil {
+		return fmt.Errorf("failed to create destination file %s: %w", dst, err)
+	}
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		return fmt.Errorf("failed to copy data from %s to %s: %w", src, dst, err)
+	}
+
+	return nil
+}
+
+// removeTmpDir removes the temporary backup directory with logs
+func removeTmpDir(tmpDir string) error {
+	common.PrintStep("Cleaning up backup directory: %s", tmpDir)
+
+	if err := os.RemoveAll(tmpDir); err != nil {
+		return fmt.Errorf("failed to cleanup backup directory: %w", err)
+	}
+
+	common.PrintDone("Backup directory cleaned up: %s", tmpDir)
 	return nil
 }

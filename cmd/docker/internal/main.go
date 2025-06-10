@@ -44,7 +44,7 @@ func init() {
 
 	// Create the directory if it doesn't exist
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		err = os.MkdirAll(configPath, 0755)
+		err = os.MkdirAll(configPath, 0700)
 		if err != nil {
 			common.PrintError("failed to create config directory %s: %v", configPath, err)
 			os.Exit(1)
@@ -87,7 +87,7 @@ func NewEnvDir(customEnvFile, customComposeFile, customPath, name string) (strin
 	}
 
 	// Create the directory
-	if err := os.MkdirAll(envPath, 0755); err != nil {
+	if err := os.MkdirAll(envPath, 0700); err != nil {
 		return "", fmt.Errorf("failed to create env directory %s: %w", envPath, err)
 	}
 

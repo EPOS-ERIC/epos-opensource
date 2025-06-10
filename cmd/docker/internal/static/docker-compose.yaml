@@ -39,14 +39,16 @@ services:
     depends_on:
       resources-service:
         condition: service_healthy
+      ingestor-service:
+        condition: service_healthy
 
   rabbitmq:
     image: "${RABBITMQ_IMAGE}"
     container_name: ${ENV_NAME:-epos-platform}-rabbitmq
     environment:
-      - RABBITMQ_DEFAULT_PASS
-      - RABBITMQ_DEFAULT_USER
-      - RABBITMQ_DEFAULT_VHOST
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USERNAME}
+      - RABBITMQ_DEFAULT_VHOST=${RABBITMQ_VHOST}
     restart: always
     healthcheck:
       test: "rabbitmq-diagnostics -q ping"
@@ -63,10 +65,10 @@ services:
       - epos_network
     restart: always
     environment:
-      - BROKER_HOST
-      - BROKER_USERNAME
-      - BROKER_PASSWORD
-      - BROKER_VHOST
+      - BROKER_HOST=${RABBITMQ_HOST}
+      - BROKER_USERNAME=${RABBITMQ_USERNAME}
+      - BROKER_PASSWORD=${RABBITMQ_PASSWORD}
+      - BROKER_VHOST=${RABBITMQ_VHOST}
 
       - FACETS_DEFAULT
       - FACETS_TYPE_DEFAULT
@@ -82,17 +84,38 @@ services:
       - CONNECTION_POOL_MIN_SIZE
       - CONNECTION_POOL_MAX_SIZE
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl --fail --silent http://localhost:8080/api/resources-service/v1/actuator/health | grep UP || exit 1",
-        ]
+      test: "curl --fail --silent http://localhost:8080/api/resources-service/v1/actuator/health | grep UP || exit 1"
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     depends_on:
       rabbitmq:
         condition: service_healthy
+      metadata-database:
+        condition: service_healthy
+
+  ingestor-service:
+    image: ${INGESTOR_SERVICE_IMAGE}
+    container_name: ${ENV_NAME:-epos-platform}-ingestor-service
+    networks:
+      - epos_network
+    restart: always
+    environment:
+      - PERSISTENCE_NAME
+      - POSTGRESQL_CONNECTION_STRING
+      - INGESTOR_HASH
+      - BASECONTEXT=
+      - CONNECTION_POOL_INIT_SIZE
+      - CONNECTION_POOL_MIN_SIZE
+      - CONNECTION_POOL_MAX_SIZE
+    healthcheck:
+      test: "curl --fail --silent http://localhost:8080/api/ingestor-service/v1/actuator/health | grep UP || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    depends_on:
       metadata-database:
         condition: service_healthy
 
