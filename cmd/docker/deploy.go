@@ -14,11 +14,12 @@ var DeployCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		err := internal.Deploy(envFile, composeFile, path, name, pullImages)
+		portalURL, gatewayURL, err := internal.Deploy(envFile, composeFile, path, name, pullImages)
 		if err != nil {
 			common.PrintError("%v", err)
 			return
 		}
+		common.PrintUrls(portalURL, gatewayURL)
 	},
 }
 

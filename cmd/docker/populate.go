@@ -17,11 +17,13 @@ var PopulateCmd = &cobra.Command{
 		name := args[0]
 		ttlDir := args[1]
 
-		err := internal.Populate(path, name, ttlDir)
+		portalURL, gatewayURL, err := internal.Populate(path, name, ttlDir)
 		if err != nil {
 			common.PrintError("%v", err)
 			return
 		}
+
+		common.PrintUrls(portalURL, gatewayURL)
 	},
 }
 

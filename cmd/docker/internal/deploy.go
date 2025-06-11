@@ -6,12 +6,12 @@ import (
 	"fmt"
 )
 
-func Deploy(envFile, composeFile, path, name string, pullImages bool) error {
+func Deploy(envFile, composeFile, path, name string, pullImages bool) (portalURL, gatewayURL string, err error) {
 	common.PrintStep("Creating environment: %s", name)
 
 	dir, err := NewEnvDir(envFile, composeFile, path, name)
 	if err != nil {
-		return fmt.Errorf("failed to prepare environment directory: %w", err)
+		return "", "", fmt.Errorf("failed to prepare environment directory: %w", err)
 	}
 
 	common.PrintDone("Environment created in directory: %s", dir)
@@ -20,9 +20,9 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) error {
 		if err := pullEnvImages(dir, name); err != nil {
 			common.PrintError("Pulling images failed: %v", err)
 			if err := removeEnvDir(dir); err != nil {
-				return fmt.Errorf("error deleting environment %s: %w", dir, err)
+				return "", "", fmt.Errorf("error deleting environment %s: %w", dir, err)
 			}
-			return err
+			return "", "", err
 		}
 	}
 
@@ -34,10 +34,10 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) error {
 		}
 
 		if err := removeEnvDir(dir); err != nil {
-			return fmt.Errorf("error deleting environment %s: %w", dir, err)
+			return "", "", fmt.Errorf("error deleting environment %s: %w", dir, err)
 		}
 		common.PrintError("stack deployment failed")
-		return err
+		return "", "", err
 	}
 
 	if err := populateOntologies(dir); err != nil {
@@ -48,12 +48,15 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) error {
 		}
 
 		if err := removeEnvDir(dir); err != nil {
-			return fmt.Errorf("error deleting environment %s: %w", dir, err)
+			return "", "", fmt.Errorf("error deleting environment %s: %w", dir, err)
 		}
 		common.PrintError("stack deployment failed")
 	}
 
-	_ = common.PrintUrls(dir)
+	portalURL, gatewayURL, err = buildEnvURLs(dir)
+	if err != nil {
+		return "", "", fmt.Errorf("error building env urls for environment '%s': %w", dir, err)
+	}
 
-	return nil
+	return portalURL, gatewayURL, nil
 }

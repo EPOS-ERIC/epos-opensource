@@ -280,7 +280,7 @@ func populateOntologies(dir string) error {
 		reqURL := *baseURL
 		q := reqURL.Query()
 		q.Set("path", ont.path)
-		q.Set("securityCode", "changeme") // TODO: remove this when it is removed from the ingestor
+		q.Set("securityCode", "changeme") // TODO: remove this once it's removed from the ingestor
 		q.Set("type", ont.ontType)
 		q.Set("name", ont.name)
 		reqURL.RawQuery = q.Encode()
@@ -309,4 +309,35 @@ func populateOntologies(dir string) error {
 	common.PrintDone("All ontologies loaded successfully")
 
 	return nil
+}
+
+func buildEnvURLs(dir string) (portalURL, gatewayURL string, err error) {
+	env, err := godotenv.Read(filepath.Join(dir, ".env"))
+	if err != nil {
+		return "", "", fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
+	}
+	if _, ok := env["DATAPORTAL_PORT"]; !ok {
+		return "", "", fmt.Errorf("environment variable DATAPORTAL_PORT is not set")
+	}
+	if _, ok := env["GATEWAY_PORT"]; !ok {
+		return "", "", fmt.Errorf("environment variable GATEWAY_PORT is not set")
+	}
+	if _, ok := env["DEPLOY_PATH"]; !ok {
+		return "", "", fmt.Errorf("environment variable DEPLOY_PATH is not set")
+	}
+	if _, ok := env["API_PATH"]; !ok {
+		return "", "", fmt.Errorf("environment variable API_PATH is not set")
+	}
+
+	localIP, err := common.GetLocalIP()
+	if err != nil {
+		return "", "", fmt.Errorf("error getting local IP address: %w", err)
+	}
+
+	portalURL = "http://" + localIP + ":" + env["DATAPORTAL_PORT"]
+	gatewayURL, err = url.JoinPath("http://"+localIP+":"+env["GATEWAY_PORT"], env["DEPLOY_PATH"], env["API_PATH"], "ui")
+	if err != nil {
+		return "", "", fmt.Errorf("error building path for gateway url: %w", err)
+	}
+	return portalURL, gatewayURL, nil
 }

@@ -16,11 +16,13 @@ var UpdateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		err := internal.Update(envFile, composeFile, path, name, force, pullImages)
+		portalURL, gatewayURL, err := internal.Update(envFile, composeFile, path, name, force, pullImages)
 		if err != nil {
 			common.PrintError("%v", err)
 			return
 		}
+
+		common.PrintUrls(portalURL, gatewayURL)
 	},
 }
 

@@ -15,13 +15,13 @@ import (
 // deploy the updated compose
 // if everything goes right, delete the tmp dir and finish
 // else restore the tmp dir, deploy the old restored env and give an error in output
-func Update(envFile, composeFile, path, name string, force, pullImages bool) error {
+func Update(envFile, composeFile, path, name string, force, pullImages bool) (portalURL, gatewayURL string, err error) {
 	common.PrintStep("Updating environment: %s", name)
 
 	// Find the old env, if it does not exist give an error
 	dir, err := GetEnvDir(path, name)
 	if err != nil {
-		return fmt.Errorf("failed to get environment directory: %w", err)
+		return "", "", fmt.Errorf("failed to get environment directory: %w", err)
 	}
 
 	common.PrintInfo("Environment directory: %s", dir)
@@ -29,7 +29,7 @@ func Update(envFile, composeFile, path, name string, force, pullImages bool) err
 	// If it exists, create a copy of it in a tmp dir
 	tmpDir, err := createTmpCopy(dir)
 	if err != nil {
-		return fmt.Errorf("failed to create backup copy: %w", err)
+		return "", "", fmt.Errorf("failed to create backup copy: %w", err)
 	}
 
 	// Cleanup function to restore from tmp if needed
@@ -58,7 +58,7 @@ func Update(envFile, composeFile, path, name string, force, pullImages bool) err
 			if cleanupErr := removeTmpDir(tmpDir); cleanupErr != nil {
 				common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
 			}
-			return fmt.Errorf("docker compose down failed: %w", err)
+			return "", "", fmt.Errorf("docker compose down failed: %w", err)
 		}
 		common.PrintDone("Stopped environment: %s", name)
 	}
@@ -73,7 +73,7 @@ func Update(envFile, composeFile, path, name string, force, pullImages bool) err
 		if cleanupErr := removeTmpDir(tmpDir); cleanupErr != nil {
 			common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
 		}
-		return fmt.Errorf("failed to remove directory %s: %w", dir, err)
+		return "", "", fmt.Errorf("failed to remove directory %s: %w", dir, err)
 	}
 
 	common.PrintStep("Creating new environment directory")
@@ -86,7 +86,7 @@ func Update(envFile, composeFile, path, name string, force, pullImages bool) err
 		if cleanupErr := removeTmpDir(tmpDir); cleanupErr != nil {
 			common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
 		}
-		return fmt.Errorf("failed to prepare environment directory: %w", err)
+		return "", "", fmt.Errorf("failed to prepare environment directory: %w", err)
 	}
 
 	common.PrintDone("Updated environment created in directory: %s", dir)
@@ -101,7 +101,7 @@ func Update(envFile, composeFile, path, name string, force, pullImages bool) err
 			if cleanupErr := removeTmpDir(tmpDir); cleanupErr != nil {
 				common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
 			}
-			return err
+			return "", "", err
 		}
 	}
 
@@ -114,7 +114,7 @@ func Update(envFile, composeFile, path, name string, force, pullImages bool) err
 		if cleanupErr := removeTmpDir(tmpDir); cleanupErr != nil {
 			common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
 		}
-		return err
+		return "", "", err
 	}
 
 	// If everything goes right, delete the tmp dir and finish
@@ -123,7 +123,10 @@ func Update(envFile, composeFile, path, name string, force, pullImages bool) err
 		// Don't return error as the main operation succeeded
 	}
 
-	_ = common.PrintUrls(dir)
+	portalURL, gatewayURL, err = buildEnvURLs(dir)
+	if err != nil {
+		return "", "", fmt.Errorf("error building env urls for environment '%s': %w", dir, err)
+	}
 
-	return nil
+	return portalURL, gatewayURL, nil
 }

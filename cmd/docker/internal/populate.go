@@ -12,11 +12,11 @@ import (
 	"strings"
 )
 
-func Populate(path, name, ttlDir string) error {
+func Populate(path, name, ttlDir string) (portalURL, gatewayURL string, err error) {
 	common.PrintStep("Populating environment: %s", name)
 	dir, err := GetEnvDir(path, name)
 	if err != nil {
-		return fmt.Errorf("failed to get environment directory: %w", err)
+		return "", "", fmt.Errorf("failed to get environment directory: %w", err)
 	}
 	common.PrintDone("Environment found in dir: %s", dir)
 
@@ -24,12 +24,11 @@ func Populate(path, name, ttlDir string) error {
 	port, err := deployMetadataCache(ttlDir, name)
 	if err != nil {
 		common.PrintError("Failed to deploy metadata-cache: %v", err)
-		return fmt.Errorf("failed to deploy metadata-cache: %w", err)
+		return "", "", fmt.Errorf("failed to deploy metadata-cache: %w", err)
 	}
 
-	var success bool
 	// make sure that the metadata-cache gets removed and URLs are printed last on success
-	defer func(name, dir string) {
+	defer func(name string) {
 		common.PrintStep("Removing metadata-cache: %s-metadata-cache", name)
 		err := deleteMetadataCache(name)
 		if err != nil {
@@ -37,15 +36,11 @@ func Populate(path, name, ttlDir string) error {
 		} else {
 			common.PrintDone("Metadata-cache removed successfully")
 		}
-
-		if success {
-			_ = common.PrintUrls(dir)
-		}
-	}(name, dir)
+	}(name)
 
 	postURL, err := getApiURL(dir)
 	if err != nil {
-		return fmt.Errorf("error getting api URL for env %s: %w", name, err)
+		return "", "", fmt.Errorf("error getting api URL for env %s: %w", name, err)
 	}
 	postURL = postURL.JoinPath("/populate")
 
@@ -54,7 +49,7 @@ func Populate(path, name, ttlDir string) error {
 
 	localIP, err := common.GetLocalIP()
 	if err != nil {
-		return fmt.Errorf("error getting local IP address: %w", err)
+		return "", "", fmt.Errorf("error getting local IP address: %w", err)
 	}
 
 	ingestionError := false
@@ -126,13 +121,17 @@ func Populate(path, name, ttlDir string) error {
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("failed to ingest metadata in directory %s: %w", ttlDir, err)
+		return "", "", fmt.Errorf("failed to ingest metadata in directory %s: %w", ttlDir, err)
 	}
 
 	if ingestionError {
-		return fmt.Errorf("failed to ingest metadata in directory %s", ttlDir)
+		return "", "", fmt.Errorf("failed to ingest metadata in directory %s", ttlDir)
 	}
 
-	success = true
-	return nil
+	portalURL, gatewayURL, err = buildEnvURLs(dir)
+	if err != nil {
+		return "", "", fmt.Errorf("error building env urls for environment '%s': %w", dir, err)
+	}
+
+	return portalURL, gatewayURL, nil
 }

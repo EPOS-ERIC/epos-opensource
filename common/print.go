@@ -2,12 +2,9 @@ package common
 
 import (
 	"fmt"
-	"net/url"
-	"path/filepath"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
-	"github.com/joho/godotenv"
 )
 
 const (
@@ -52,35 +49,7 @@ func PrintDone(format string, a ...any) {
 }
 
 // PrintUrls prints the urls for the dataportal and the api gateway for a specific environment in the `dir` directory
-func PrintUrls(dir string) error {
-	env, err := godotenv.Read(filepath.Join(dir, ".env"))
-	if err != nil {
-		return fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
-	}
-	if _, ok := env["DATAPORTAL_PORT"]; !ok {
-		return fmt.Errorf("environment variable DATAPORTAL_PORT is not set")
-	}
-	if _, ok := env["GATEWAY_PORT"]; !ok {
-		return fmt.Errorf("environment variable GATEWAY_PORT is not set")
-	}
-	if _, ok := env["DEPLOY_PATH"]; !ok {
-		return fmt.Errorf("environment variable DEPLOY_PATH is not set")
-	}
-	if _, ok := env["API_PATH"]; !ok {
-		return fmt.Errorf("environment variable API_PATH is not set")
-	}
-
-	localIP, err := GetLocalIP()
-	if err != nil {
-		return fmt.Errorf("error getting local IP address: %w", err)
-	}
-
-	dataPortalURL := "http://" + localIP + ":" + env["DATAPORTAL_PORT"]
-	gatewayURL, err := url.JoinPath("http://"+localIP+":"+env["GATEWAY_PORT"], env["DEPLOY_PATH"], env["API_PATH"], "ui")
-	if err != nil {
-		return fmt.Errorf("error building path for gateway url: %w", err)
-	}
-
+func PrintUrls(portalURL, gatewayURL string) {
 	logo := `
                                                  *************                              
 &&&&&&&&&&&&&&&&&& *&&&&&&&%&&&%               *****************               &&&&&&/      
@@ -117,7 +86,7 @@ func PrintUrls(dir string) error {
 	t.AppendRow(table.Row{logo, logo}, rowMerge)
 
 	t.AppendSeparator()
-	t.AppendRow(table.Row{"EPOS Data Portal", dataPortalURL})
+	t.AppendRow(table.Row{"EPOS Data Portal", portalURL})
 	t.AppendSeparator()
 	t.AppendRow(table.Row{"EPOS API Gateway", gatewayURL})
 	rowIndex := -1
@@ -133,5 +102,4 @@ func PrintUrls(dir string) error {
 	t.AppendFooter(table.Row{"Copyright (C) 2023  EPOS ERIC", "Copyright (C) 2023  EPOS ERIC"}, rowMerge)
 
 	fmt.Println(t.Render())
-	return nil
 }
