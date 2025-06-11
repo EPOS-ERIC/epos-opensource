@@ -170,7 +170,7 @@ services:
 
   converter-service:
     image: ${CONVERTER_SERVICE_IMAGE}
-    container_name: ${ENV_NAME-epos-platform}-converter-service
+    container_name: ${ENV_NAME:-epos-platform}-converter-service
     volumes:
       - converter:/opt/converter/plugins
     networks:

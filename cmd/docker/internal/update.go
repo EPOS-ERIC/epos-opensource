@@ -34,7 +34,7 @@ func Update(envFile, composeFile, path, name string, force, pullImages bool) (po
 
 	// Cleanup function to restore from tmp if needed
 	restoreFromTmp := func() error {
-		common.PrintStep("Restoring from backup")
+		common.PrintStep("Restoring environment from backup")
 		if err := removeEnvDir(dir); err != nil {
 			common.PrintError("Failed to remove corrupted directory: %v", err)
 		}

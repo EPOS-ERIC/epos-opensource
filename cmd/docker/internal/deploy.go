@@ -27,7 +27,7 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) (portalURL
 	}
 
 	if err := deployStack(dir, name); err != nil {
-		common.PrintError("%v", err)
+		common.PrintError("Deploy failed: %v", err)
 
 		if err := downStack(dir, false); err != nil {
 			common.PrintWarn("docker compose down failed, there may be dangling resources: %v", err)

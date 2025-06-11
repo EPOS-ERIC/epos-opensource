@@ -26,11 +26,11 @@ func composeCommand(dir, name string, args ...string) *exec.Cmd {
 
 // pullEnvImages pulls docker images for the environment with custom messages
 func pullEnvImages(dir, name string) error {
-	common.PrintStep("Pulling images for environment %s", name)
+	common.PrintStep("Pulling images for environment: %s", name)
 	if err := common.RunCommand(composeCommand(dir, "", "pull")); err != nil {
 		return fmt.Errorf("pull images failed: %w", err)
 	}
-	common.PrintDone("Images pulled for environment %s", name)
+	common.PrintDone("Images pulled for environment: %s", name)
 	return nil
 }
 
