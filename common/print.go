@@ -2,6 +2,12 @@ package common
 
 import (
 	"fmt"
+	"net/url"
+	"path/filepath"
+
+	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/v6/text"
+	"github.com/joho/godotenv"
 )
 
 const (
@@ -43,4 +49,89 @@ func PrintWait(format string, a ...any) {
 func PrintDone(format string, a ...any) {
 	message := fmt.Sprintf(format, a...)
 	fmt.Printf("%s[DONE]\t%s%s\n", colorGreen, message, colorReset)
+}
+
+// PrintUrls prints the urls for the dataportal and the api gateway for a specific environment in the `dir` directory
+func PrintUrls(dir string) error {
+	env, err := godotenv.Read(filepath.Join(dir, ".env"))
+	if err != nil {
+		return fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
+	}
+	if _, ok := env["DATAPORTAL_PORT"]; !ok {
+		return fmt.Errorf("environment variable DATAPORTAL_PORT is not set")
+	}
+	if _, ok := env["GATEWAY_PORT"]; !ok {
+		return fmt.Errorf("environment variable GATEWAY_PORT is not set")
+	}
+	if _, ok := env["DEPLOY_PATH"]; !ok {
+		return fmt.Errorf("environment variable DEPLOY_PATH is not set")
+	}
+	if _, ok := env["API_PATH"]; !ok {
+		return fmt.Errorf("environment variable API_PATH is not set")
+	}
+
+	localIP, err := GetLocalIP()
+	if err != nil {
+		return fmt.Errorf("error getting local IP address: %w", err)
+	}
+
+	dataPortalURL := "http://" + localIP + ":" + env["DATAPORTAL_PORT"]
+	gatewayURL, err := url.JoinPath("http://"+localIP+":"+env["GATEWAY_PORT"], env["DEPLOY_PATH"], env["API_PATH"], "ui")
+	if err != nil {
+		return fmt.Errorf("error building path for gateway url: %w", err)
+	}
+
+	logo := `
+                                                 *************                              
+&&&&&&&&&&&&&&&&&& *&&&&&&&%&&&%               *****************               &&&&&&/      
+&&&&&&&&&&&&&&&&&& *&&&&&&&&&&&&&&&&&       **  **********  *******       &&&&&&&&&&&&&&&&& 
+&&&&&&&&&&&%&&&&&& *&&&&&&&%    &&&&&&&   ,************     *********    &&%&&&&&&&&&&&&&   
+&&&&&&             *&&&&&&        &&&&&( ************   **   ********** &&&&&&#             
+&&&&&&             *&&&&&&(       &&&&& ****** * *****  **  *********** &&&&&&&&#           
+&&&&&&&&&&&&&&&&.  *&&&&&&&&&&&&&&&&&&& *******   *   , *    *********** &&&&&&&&&&&&&&&&   
+&&&%&&&&&&&%&&&&.  *&&&&&&&%&&&&&&&%&   *******                 ,*******    &&&&&&&%&&&&&&& 
+&&&&&&             *&&&&&&               *                   , ********              &&&&&&.
+&&&&&&             *&&&&&&               .    ******  *,    ******* **    &&         &&&&&& 
+&&&&&&&&&&&&&&&&&& *&&&&&&                 ************** *         *   &&&&&&&&&&&&&&&&&&& 
+&&&&&&&&&&&%&&&&&& *&&&&&&                   ************* ,*******     &&&%&&&&&&&&&&&&    
+                                               ****************          &&&&&&&&&&&&       
+`
+	t := table.NewWriter()
+	t.SetTitle("epos-cli deploy")
+	t.Style().Title.Align = text.AlignCenter
+	t.SetStyle(table.StyleRounded)
+	t.Style().Title.Colors = text.Colors{text.FgYellow, text.Bold}
+	t.Style().Color.Border = text.Colors{text.FgGreen}
+	t.Style().Color.Footer = text.Colors{text.FgGreen}
+	t.Style().Color.Separator = text.Colors{text.FgGreen}
+	t.SetColumnConfigs([]table.ColumnConfig{
+		{Number: 1, Colors: text.Colors{text.FgYellow, text.Bold}},
+		{Number: 2, Colors: text.Colors{text.FgHiCyan}},
+	})
+
+	rowMerge := table.RowConfig{
+		AutoMerge:      true,
+		AutoMergeAlign: text.AlignLeft,
+	}
+	// HACK: using a row with two logo columns so that they can be merged into one column
+	t.AppendRow(table.Row{logo, logo}, rowMerge)
+
+	t.AppendSeparator()
+	t.AppendRow(table.Row{"EPOS Data Portal", dataPortalURL})
+	t.AppendSeparator()
+	t.AppendRow(table.Row{"EPOS API Gateway", gatewayURL})
+	rowIndex := -1
+	highlight := text.Colors{text.FgGreen, text.Bold}
+	t.SetRowPainter(func(row table.Row) text.Colors {
+		rowIndex++
+		if rowIndex == 0 {
+			return highlight
+		}
+		return nil
+	})
+
+	t.AppendFooter(table.Row{"Copyright (C) 2023  EPOS ERIC", "Copyright (C) 2023  EPOS ERIC"}, rowMerge)
+
+	fmt.Println(t.Render())
+	return nil
 }

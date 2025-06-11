@@ -4,9 +4,14 @@ import (
 	"epos-cli/common"
 	"fmt"
 	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
+
+	"github.com/joho/godotenv"
 )
 
 // composeCommand creates a docker compose command configured with the given directory and environment name
@@ -40,7 +45,10 @@ func deployStack(dir, name string) error {
 }
 
 // downStack stops the stack running in the given directory
-func downStack(dir string) error {
+func downStack(dir string, removeVolumes bool) error {
+	if removeVolumes {
+		return common.RunCommand(composeCommand(dir, "", "down", "-v"))
+	}
 	return common.RunCommand(composeCommand(dir, "", "down"))
 }
 
@@ -55,7 +63,11 @@ func removeEnvDir(dir string) error {
 }
 
 // deployMetadataCache deploys an nginx docker container running a file server exposing a volume
-func deployMetadataCache(dir, envName string) error {
+func deployMetadataCache(dir, envName string) (int, error) {
+	port, err := common.GetFreePort()
+	if err != nil {
+		return 0, fmt.Errorf("error getting a free port for the metadata-cache: %w", err)
+	}
 	cmd := exec.Command(
 		"docker",
 		"run",
@@ -63,15 +75,31 @@ func deployMetadataCache(dir, envName string) error {
 		"--name",
 		envName+"-metadata-cache",
 		"-p",
-		"8080:80", // TODO use a free port
+		strconv.Itoa(port)+":80",
 		"-v",
 		dir+":/usr/share/nginx/html",
 		"nginx",
 	)
 
-	err := common.RunCommand(cmd)
+	err = common.RunCommand(cmd)
 	if err != nil {
-		return fmt.Errorf("error deploying metadata-cache: %w", err)
+		return 0, fmt.Errorf("error deploying metadata-cache: %w", err)
+	}
+
+	return port, nil
+}
+
+// deployMetadataCache removes a deployment of a metadata cache container
+func deleteMetadataCache(envName string) error {
+	cmd := exec.Command(
+		"docker",
+		"rm",
+		"-f",
+		envName+"-metadata-cache",
+	)
+
+	if err := common.RunCommand(cmd); err != nil {
+		return fmt.Errorf("error removing metadata-cache: %w", err)
 	}
 
 	return nil
@@ -181,5 +209,104 @@ func removeTmpDir(tmpDir string) error {
 	}
 
 	common.PrintDone("Backup directory cleaned up: %s", tmpDir)
+	return nil
+}
+
+func getApiURL(dir string) (*url.URL, error) {
+	env, err := godotenv.Read(filepath.Join(dir, ".env"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
+	}
+	// check that all the vars we need are set
+	if _, ok := env["GATEWAY_PORT"]; !ok {
+		return nil, fmt.Errorf("environment variable GATEWAY_PORT is not set")
+	}
+	if _, ok := env["DEPLOY_PATH"]; !ok {
+		return nil, fmt.Errorf("environment variable DEPLOY_PATH is not set")
+	}
+	if _, ok := env["API_PATH"]; !ok {
+		return nil, fmt.Errorf("environment variable API_PATH is not set")
+	}
+	postPath, err := url.JoinPath("http://localhost:"+env["GATEWAY_PORT"], env["DEPLOY_PATH"], env["API_PATH"])
+	if err != nil {
+		return nil, fmt.Errorf("error building post url: %w", err)
+	}
+	posturl, err := url.Parse(postPath)
+	if err != nil {
+		return nil, fmt.Errorf("error building post url: %w", err)
+	}
+	return posturl, nil
+}
+
+type ontology struct {
+	path    string
+	name    string
+	ontType string
+}
+
+// populateOntologies populates an environment deployed in a `dir` with the base ontologies for the ingestor
+func populateOntologies(dir string) error {
+	// curl -X POST --header 'accept: */*' 'http://localhost:33000/api/v1/ontology?path=https://raw.githubusercontent.com/epos-eu/EPOS-DCAT-AP/EPOS-DCAT-AP-shapes/epos-dcat-ap_shapes.ttl&securityCode=changeme&name=EPOS-DCAT-AP-V1&type=BASE'
+	// curl -X POST --header 'accept: */*' 'http://localhost:33000/api/v1/ontology?path=https://raw.githubusercontent.com/epos-eu/EPOS-DCAT-AP/EPOS-DCAT-AP-v3.0/docs/epos-dcat-ap_v3.0.0_shacl.ttl&securityCode=changeme&name=EPOS-DCAT-AP-V3&type=BASE'
+	// curl -X POST --header 'accept: */*' 'http://localhost:33000/api/v1/ontology?path=https://raw.githubusercontent.com/epos-eu/EPOS_Data_Model_Mapping/main/edm-schema-shapes.ttl&securityCode=changeme&name=EDM-TO-DCAT-AP&type=MAPPING'
+
+	baseURL, err := getApiURL(dir)
+	if err != nil {
+		return fmt.Errorf("error getting base api URL for environment in dir %s: %w", dir, err)
+	}
+	baseURL = baseURL.JoinPath("/ontology")
+
+	ontologies := []ontology{
+		{
+			path:    "https://raw.githubusercontent.com/epos-eu/EPOS-DCAT-AP/EPOS-DCAT-AP-shapes/epos-dcat-ap_shapes.ttl",
+			name:    "EPOS-DCAT-AP-V1",
+			ontType: "BASE",
+		},
+		{
+			path:    "https://raw.githubusercontent.com/epos-eu/EPOS-DCAT-AP/EPOS-DCAT-AP-v3.0/docs/epos-dcat-ap_v3.0.0_shacl.ttl",
+			name:    "EPOS-DCAT-AP-V3",
+			ontType: "BASE",
+		},
+		{
+			path:    "https://raw.githubusercontent.com/epos-eu/EPOS_Data_Model_Mapping/main/edm-schema-shapes.ttl",
+			name:    "EDM-TO-DCAT-AP",
+			ontType: "MAPPING",
+		},
+	}
+
+	common.PrintStep("Populating the environment with base ontologies")
+
+	for i, ont := range ontologies {
+		reqURL := *baseURL
+		q := reqURL.Query()
+		q.Set("path", ont.path)
+		q.Set("securityCode", "changeme") // TODO: remove this when it is removed from the ingestor
+		q.Set("type", ont.ontType)
+		q.Set("name", ont.name)
+		reqURL.RawQuery = q.Encode()
+
+		common.PrintStep("  [%d/3] Loading %s ontology...", i+1, ont.name)
+
+		req, err := http.NewRequest("POST", reqURL.String(), nil)
+		if err != nil {
+			return fmt.Errorf("error creating ontology request for %s: %w", ont.name, err)
+		}
+		req.Header.Set("accept", "*/*")
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("error making ontology request for %s: %w", ont.name, err)
+		}
+
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		if resp.StatusCode != 200 {
+			return fmt.Errorf("ontology request for %s failed with status %d: %s", ont.name, resp.StatusCode, string(body))
+		}
+	}
+
+	common.PrintDone("All ontologies loaded successfully")
+
 	return nil
 }

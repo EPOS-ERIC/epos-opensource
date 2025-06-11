@@ -17,7 +17,7 @@ func Delete(customPath, name string) error {
 	common.PrintInfo("Environment directory: %s", dir)
 	common.PrintStep("Stopping stack")
 
-	if err := downStack(dir); err != nil {
+	if err := downStack(dir, true); err != nil {
 		return fmt.Errorf("docker compose down failed: %w", err)
 	}
 

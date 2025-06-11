@@ -8,10 +8,11 @@ services:
       - epos_network
     restart: always
     environment:
-      - BASE_URL=/
+      - BASE_URL=${DEPLOY_PATH}
       - API_HOST=http://gateway:5000/api
     depends_on:
-      - gateway
+      gateway:
+        condition: service_healthy
 
   gateway:
     image: ${GATEWAY_IMAGE}
@@ -31,15 +32,26 @@ services:
       - LOAD_CONVERTER_API
       - LOAD_MONITORING_API
       - LOAD_EMAIL_SENDER_API
-      - IS_AAI_ENABLED
 
-      #TODO:check if needed
+      - IS_AAI_ENABLED
       - SECURITY_KEY
       - AAI_SERVICE_ENDPOINT
+    healthcheck:
+      test: python3 -c 'import urllib.request; resp=urllib.request.urlopen("http://localhost:5000/api/v1/ui", timeout=5); print(f"Status {resp.getcode()}"); exit(0 if resp.getcode() == 200 else 1)' || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     depends_on:
       resources-service:
         condition: service_healthy
       ingestor-service:
+        condition: service_healthy
+      external-access-service:
+        condition: service_healthy
+      converter-service:
+        condition: service_healthy
+      converter-routine:
         condition: service_healthy
 
   rabbitmq:
@@ -52,9 +64,10 @@ services:
     restart: always
     healthcheck:
       test: "rabbitmq-diagnostics -q ping"
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 5
+      start_period: 10s
     networks:
       - epos_network
 
@@ -85,10 +98,10 @@ services:
       - CONNECTION_POOL_MAX_SIZE
     healthcheck:
       test: "curl --fail --silent http://localhost:8080/api/resources-service/v1/actuator/health | grep UP || exit 1"
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 30s
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -111,10 +124,100 @@ services:
       - CONNECTION_POOL_MAX_SIZE
     healthcheck:
       test: "curl --fail --silent http://localhost:8080/api/ingestor-service/v1/actuator/health | grep UP || exit 1"
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 10s
+    depends_on:
+      metadata-database:
+        condition: service_healthy
+
+  external-access-service:
+    image: ${EXTERNAL_ACCESS_IMAGE}
+    container_name: ${ENV_NAME:-epos-platform}-external-access-service
+    networks:
+      - epos_network
+    restart: always
+    environment:
+      - BROKER_HOST=${RABBITMQ_HOST}
+      - BROKER_USERNAME=${RABBITMQ_USERNAME}
+      - BROKER_PASSWORD=${RABBITMQ_PASSWORD}
+      - BROKER_VHOST=${RABBITMQ_VHOST}
+
+      - POSTGRESQL_CONNECTION_STRING
+      - CONNECTION_POOL_INIT_SIZE
+      - CONNECTION_POOL_MIN_SIZE
+      - CONNECTION_POOL_MAX_SIZE
+
+      - BASECONTEXT=
+      - PERSISTENCE_NAME
+      - APIHOST=localhost
+      - APICONTEXT=${API_PATH}
+      - MONITORING
+    healthcheck:
+      test: "curl --fail --silent http://localhost:8080/api/external-access-service/v1/actuator/health | grep UP || exit 1"
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      metadata-database:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  converter-service:
+    image: ${CONVERTER_SERVICE_IMAGE}
+    container_name: ${ENV_NAME-epos-platform}-converter-service
+    volumes:
+      - converter:/opt/converter/plugins
+    networks:
+      - epos_network
+    restart: always
+    environment:
+      - BROKER_HOST=${RABBITMQ_HOST}
+      - BROKER_USERNAME=${RABBITMQ_USERNAME}
+      - BROKER_PASSWORD=${RABBITMQ_PASSWORD}
+      - BROKER_VHOST=${RABBITMQ_VHOST}
+
+      - LOG_LEVEL=INFO
+      - POSTGRESQL_CONNECTION_STRING
+    healthcheck:
+      test: "wget --quiet --tries=1 -O - http://localhost:8080/api/converter-service/v1/actuator/health | grep -i 'healthy' || exit 1"
+      interval: 30s
+      timeout: 5s
+      retries: 500
+      start_period: 5s
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      metadata-database:
+        condition: service_healthy
+
+  converter-routine:
+    image: ${CONVERTER_ROUTINE_IMAGE}
+    container_name: ${ENV_NAME:-epos-platform}-converter-routine
+    volumes:
+      - converter:/opt/converter/plugins
+    networks:
+      - epos_network
+    restart: always
+    environment:
+      - LOG_LEVEL=INFO
+      - PERSISTENCE_NAME
+
+      - BROKER_HOST=${RABBITMQ_HOST}
+      - BROKER_USERNAME=${RABBITMQ_USERNAME}
+      - BROKER_PASSWORD=${RABBITMQ_PASSWORD}
+      - BROKER_VHOST=${RABBITMQ_VHOST}
+
+      - CONVERTER_CATALOGUE_CONNECTION_STRING=${POSTGRESQL_CONNECTION_STRING}
+    healthcheck:
+      test: "wget --quiet --tries=1 -O - http://localhost:8080/api/converter-routine/v1/actuator/health | grep -i 'healthy' || exit 1"
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
     depends_on:
       metadata-database:
         condition: service_healthy
@@ -131,9 +234,10 @@ services:
       - psqldata:/var/lib/postgresql
     healthcheck:
       test: "pg_isready"
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 5
+      start_period: 10s
     networks:
       - epos_network
 

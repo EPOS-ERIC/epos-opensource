@@ -29,7 +29,7 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) error {
 	if err := deployStack(dir, name); err != nil {
 		common.PrintError("%v", err)
 
-		if err := downStack(dir); err != nil {
+		if err := downStack(dir, false); err != nil {
 			common.PrintWarn("docker compose down failed, there may be dangling resources: %v", err)
 		}
 
@@ -39,6 +39,21 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) error {
 		common.PrintError("stack deployment failed")
 		return err
 	}
+
+	if err := populateOntologies(dir); err != nil {
+		common.PrintError("error initializing the ontologies in the environment: %v", err)
+
+		if err := downStack(dir, false); err != nil {
+			common.PrintWarn("docker compose down failed, there may be dangling resources: %v", err)
+		}
+
+		if err := removeEnvDir(dir); err != nil {
+			return fmt.Errorf("error deleting environment %s: %w", dir, err)
+		}
+		common.PrintError("stack deployment failed")
+	}
+
+	_ = common.PrintUrls(dir)
 
 	return nil
 }
