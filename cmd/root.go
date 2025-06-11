@@ -1,8 +1,12 @@
 package cmd
 
 import (
+	"context"
+	"fmt"
 	"os"
+	"time"
 
+	"github.com/google/go-github/v72/github"
 	"github.com/spf13/cobra"
 )
 
@@ -34,5 +38,21 @@ func Execute() {
 	}
 }
 
-func init() {
+// TODO: implement a version & update check using this
+func GetLatestGitHubTag(owner, repoName string) (string, error) {
+	client := github.NewClient(nil)
+
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelFunc()
+
+	release, _, err := client.Repositories.GetLatestRelease(ctx, owner, repoName)
+	if err != nil {
+		return "", fmt.Errorf("failed to get latest release: %w", err)
+	}
+
+	if release.TagName == nil {
+		return "", fmt.Errorf("latest release has no tag name")
+	}
+
+	return *release.TagName, nil
 }
