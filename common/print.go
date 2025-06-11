@@ -49,7 +49,7 @@ func PrintDone(format string, a ...any) {
 }
 
 // PrintUrls prints the urls for the dataportal and the api gateway for a specific environment in the `dir` directory
-func PrintUrls(portalURL, gatewayURL string) {
+func PrintUrls(portalURL, gatewayURL, title string) {
 	logo := `
                                                  *************                              
 &&&&&&&&&&&&&&&&&& *&&&&&&&%&&&%               *****************               &&&&&&/      
@@ -66,7 +66,7 @@ func PrintUrls(portalURL, gatewayURL string) {
                                                ****************          &&&&&&&&&&&&       
 `
 	t := table.NewWriter()
-	t.SetTitle("epos-cli deploy")
+	t.SetTitle(title)
 	t.Style().Title.Align = text.AlignCenter
 	t.SetStyle(table.StyleRounded)
 	t.Style().Title.Colors = text.Colors{text.FgYellow, text.Bold}

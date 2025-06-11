@@ -51,7 +51,7 @@ func Update(envFile, composeFile, path, name string, force, pullImages bool) (po
 
 	// If force is set do a docker compose down on the original env
 	if force {
-		if err := downStack(dir, false); err != nil {
+		if err := downStack(dir, true); err != nil {
 			if restoreErr := restoreFromTmp(); restoreErr != nil {
 				common.PrintError("Restore failed: %v", restoreErr)
 			}

@@ -22,7 +22,7 @@ var UpdateCmd = &cobra.Command{
 			return
 		}
 
-		common.PrintUrls(portalURL, gatewayURL)
+		common.PrintUrls(portalURL, gatewayURL, "epos-cli docker update "+name)
 	},
 }
 

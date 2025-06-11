@@ -19,7 +19,7 @@ var DeployCmd = &cobra.Command{
 			common.PrintError("%v", err)
 			return
 		}
-		common.PrintUrls(portalURL, gatewayURL)
+		common.PrintUrls(portalURL, gatewayURL, "epos-cli docker deploy "+name)
 	},
 }
 
