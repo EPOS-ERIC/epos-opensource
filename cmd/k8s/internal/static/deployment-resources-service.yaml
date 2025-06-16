@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resources-service
+  namespace: epos
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: resources-service
+  template:
+    metadata:
+      labels:
+        app: resources-service
+    spec:
+      containers:
+      - name: resources-service
+        image: epos-ci.brgm.fr:5005/epos/resources-service:refactoring
+        ports:
+        - containerPort: 8080
+        envFrom:
+        - configMapRef:
+            name: epos-env
+        - secretRef:
+            name: epos-secret
+        readinessProbe:
+          httpGet:
+            path: /api/resources-service/v1/actuator/health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 5
+        livenessProbe:
+          httpGet:
+            path: /api/resources-service/v1/actuator/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 5

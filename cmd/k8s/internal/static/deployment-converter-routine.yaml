@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: converter-routine
+  namespace: epos
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: converter-routine
+  template:
+    metadata:
+      labels:
+        app: converter-routine
+    spec:
+      containers:
+        - name: converter-routine
+          image: epos-ci.brgm.fr:5005/epos/converter-routine-go:refactoring
+          ports:
+            - containerPort: 8080
+          env:
+            - name: CONVERTER_CATALOGUE_CONNECTION_STRING
+              valueFrom:
+                configMapKeyRef:
+                  name: epos-env
+                  key: POSTGRESQL_CONNECTION_STRING
+          envFrom:
+            - configMapRef:
+                name: epos-env
+            - secretRef:
+                name: epos-secret
+          volumeMounts:
+            - name: converter-plugins
+              mountPath: /opt/converter/plugins
+          readinessProbe:
+            httpGet:
+              path: /api/converter-routine/v1/actuator/health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              path: /api/converter-routine/v1/actuator/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
+      volumes:
+        - name: converter-plugins
+          persistentVolumeClaim:
+            claimName: converter-plugins

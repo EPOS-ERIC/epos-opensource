@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: external-access-service
+  namespace: epos
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: external-access-service
+  template:
+    metadata:
+      labels:
+        app: external-access-service
+    spec:
+      containers:
+      - name: external-access-service
+        image: epos-ci.brgm.fr:5005/epos/external-access-service:refactoring
+        ports:
+        - containerPort: 8080
+        envFrom:
+        - configMapRef:
+            name: epos-env
+        - secretRef:
+            name: epos-secret
+        readinessProbe:
+          httpGet:
+            path: /api/external-access-service/v1/actuator/health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 5
+        livenessProbe:
+          httpGet:
+            path: /api/external-access-service/v1/actuator/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 5

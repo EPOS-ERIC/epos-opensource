@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dataportal
+  namespace: epos
+spec:
+  selector:
+    app: dataportal
+  ports:
+  - name: dataportal
+    port: 80
+    targetPort: 80
+    nodePort: 32000
+  type: NodePort
