@@ -20,7 +20,7 @@ var DeployCmd = &cobra.Command{
 			common.PrintError("%v", err)
 			return
 		}
-		common.PrintUrls(portalURL, gatewayURL, fmt.Sprintf("epos-cli docker deploy %s", name))
+		common.PrintUrls(portalURL, gatewayURL, fmt.Sprintf("epos-cli kubernetes deploy %s", name))
 	},
 }
 

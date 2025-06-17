@@ -38,7 +38,7 @@ func Populate(path, name, ttlDir string) (portalURL, gatewayURL string, err erro
 		}
 	}(name)
 
-	postURL, err := getApiURL(dir)
+	postURL, err := common.GetApiURL(dir)
 	if err != nil {
 		return "", "", fmt.Errorf("error getting api URL for env %s: %w", name, err)
 	}

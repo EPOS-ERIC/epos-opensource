@@ -40,7 +40,7 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) (portalURL
 		return "", "", err
 	}
 
-	if err := populateOntologies(dir); err != nil {
+	if err := common.PopulateOntologies(dir); err != nil {
 		common.PrintError("error initializing the ontologies in the environment: %v", err)
 
 		if err := downStack(dir, false); err != nil {

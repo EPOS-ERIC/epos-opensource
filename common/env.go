@@ -123,3 +123,34 @@ func BuildEnvURLs(dir string) (portalURL, gatewayURL string, err error) {
 	}
 	return portalURL, gatewayURL, nil
 }
+
+func GetApiURL(dir string) (*url.URL, error) {
+	env, err := godotenv.Read(filepath.Join(dir, ".env"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
+	}
+	// check that all the vars we need are set
+	if _, ok := env["GATEWAY_PORT"]; !ok {
+		return nil, fmt.Errorf("environment variable GATEWAY_PORT is not set")
+	}
+	if _, ok := env["DEPLOY_PATH"]; !ok {
+		return nil, fmt.Errorf("environment variable DEPLOY_PATH is not set")
+	}
+	if _, ok := env["API_PATH"]; !ok {
+		return nil, fmt.Errorf("environment variable API_PATH is not set")
+	}
+
+	localIP, err := GetLocalIP()
+	if err != nil {
+		return nil, fmt.Errorf("error getting local ip: %w", err)
+	}
+	postPath, err := url.JoinPath(fmt.Sprintf("http://%s:%s", localIP, env["GATEWAY_PORT"]), env["DEPLOY_PATH"], env["API_PATH"])
+	if err != nil {
+		return nil, fmt.Errorf("error building post url: %w", err)
+	}
+	posturl, err := url.Parse(postPath)
+	if err != nil {
+		return nil, fmt.Errorf("error building post url: %w", err)
+	}
+	return posturl, nil
+}

@@ -16,15 +16,15 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-const pathPrefix = "k8s"
-
-// Path inside the embed.FS where the manifests live.
-const embedManifestsPath = "static/manifests"
+const (
+	pathPrefix         = "k8s"
+	embedManifestsPath = "static/manifests"
+)
 
 //go:embed static/manifests
 var manifestsFs embed.FS
 
-// EmbeddedManifestContents holds the raw text of each embedded manifest file keyed by filename.
+// EmbeddedManifestContents holds embedded manifest files indexed by filename.
 var EmbeddedManifestContents map[string]string
 
 //go:embed static/.env
@@ -44,28 +44,21 @@ func init() {
 		}
 
 		filePath := path.Join(embedManifestsPath, entry.Name())
-
 		data, err := manifestsFs.ReadFile(filePath)
 		if err != nil {
 			log.Fatalf("cannot read embedded manifest %q: %v", filePath, err)
 		}
 
-		// Store the manifest content keyed by the original filename.
 		EmbeddedManifestContents[entry.Name()] = string(data)
 	}
 }
 
-// NewEnvDir creates a new environment directory with .env and manifest files.
-// If customEnvFilePath is provided, it reads the .env content from that file path,
-// otherwise uses the embedded default .env content.
-// If customManifestsDirPath is provided, it copies all files from that directory,
-// otherwise uses the embedded default manifest files.
-// Returns the path to the created environment directory.
-// If any error occurs after directory creation, the directory and its contents are automatically cleaned up.
+// NewEnvDir creates an environment directory with .env and manifest files.
+// Uses custom files if provided, otherwise uses embedded defaults.
+// Expands environment variables in all manifest files.
 func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name string) (string, error) {
 	envPath := common.BuildEnvPath(customPath, name, pathPrefix)
 
-	// Check if directory already exists
 	if _, err := os.Stat(envPath); err == nil {
 		return "", fmt.Errorf("directory %s already exists", envPath)
 	} else if !os.IsNotExist(err) {
@@ -77,7 +70,6 @@ func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name strin
 	}
 
 	var ok bool
-	// Ensure cleanup of directory if any error occurs after creation
 	defer func() {
 		if !ok {
 			if removeErr := os.RemoveAll(envPath); removeErr != nil {
@@ -96,80 +88,107 @@ func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name strin
 	}
 
 	if customManifestsDirPath != "" {
-		dirEntries, err := os.ReadDir(customManifestsDirPath)
-		if err != nil {
-			return "", fmt.Errorf("error reading manifests dir: %w", err)
-		}
-
-		for _, de := range dirEntries {
-			if de.IsDir() {
-				continue
-			}
-
-			srcPath := filepath.Join(customManifestsDirPath, de.Name())
-			data, err := os.ReadFile(srcPath)
-			if err != nil {
-				return "", fmt.Errorf("error reading file %q: %w", de.Name(), err)
-			}
-			if err := common.CreateFileWithContent(filepath.Join(envPath, de.Name()), string(data)); err != nil {
-				return "", fmt.Errorf("failed to create manifest file: %w", err)
-			}
+		if err := copyCustomManifests(customManifestsDirPath, envPath); err != nil {
+			return "", fmt.Errorf("failed to copy custom manifests: %w", err)
 		}
 	} else {
-		for filename, content := range EmbeddedManifestContents {
-			if err := common.CreateFileWithContent(filepath.Join(envPath, filename), content); err != nil {
-				return "", fmt.Errorf("failed to create embedded manifest %q: %w", filename, err)
-			}
+		if err := copyEmbeddedManifests(envPath); err != nil {
+			return "", fmt.Errorf("failed to copy embedded manifests: %w", err)
 		}
 	}
 
-	// after having created all the files, load the .env and fill the manifests
-	err = godotenv.Load(path.Join(envPath, ".env"))
-	if err != nil {
-		return "", fmt.Errorf("TODO: wrap the error %w", err)
-	}
-
-	os.Setenv("NAMESPACE", name)
-
-	// for each file in the directory (that is not .env), read the file as string, expand the env vars and write it back
-	files, err := os.ReadDir(envPath)
-	if err != nil {
-		return "", fmt.Errorf("TODO: wrap the error %w", err)
-	}
-	for _, de := range files {
-		if de.IsDir() || de.Name() == ".env" {
-			continue
-		}
-		srcPath := filepath.Join(envPath, de.Name())
-		data, err := os.ReadFile(srcPath)
-		if err != nil {
-			return "", fmt.Errorf("error reading file %q: %w", de.Name(), err)
-		}
-		expanded := os.ExpandEnv(string(data))
-		if err := common.CreateFileWithContent(srcPath, expanded); err != nil {
-			return "", fmt.Errorf("failed to create expanded manifest file: %w", err)
-		}
+	if err := loadEnvAndExpandManifests(envPath, name); err != nil {
+		return "", fmt.Errorf("failed to process environment variables: %w", err)
 	}
 
 	ok = true
 	return envPath, nil
 }
 
-// runKubectl executes `kubectl ...` inside the given dir with the supplied context
+func copyCustomManifests(customManifestsDirPath, envPath string) error {
+	dirEntries, err := os.ReadDir(customManifestsDirPath)
+	if err != nil {
+		return fmt.Errorf("error reading manifests directory %q: %w", customManifestsDirPath, err)
+	}
+
+	for _, de := range dirEntries {
+		if de.IsDir() {
+			continue
+		}
+
+		srcPath := filepath.Join(customManifestsDirPath, de.Name())
+		data, err := os.ReadFile(srcPath)
+		if err != nil {
+			return fmt.Errorf("error reading file %q: %w", de.Name(), err)
+		}
+
+		destPath := filepath.Join(envPath, de.Name())
+		if err := common.CreateFileWithContent(destPath, string(data)); err != nil {
+			return fmt.Errorf("failed to create manifest file %q: %w", de.Name(), err)
+		}
+	}
+
+	return nil
+}
+
+func copyEmbeddedManifests(envPath string) error {
+	for filename, content := range EmbeddedManifestContents {
+		destPath := filepath.Join(envPath, filename)
+		if err := common.CreateFileWithContent(destPath, content); err != nil {
+			return fmt.Errorf("failed to create embedded manifest %q: %w", filename, err)
+		}
+	}
+
+	return nil
+}
+
+func loadEnvAndExpandManifests(envPath, name string) error {
+	envFilePath := path.Join(envPath, ".env")
+	if err := godotenv.Load(envFilePath); err != nil {
+		return fmt.Errorf("failed to load environment file %q: %w", envFilePath, err)
+	}
+
+	os.Setenv("NAMESPACE", name)
+
+	files, err := os.ReadDir(envPath)
+	if err != nil {
+		return fmt.Errorf("failed to read environment directory %q: %w", envPath, err)
+	}
+
+	for _, de := range files {
+		if de.IsDir() || de.Name() == ".env" {
+			continue
+		}
+
+		filePath := filepath.Join(envPath, de.Name())
+		data, err := os.ReadFile(filePath)
+		if err != nil {
+			return fmt.Errorf("failed to read file %q: %w", de.Name(), err)
+		}
+
+		expanded := os.ExpandEnv(string(data))
+		if err := common.CreateFileWithContent(filePath, expanded); err != nil {
+			return fmt.Errorf("failed to write expanded manifest file %q: %w", de.Name(), err)
+		}
+	}
+
+	return nil
+}
+
+// runKubectl executes kubectl with given args in the specified directory.
 func runKubectl(dir string, suppressOut bool, args ...string) error {
 	cmd := exec.Command("kubectl", args...)
 	cmd.Dir = dir
 	return common.RunCommand(cmd, suppressOut)
 }
 
-// applyParallel shells out to `kubectl apply` for every element in targets.
-// If withService == true it expects YAML pairs (deployment‑X.yaml/service‑X.yaml)
-// for each target name; otherwise it applies the file supplied.
+// applyParallel runs kubectl apply for all targets concurrently.
+// If withService is true, applies both deployment-X.yaml and service-X.yaml files.
 func applyParallel(dir string, targets []string, withService bool) error {
 	var g errgroup.Group
 
 	for _, t := range targets {
-		t := t // capture
+		t := t
 		g.Go(func() error {
 			if withService {
 				return runKubectl(dir, false,
@@ -181,35 +200,35 @@ func applyParallel(dir string, targets []string, withService bool) error {
 	return g.Wait()
 }
 
-// waitDeployments blocks until every deployment in names reports a successful
-// rollout (like `kubectl rollout status …`). It mirrors the parallel wait logic
-// of the Bash script using a goroutine per deployment.
+// waitDeployments waits for all deployments to be ready with 1 minute timeout each.
 func waitDeployments(dir, namespace string, names []string) error {
 	var g errgroup.Group
 
 	for _, n := range names {
 		n := n
 		g.Go(func() error {
-			return runKubectl(dir, false, "rollout", "status", fmt.Sprintf("deployment/%s", n), "--timeout", (1 * time.Minute).String(), "-n", namespace)
+			return runKubectl(dir, false,
+				"rollout", "status", fmt.Sprintf("deployment/%s", n),
+				"--timeout", (2 * time.Minute).String(),
+				"-n", namespace)
 		})
 	}
 	return g.Wait()
 }
 
-// TODO: drop the kubectl dependency and replace the shell execs with k8s/client‑go
+// deployManifests deploys all resources to the namespace in stages:
+// 1. Create namespace, 2. Setup environment, 3. Deploy infra, 4. Deploy services, 5. Deploy gateway/portal.
 func deployManifests(dir, namespace string) error {
 	common.PrintStep("Creating namespace %s", namespace)
-	// create the namespace if it doesn't already exist
 	if err := runKubectl(dir, true, "get", "namespace", namespace); err != nil {
 		if err := runKubectl(dir, false, "create", "namespace", namespace); err != nil {
-			return fmt.Errorf("create namespace %s: %w", namespace, err)
+			return fmt.Errorf("failed to create namespace %s: %w", namespace, err)
 		}
 	} else {
 		return fmt.Errorf("namespace %s already exists", namespace)
 	}
 
 	common.PrintStep("Setting up the environment")
-	// set up the environment
 	setup := []string{
 		"configmap-epos-env.yaml",
 		"secret-epos-secret.yaml",
@@ -218,26 +237,24 @@ func deployManifests(dir, namespace string) error {
 	}
 	for _, f := range setup {
 		if err := runKubectl(dir, false, "apply", "-f", f); err != nil {
-			return fmt.Errorf("apply %s: %w", f, err)
+			return fmt.Errorf("failed to apply %s: %w", f, err)
 		}
 	}
 
-	// start the infrastructure components
 	infra := []string{"rabbitmq", "metadata-database"}
 	common.PrintStep("Deploying infrastructure components")
 	if err := applyParallel(dir, infra, true); err != nil {
-		return err
+		return fmt.Errorf("failed to deploy infrastructure components: %w", err)
 	}
 	if err := runKubectl(dir, false, "apply", "-f", "service-rabbitmq-management.yaml"); err != nil {
-		return err
+		return fmt.Errorf("failed to apply RabbitMQ management service: %w", err)
 	}
 
 	common.PrintStep("Waiting for infrastructure to be ready")
 	if err := waitDeployments(dir, namespace, infra); err != nil {
-		return err
+		return fmt.Errorf("infrastructure deployment failed: %w", err)
 	}
 
-	// start the services
 	services := []string{
 		"resources-service",
 		"ingestor-service",
@@ -248,24 +265,30 @@ func deployManifests(dir, namespace string) error {
 	}
 	common.PrintStep("Deploying services")
 	if err := applyParallel(dir, services, true); err != nil {
-		return err
+		return fmt.Errorf("failed to deploy services: %w", err)
 	}
 
 	common.PrintStep("Waiting for services to be ready")
 	if err := waitDeployments(dir, namespace, services); err != nil {
-		return err
+		return fmt.Errorf("services deployment failed: %w", err)
 	}
 
-	// finally start the gateway and dataportal
 	finals := []string{"gateway", "dataportal"}
 	common.PrintStep("Deploying gateway and dataportal")
 	if err := applyParallel(dir, finals, true); err != nil {
-		return err
+		return fmt.Errorf("failed to deploy gateway and dataportal: %w", err)
 	}
 	if err := waitDeployments(dir, namespace, finals); err != nil {
-		return err
+		return fmt.Errorf("gateway and dataportal deployment failed: %w", err)
 	}
 
-	common.PrintDone("EPOS platform deployed")
+	return nil
+}
+
+// deleteNamespace removes the specified namespace and all its resources.
+func deleteNamespace(name string) error {
+	if err := runKubectl(".", false, "delete", "namespace", name); err != nil {
+		return fmt.Errorf("failed to delete namespace %s: %w", name, err)
+	}
 	return nil
 }

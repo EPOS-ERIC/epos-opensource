@@ -16,7 +16,7 @@ var k8sCmd = &cobra.Command{
 
 func init() {
 	k8sCmd.AddCommand(k8s.DeployCmd)
-	// k8sCmd.AddCommand(docker.DeleteCmd)
+	k8sCmd.AddCommand(k8s.DeleteCmd)
 	// k8sCmd.AddCommand(docker.UpdateCmd)
 	// k8sCmd.AddCommand(docker.PopulateCmd)
 	rootCmd.AddCommand(k8sCmd)
