@@ -10,8 +10,12 @@ import (
 	"os/exec"
 )
 
-func RunCommand(cmd *exec.Cmd) error {
-	cmd.Stdout = os.Stdout
+func RunCommand(cmd *exec.Cmd, suppressOut bool) error {
+	if suppressOut {
+		cmd.Stdout = nil
+	} else {
+		cmd.Stdout = os.Stdout
+	}
 	cmd.Stdin = os.Stdin
 
 	cmd.Env = append(cmd.Env, os.Environ()...)
@@ -31,7 +35,9 @@ func RunCommand(cmd *exec.Cmd) error {
 	// Read stderr line by line and print in red
 	scanner := bufio.NewScanner(stderrPipe)
 	for scanner.Scan() {
-		PrintError("%s", scanner.Text())
+		if !suppressOut {
+			PrintError("%s", scanner.Text())
+		}
 	}
 
 	// Wait for command to finish

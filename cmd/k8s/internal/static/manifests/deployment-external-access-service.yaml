@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: external-access-service
-  namespace: epos
+  namespace: ${NAMESPACE}
 spec:
   replicas: 1
   selector:
@@ -14,28 +14,28 @@ spec:
         app: external-access-service
     spec:
       containers:
-      - name: external-access-service
-        image: epos-ci.brgm.fr:5005/epos/external-access-service:refactoring
-        ports:
-        - containerPort: 8080
-        envFrom:
-        - configMapRef:
-            name: epos-env
-        - secretRef:
-            name: epos-secret
-        readinessProbe:
-          httpGet:
-            path: /api/external-access-service/v1/actuator/health
-            port: 8080
-          initialDelaySeconds: 10
-          periodSeconds: 30
-          timeoutSeconds: 5
-          failureThreshold: 5
-        livenessProbe:
-          httpGet:
-            path: /api/external-access-service/v1/actuator/health
-            port: 8080
-          initialDelaySeconds: 30
-          periodSeconds: 30
-          timeoutSeconds: 5
-          failureThreshold: 5
+        - name: external-access-service
+          image: ${EXTERNAL_ACCESS_IMAGE}
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: epos-env
+            - secretRef:
+                name: epos-secret
+          readinessProbe:
+            httpGet:
+              path: /api/external-access-service/v1/actuator/health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              path: /api/external-access-service/v1/actuator/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5

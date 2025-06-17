@@ -15,7 +15,7 @@ func Deploy(envFile, composeFile, path, name string) (portalURL, gatewayURL stri
 
 	common.PrintDone("Environment created in directory: %s", dir)
 
-	if err := deployStack(dir, name); err != nil {
+	if err := deployManifests(dir, name); err != nil {
 		common.PrintError("Deploy failed: %v", err)
 
 		// TODO

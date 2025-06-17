@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: dataportal
-  namespace: epos
+  namespace: ${NAMESPACE}
 spec:
   replicas: 1
   selector:
@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: dataportal
-          image: epos-ci.brgm.fr:5005/epos/epos-gui/deploy:new-gui-master
+          image: ${DATAPORTAL_IMAGE}
           ports:
             - containerPort: 80
           envFrom:

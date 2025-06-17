@@ -27,7 +27,7 @@ func composeCommand(dir, name string, args ...string) *exec.Cmd {
 // pullEnvImages pulls docker images for the environment with custom messages
 func pullEnvImages(dir, name string) error {
 	common.PrintStep("Pulling images for environment: %s", name)
-	if err := common.RunCommand(composeCommand(dir, "", "pull")); err != nil {
+	if err := common.RunCommand(composeCommand(dir, "", "pull"), false); err != nil {
 		return fmt.Errorf("pull images failed: %w", err)
 	}
 	common.PrintDone("Images pulled for environment: %s", name)
@@ -37,7 +37,7 @@ func pullEnvImages(dir, name string) error {
 // deployStack deploys the stack in the specified directory
 func deployStack(dir, name string) error {
 	common.PrintStep("Deploying stack")
-	if err := common.RunCommand(composeCommand(dir, name, "up", "-d")); err != nil {
+	if err := common.RunCommand(composeCommand(dir, name, "up", "-d"), false); err != nil {
 		return fmt.Errorf("deploy stack failed: %w", err)
 	}
 	common.PrintDone("Deployed environment: %s", name)
@@ -47,9 +47,9 @@ func deployStack(dir, name string) error {
 // downStack stops the stack running in the given directory
 func downStack(dir string, removeVolumes bool) error {
 	if removeVolumes {
-		return common.RunCommand(composeCommand(dir, "", "down", "-v"))
+		return common.RunCommand(composeCommand(dir, "", "down", "-v"), false)
 	}
-	return common.RunCommand(composeCommand(dir, "", "down"))
+	return common.RunCommand(composeCommand(dir, "", "down"), false)
 }
 
 // deployMetadataCache deploys an nginx docker container running a file server exposing a volume
@@ -71,7 +71,7 @@ func deployMetadataCache(dir, envName string) (int, error) {
 		"nginx",
 	)
 
-	err = common.RunCommand(cmd)
+	err = common.RunCommand(cmd, false)
 	if err != nil {
 		return 0, fmt.Errorf("error deploying metadata-cache: %w", err)
 	}
@@ -88,7 +88,7 @@ func deleteMetadataCache(envName string) error {
 		envName+"-metadata-cache",
 	)
 
-	if err := common.RunCommand(cmd); err != nil {
+	if err := common.RunCommand(cmd, false); err != nil {
 		return fmt.Errorf("error removing metadata-cache: %w", err)
 	}
 

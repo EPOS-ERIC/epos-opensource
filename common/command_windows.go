@@ -11,11 +11,17 @@ import (
 	"syscall"
 )
 
-func RunCommand(cmd *exec.Cmd) error {
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+func RunCommand(cmd *exec.Cmd, suppressOut bool) error {
+	if suppressOut {
+		cmd.Stdout = nil
+	} else {
+		cmd.Stdout = os.Stdout
+	}
 	cmd.Stdin = os.Stdin
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+
+	cmd.Env = append(cmd.Env, os.Environ()...)
+	cmd.Env = append(cmd.Env, "COMPOSE_STATUS_STDOUT=1")
 
 	// Create a pipe to capture stderr
 	stderrPipe, err := cmd.StderrPipe()
@@ -31,7 +37,9 @@ func RunCommand(cmd *exec.Cmd) error {
 	// Read stderr line by line and print in red
 	scanner := bufio.NewScanner(stderrPipe)
 	for scanner.Scan() {
-		PrintError("%s", scanner.Text())
+		if !suppressOut {
+			PrintError("%s", scanner.Text())
+		}
 	}
 
 	// Wait for command to finish

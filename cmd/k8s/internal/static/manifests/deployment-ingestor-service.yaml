@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ingestor-service
-  namespace: epos
+  namespace: ${NAMESPACE}
 spec:
   replicas: 1
   selector:
@@ -14,28 +14,28 @@ spec:
         app: ingestor-service
     spec:
       containers:
-      - name: ingestor-service
-        image: epos-ci.brgm.fr:5005/epos/ingestor-service:refactoring
-        ports:
-        - containerPort: 8080
-        envFrom:
-        - configMapRef:
-            name: epos-env
-        - secretRef:
-            name: epos-secret
-        readinessProbe:
-          httpGet:
-            path: /api/ingestor-service/v1/actuator/health
-            port: 8080
-          initialDelaySeconds: 10
-          periodSeconds: 30
-          timeoutSeconds: 5
-          failureThreshold: 5
-        livenessProbe:
-          httpGet:
-            path: /api/ingestor-service/v1/actuator/health
-            port: 8080
-          initialDelaySeconds: 30
-          periodSeconds: 30
-          timeoutSeconds: 5
-          failureThreshold: 5
+        - name: ingestor-service
+          image: ${INGESTOR_SERVICE_IMAGE}
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: epos-env
+            - secretRef:
+                name: epos-secret
+          readinessProbe:
+            httpGet:
+              path: /api/ingestor-service/v1/actuator/health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              path: /api/ingestor-service/v1/actuator/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5

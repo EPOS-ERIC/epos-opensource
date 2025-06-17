@@ -2,11 +2,11 @@ apiVersion: v1
 kind: Service
 metadata:
   name: converter-routine
-  namespace: epos
+  namespace: ${NAMESPACE}
 spec:
   selector:
     app: converter-routine
   ports:
-  - name: converter-routine
-    port: 8080
-    targetPort: 8080
+    - name: converter-routine
+      port: 8080
+      targetPort: 8080

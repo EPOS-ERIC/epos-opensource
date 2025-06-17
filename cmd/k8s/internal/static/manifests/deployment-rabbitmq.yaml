@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: rabbitmq
-  namespace: epos
+  namespace: ${NAMESPACE}
 spec:
   replicas: 1
   selector:
@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: rabbitmq
-          image: rabbitmq:3.13.7-management
+          image: ${RABBITMQ_IMAGE}
           ports:
             - containerPort: 5672
           envFrom:

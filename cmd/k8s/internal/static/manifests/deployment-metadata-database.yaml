@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: metadata-database
-  namespace: epos
+  namespace: ${NAMESPACE}
 spec:
   replicas: 1
   selector:
@@ -14,39 +14,39 @@ spec:
         app: metadata-database
     spec:
       containers:
-      - name: metadata-database
-        image: epos-ci.brgm.fr:5005/epos/metadata-database/deploy:refactoring
-        ports:
-        - containerPort: 5432
-        envFrom:
-        - configMapRef:
-            name: epos-env
-        - secretRef:
-            name: epos-secret
-        volumeMounts:
-        - name: psqldata
-          mountPath: /var/lib/postgresql
-        readinessProbe:
-          exec:
-            command:
-            - pg_isready
-            - -U
-            - metadatauser
-          initialDelaySeconds: 10
-          periodSeconds: 30
-          timeoutSeconds: 5
-          failureThreshold: 5
-        livenessProbe:
-          exec:
-            command:
-            - pg_isready
-            - -U
-            - metadatauser
-          initialDelaySeconds: 30
-          periodSeconds: 30
-          timeoutSeconds: 5
-          failureThreshold: 5
+        - name: metadata-database
+          image: ${METADATA_DATABASE_IMAGE}
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: epos-env
+            - secretRef:
+                name: epos-secret
+          volumeMounts:
+            - name: psqldata
+              mountPath: /var/lib/postgresql
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - metadatauser
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - metadatauser
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
       volumes:
-      - name: psqldata
-        persistentVolumeClaim:
-          claimName: psqldata
+        - name: psqldata
+          persistentVolumeClaim:
+            claimName: psqldata

@@ -36,18 +36,19 @@ func TestNewEnvDir(t *testing.T) {
 			check: func(t *testing.T, envPath, _, _ string) {
 				// .env should equal the embedded envFile
 				if got := mustRead(t, filepath.Join(envPath, ".env")); got != envFile {
-					t.Fatalf(".env content mismatch")
+					t.Fatalf(".env content mismatch. got=\n%s, want=\n%s", got, envFile)
 				}
 
-				// Each embedded manifest should have been written with its original filename and content.
-				for fname, wantContent := range EmbeddedManifestContents {
-					p := filepath.Join(envPath, fname)
-					if got := mustRead(t, p); got != wantContent {
-						t.Fatalf("%s content mismatch", fname)
+				// Each embedded manifest should be present with its ENV-expanded content.
+				for fname, raw := range EmbeddedManifestContents {
+					got := mustRead(t, filepath.Join(envPath, fname))
+					want := os.ExpandEnv(raw)
+					if want != got {
+						t.Fatalf("%s content mismatch:\nwant:\n%s\ngot:\n%s", fname, want, got)
 					}
 				}
 
-				// No extra files besides .env and the manifests
+				// No extra files besides .env and the manifests.
 				files, _ := os.ReadDir(envPath)
 				wantFileCount := 1 + len(EmbeddedManifestContents)
 				if len(files) != wantFileCount {
@@ -60,35 +61,38 @@ func TestNewEnvDir(t *testing.T) {
 			setup: func(t *testing.T) (string, string, string, string, bool) {
 				base := t.TempDir()
 
-				// create custom .env
+				// custom .env
 				customEnvFile, _ := os.CreateTemp(base, "custom.env")
-				wantEnvContent := "FOO=bar\n"
-				customEnvFile.WriteString(wantEnvContent)
+				customEnvContent := "FOO=bar\n"
+				customEnvFile.WriteString(customEnvContent)
 				customEnvFile.Close()
 
 				// custom manifests dir
 				manifDir := filepath.Join(base, "manifests")
-				os.Mkdir(manifDir, 0700)
-				os.WriteFile(filepath.Join(manifDir, "a.yaml"), []byte("a: 1\n"), 0600)
-				os.WriteFile(filepath.Join(manifDir, "b.yaml"), []byte("b: 2\n"), 0600)
+				os.Mkdir(manifDir, 0o700)
+				os.WriteFile(filepath.Join(manifDir, "a.yaml"), []byte("a: 1\n"), 0o600)
+				os.WriteFile(filepath.Join(manifDir, "b.yaml"), []byte("b: 2\n"), 0o600)
 
 				return customEnvFile.Name(), manifDir, base, "custom", false
 			},
 			wantErr: false,
 			check: func(t *testing.T, envPath, customEnv, customManifests string) {
-				// .env content must match custom file
+				// .env must match the custom file
 				if want, got := mustRead(t, customEnv), mustRead(t, filepath.Join(envPath, ".env")); want != got {
 					t.Fatalf(".env mismatch: want %q got %q", want, got)
 				}
 
-				// manifest names and contents must match custom dir
+				// Manifest names and contents must match the custom dir (after expansion,
+				// which is a no-op for these simple files).
 				wantEntries, _ := os.ReadDir(customManifests)
 				gotEntries, _ := os.ReadDir(envPath)
 
 				var wantNames, gotNames []string
 				for _, e := range wantEntries {
 					wantNames = append(wantNames, e.Name())
-					if got := mustRead(t, filepath.Join(envPath, e.Name())); got != mustRead(t, filepath.Join(customManifests, e.Name())) {
+					wantContent := mustRead(t, filepath.Join(customManifests, e.Name()))
+					gotContent := mustRead(t, filepath.Join(envPath, e.Name()))
+					if wantContent != gotContent {
 						t.Fatalf("content mismatch in %s", e.Name())
 					}
 				}
@@ -127,12 +131,12 @@ func TestNewEnvDir(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
+		tt := tt // capture
 		t.Run(tt.name, func(t *testing.T) {
-			customEnv, customManif, basePath, envName, pre := tt.setup(t)
+			customEnv, customManif, basePath, envName, preCreate := tt.setup(t)
 
-			if pre {
-				os.MkdirAll(filepath.Join(basePath, envName), 0700)
+			if preCreate {
+				os.MkdirAll(filepath.Join(basePath, envName), 0o700)
 			}
 
 			envPath, err := NewEnvDir(customEnv, customManif, basePath, envName)

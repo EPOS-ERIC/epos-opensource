@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/joho/godotenv"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -122,15 +123,43 @@ func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name strin
 		}
 	}
 
+	// after having created all the files, load the .env and fill the manifests
+	err = godotenv.Load(path.Join(envPath, ".env"))
+	if err != nil {
+		return "", fmt.Errorf("TODO: wrap the error %w", err)
+	}
+
+	os.Setenv("NAMESPACE", name)
+
+	// for each file in the directory (that is not .env), read the file as string, expand the env vars and write it back
+	files, err := os.ReadDir(envPath)
+	if err != nil {
+		return "", fmt.Errorf("TODO: wrap the error %w", err)
+	}
+	for _, de := range files {
+		if de.IsDir() || de.Name() == ".env" {
+			continue
+		}
+		srcPath := filepath.Join(envPath, de.Name())
+		data, err := os.ReadFile(srcPath)
+		if err != nil {
+			return "", fmt.Errorf("error reading file %q: %w", de.Name(), err)
+		}
+		expanded := os.ExpandEnv(string(data))
+		if err := common.CreateFileWithContent(srcPath, expanded); err != nil {
+			return "", fmt.Errorf("failed to create expanded manifest file: %w", err)
+		}
+	}
+
 	ok = true
 	return envPath, nil
 }
 
 // runKubectl executes `kubectl ...` inside the given dir with the supplied context
-func runKubectl(dir string, args ...string) error {
+func runKubectl(dir string, suppressOut bool, args ...string) error {
 	cmd := exec.Command("kubectl", args...)
 	cmd.Dir = dir
-	return common.RunCommand(cmd)
+	return common.RunCommand(cmd, suppressOut)
 }
 
 // applyParallel shells out to `kubectl apply` for every element in targets.
@@ -143,10 +172,10 @@ func applyParallel(dir string, targets []string, withService bool) error {
 		t := t // capture
 		g.Go(func() error {
 			if withService {
-				return runKubectl(dir,
+				return runKubectl(dir, false,
 					"apply", "-f", fmt.Sprintf("deployment-%s.yaml", t), "-f", fmt.Sprintf("service-%s.yaml", t))
 			}
-			return runKubectl(dir, "apply", "-f", t)
+			return runKubectl(dir, false, "apply", "-f", t)
 		})
 	}
 	return g.Wait()
@@ -161,34 +190,45 @@ func waitDeployments(dir, namespace string, names []string) error {
 	for _, n := range names {
 		n := n
 		g.Go(func() error {
-			return runKubectl(dir, "rollout", "status", fmt.Sprintf("deployment/%s", n), "--timeout", (1 * time.Minute).String(), "-n", namespace)
+			return runKubectl(dir, false, "rollout", "status", fmt.Sprintf("deployment/%s", n), "--timeout", (1 * time.Minute).String(), "-n", namespace)
 		})
 	}
 	return g.Wait()
 }
 
 // TODO: drop the kubectl dependency and replace the shell execs with k8s/client‑go
-func deployStack(dir, namespace string) error {
+func deployManifests(dir, namespace string) error {
+	common.PrintStep("Creating namespace %s", namespace)
+	// create the namespace if it doesn't already exist
+	if err := runKubectl(dir, true, "get", "namespace", namespace); err != nil {
+		if err := runKubectl(dir, false, "create", "namespace", namespace); err != nil {
+			return fmt.Errorf("create namespace %s: %w", namespace, err)
+		}
+	} else {
+		return fmt.Errorf("namespace %s already exists", namespace)
+	}
+
+	common.PrintStep("Setting up the environment")
+	// set up the environment
 	setup := []string{
-		"namespace.yaml",
 		"configmap-epos-env.yaml",
 		"secret-epos-secret.yaml",
 		"pvc-psqldata.yaml",
 		"pvc-converter-plugins.yaml",
 	}
 	for _, f := range setup {
-		if err := runKubectl(dir, "apply", "-f", f); err != nil {
+		if err := runKubectl(dir, false, "apply", "-f", f); err != nil {
 			return fmt.Errorf("apply %s: %w", f, err)
 		}
 	}
 
+	// start the infrastructure components
 	infra := []string{"rabbitmq", "metadata-database"}
 	common.PrintStep("Deploying infrastructure components")
 	if err := applyParallel(dir, infra, true); err != nil {
 		return err
 	}
-
-	if err := runKubectl(dir, "apply", "-f", "service-rabbitmq-management.yaml"); err != nil {
+	if err := runKubectl(dir, false, "apply", "-f", "service-rabbitmq-management.yaml"); err != nil {
 		return err
 	}
 
@@ -197,6 +237,7 @@ func deployStack(dir, namespace string) error {
 		return err
 	}
 
+	// start the services
 	services := []string{
 		"resources-service",
 		"ingestor-service",
@@ -215,6 +256,7 @@ func deployStack(dir, namespace string) error {
 		return err
 	}
 
+	// finally start the gateway and dataportal
 	finals := []string{"gateway", "dataportal"}
 	common.PrintStep("Deploying gateway and dataportal")
 	if err := applyParallel(dir, finals, true); err != nil {

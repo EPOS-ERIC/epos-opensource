@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: converter-service
-  namespace: epos
+  namespace: ${NAMESPACE}
 spec:
   replicas: 1
   selector:
@@ -14,35 +14,35 @@ spec:
         app: converter-service
     spec:
       containers:
-      - name: converter-service
-        image: epos-ci.brgm.fr:5005/epos/converter-service-go:refactoring
-        ports:
-        - containerPort: 8080
-        envFrom:
-        - configMapRef:
-            name: epos-env
-        - secretRef:
-            name: epos-secret
-        volumeMounts:
-        - name: converter-plugins
-          mountPath: /opt/converter/plugins
-        readinessProbe:
-          httpGet:
-            path: /api/converter-service/v1/actuator/health
-            port: 8080
-          initialDelaySeconds: 10
-          periodSeconds: 30
-          timeoutSeconds: 5
-          failureThreshold: 5
-        livenessProbe:
-          httpGet:
-            path: /api/converter-service/v1/actuator/health
-            port: 8080
-          initialDelaySeconds: 30
-          periodSeconds: 30
-          timeoutSeconds: 5
-          failureThreshold: 5
+        - name: converter-service
+          image: ${CONVERTER_SERVICE_IMAGE}
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: epos-env
+            - secretRef:
+                name: epos-secret
+          volumeMounts:
+            - name: converter-plugins
+              mountPath: /opt/converter/plugins
+          readinessProbe:
+            httpGet:
+              path: /api/converter-service/v1/actuator/health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              path: /api/converter-service/v1/actuator/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
       volumes:
-      - name: converter-plugins
-        persistentVolumeClaim:
-          claimName: converter-plugins
+        - name: converter-plugins
+          persistentVolumeClaim:
+            claimName: converter-plugins
