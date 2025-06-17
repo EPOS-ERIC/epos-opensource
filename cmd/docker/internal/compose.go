@@ -52,16 +52,6 @@ func downStack(dir string, removeVolumes bool) error {
 	return common.RunCommand(composeCommand(dir, "", "down"))
 }
 
-// removeEnvDir deletes the environment directory with logs
-func removeEnvDir(dir string) error {
-	common.PrintStep("Deleting environment directory: %s", dir)
-	if err := DeleteEnvDir(dir); err != nil {
-		return err
-	}
-	common.PrintDone("Deleted environment directory: %s", dir)
-	return nil
-}
-
 // deployMetadataCache deploys an nginx docker container running a file server exposing a volume
 func deployMetadataCache(dir, envName string) (int, error) {
 	port, err := common.GetFreePort()
@@ -309,35 +299,4 @@ func populateOntologies(dir string) error {
 	common.PrintDone("All ontologies loaded successfully")
 
 	return nil
-}
-
-func buildEnvURLs(dir string) (portalURL, gatewayURL string, err error) {
-	env, err := godotenv.Read(filepath.Join(dir, ".env"))
-	if err != nil {
-		return "", "", fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
-	}
-	if _, ok := env["DATAPORTAL_PORT"]; !ok {
-		return "", "", fmt.Errorf("environment variable DATAPORTAL_PORT is not set")
-	}
-	if _, ok := env["GATEWAY_PORT"]; !ok {
-		return "", "", fmt.Errorf("environment variable GATEWAY_PORT is not set")
-	}
-	if _, ok := env["DEPLOY_PATH"]; !ok {
-		return "", "", fmt.Errorf("environment variable DEPLOY_PATH is not set")
-	}
-	if _, ok := env["API_PATH"]; !ok {
-		return "", "", fmt.Errorf("environment variable API_PATH is not set")
-	}
-
-	localIP, err := common.GetLocalIP()
-	if err != nil {
-		return "", "", fmt.Errorf("error getting local IP address: %w", err)
-	}
-
-	portalURL = "http://" + localIP + ":" + env["DATAPORTAL_PORT"]
-	gatewayURL, err = url.JoinPath("http://"+localIP+":"+env["GATEWAY_PORT"], env["DEPLOY_PATH"], env["API_PATH"], "ui")
-	if err != nil {
-		return "", "", fmt.Errorf("error building path for gateway url: %w", err)
-	}
-	return portalURL, gatewayURL, nil
 }

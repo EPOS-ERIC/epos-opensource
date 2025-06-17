@@ -19,7 +19,7 @@ func Update(envFile, composeFile, path, name string, force, pullImages bool) (po
 	common.PrintStep("Updating environment: %s", name)
 
 	// Find the old env, if it does not exist give an error
-	dir, err := GetEnvDir(path, name)
+	dir, err := common.GetEnvDir(path, name, pathPrefix)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get environment directory: %w", err)
 	}
@@ -35,7 +35,7 @@ func Update(envFile, composeFile, path, name string, force, pullImages bool) (po
 	// Cleanup function to restore from tmp if needed
 	restoreFromTmp := func() error {
 		common.PrintStep("Restoring environment from backup")
-		if err := removeEnvDir(dir); err != nil {
+		if err := common.RemoveEnvDir(dir); err != nil {
 			common.PrintError("Failed to remove corrupted directory: %v", err)
 		}
 		if err := restoreTmpDir(tmpDir, dir); err != nil {
@@ -66,7 +66,7 @@ func Update(envFile, composeFile, path, name string, force, pullImages bool) (po
 	common.PrintStep("Removing old environment directory")
 
 	// Remove the contents of the env dir and create the updated env file and docker-compose
-	if err := removeEnvDir(dir); err != nil {
+	if err := common.RemoveEnvDir(dir); err != nil {
 		if restoreErr := restoreFromTmp(); restoreErr != nil {
 			common.PrintError("Restore failed: %v", restoreErr)
 		}
@@ -123,7 +123,7 @@ func Update(envFile, composeFile, path, name string, force, pullImages bool) (po
 		// Don't return error as the main operation succeeded
 	}
 
-	portalURL, gatewayURL, err = buildEnvURLs(dir)
+	portalURL, gatewayURL, err = common.BuildEnvURLs(dir)
 	if err != nil {
 		return "", "", fmt.Errorf("error building env urls for environment '%s': %w", dir, err)
 	}

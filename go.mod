@@ -7,6 +7,7 @@ require (
 	github.com/jedib0t/go-pretty/v6 v6.6.7
 	github.com/joho/godotenv v1.5.1
 	github.com/spf13/cobra v1.9.1
+	golang.org/x/sync v0.15.0
 )
 
 require (

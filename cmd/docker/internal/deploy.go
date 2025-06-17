@@ -19,7 +19,7 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) (portalURL
 	if pullImages {
 		if err := pullEnvImages(dir, name); err != nil {
 			common.PrintError("Pulling images failed: %v", err)
-			if err := removeEnvDir(dir); err != nil {
+			if err := common.RemoveEnvDir(dir); err != nil {
 				return "", "", fmt.Errorf("error deleting environment %s: %w", dir, err)
 			}
 			return "", "", err
@@ -33,7 +33,7 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) (portalURL
 			common.PrintWarn("docker compose down failed, there may be dangling resources: %v", err)
 		}
 
-		if err := removeEnvDir(dir); err != nil {
+		if err := common.RemoveEnvDir(dir); err != nil {
 			return "", "", fmt.Errorf("error deleting environment %s: %w", dir, err)
 		}
 		common.PrintError("stack deployment failed")
@@ -47,13 +47,13 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) (portalURL
 			common.PrintWarn("docker compose down failed, there may be dangling resources: %v", err)
 		}
 
-		if err := removeEnvDir(dir); err != nil {
+		if err := common.RemoveEnvDir(dir); err != nil {
 			return "", "", fmt.Errorf("error deleting environment %s: %w", dir, err)
 		}
 		common.PrintError("stack deployment failed")
 	}
 
-	portalURL, gatewayURL, err = buildEnvURLs(dir)
+	portalURL, gatewayURL, err = common.BuildEnvURLs(dir)
 	if err != nil {
 		return "", "", fmt.Errorf("error building env urls for environment '%s': %w", dir, err)
 	}

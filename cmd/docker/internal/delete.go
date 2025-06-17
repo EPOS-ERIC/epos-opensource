@@ -9,7 +9,7 @@ import (
 func Delete(customPath, name string) error {
 	common.PrintStep("Deleting environment: %s", name)
 
-	dir, err := GetEnvDir(customPath, name)
+	dir, err := common.GetEnvDir(customPath, name, pathPrefix)
 	if err != nil {
 		return fmt.Errorf("failed to resolve environment directory: %w", err)
 	}
@@ -23,7 +23,7 @@ func Delete(customPath, name string) error {
 
 	common.PrintDone("Stopped environment: %s", name)
 
-	if err := removeEnvDir(dir); err != nil {
+	if err := common.RemoveEnvDir(dir); err != nil {
 		return fmt.Errorf("failed to remove directory %s: %w", dir, err)
 	}
 

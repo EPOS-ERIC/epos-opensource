@@ -14,7 +14,7 @@ import (
 
 func Populate(path, name, ttlDir string) (portalURL, gatewayURL string, err error) {
 	common.PrintStep("Populating environment: %s", name)
-	dir, err := GetEnvDir(path, name)
+	dir, err := common.GetEnvDir(path, name, pathPrefix)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get environment directory: %w", err)
 	}
@@ -128,7 +128,7 @@ func Populate(path, name, ttlDir string) (portalURL, gatewayURL string, err erro
 		return "", "", fmt.Errorf("failed to ingest metadata in directory %s", ttlDir)
 	}
 
-	portalURL, gatewayURL, err = buildEnvURLs(dir)
+	portalURL, gatewayURL, err = common.BuildEnvURLs(dir)
 	if err != nil {
 		return "", "", fmt.Errorf("error building env urls for environment '%s': %w", dir, err)
 	}
