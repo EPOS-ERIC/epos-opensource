@@ -2,10 +2,14 @@ package internal
 
 import (
 	_ "embed"
-	"epos-cli/common"
+	"epos-opensource/common"
 	"fmt"
+	"net/url"
 	"os"
 	"path"
+	"path/filepath"
+
+	"github.com/joho/godotenv"
 )
 
 const pathPrefix = "docker"
@@ -70,4 +74,40 @@ func NewEnvDir(customEnvFilePath, customComposeFilePath, customPath, name string
 
 	success = true
 	return envPath, nil
+}
+
+func buildEnvURLs(dir string) (portalURL, gatewayURL string, err error) {
+	env, err := godotenv.Read(filepath.Join(dir, ".env"))
+	if err != nil {
+		return "", "", fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
+	}
+
+	dataportalPort, ok := env["DATAPORTAL_PORT"]
+	if !ok {
+		return "", "", fmt.Errorf("environment variable DATAPORTAL_PORT is not set")
+	}
+
+	gatewayPort, ok := env["GATEWAY_PORT"]
+	if !ok {
+		return "", "", fmt.Errorf("environment variable GATEWAY_PORT is not set")
+	}
+
+	apiPath, ok := env["API_PATH"]
+	if !ok {
+		return "", "", fmt.Errorf("environment variable API_PATH is not set")
+	}
+
+	localIP, err := common.GetLocalIP()
+	if err != nil {
+		return "", "", fmt.Errorf("error getting local IP address: %w", err)
+	}
+
+	portalURL = fmt.Sprintf("http://%s:%s", localIP, dataportalPort)
+
+	gatewayURL, err = url.JoinPath(fmt.Sprintf("http://%s:%s", localIP, gatewayPort), apiPath, "ui")
+	if err != nil {
+		return "", "", fmt.Errorf("error building gateway url: %w", err)
+	}
+
+	return portalURL, gatewayURL, nil
 }

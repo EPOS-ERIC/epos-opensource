@@ -2,10 +2,11 @@ package internal
 
 import (
 	"embed"
-	"epos-cli/common"
+	"epos-opensource/common"
 	"fmt"
 	"io/fs"
 	"log"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
@@ -29,6 +30,9 @@ var EmbeddedManifestContents map[string]string
 
 //go:embed static/.env
 var envFile string
+
+//go:embed static/deployment-metadata-cache.yaml
+var metadataCacheManifest string
 
 func init() {
 	dirEntries, err := fs.ReadDir(manifestsFs, embedManifestsPath)
@@ -188,7 +192,6 @@ func applyParallel(dir string, targets []string, withService bool) error {
 	var g errgroup.Group
 
 	for _, t := range targets {
-		t := t
 		g.Go(func() error {
 			if withService {
 				return runKubectl(dir, false,
@@ -205,7 +208,6 @@ func waitDeployments(dir, namespace string, names []string) error {
 	var g errgroup.Group
 
 	for _, n := range names {
-		n := n
 		g.Go(func() error {
 			return runKubectl(dir, false,
 				"rollout", "status", fmt.Sprintf("deployment/%s", n),
@@ -291,4 +293,34 @@ func deleteNamespace(name string) error {
 		return fmt.Errorf("failed to delete namespace %s: %w", name, err)
 	}
 	return nil
+}
+
+func buildEnvURLs(dir string) (portalURL, gatewayURL string, err error) {
+	env, err := godotenv.Read(filepath.Join(dir, ".env"))
+	if err != nil {
+		return "", "", fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
+	}
+	apiPath, ok := env["API_PATH"]
+	if !ok {
+		return "", "", fmt.Errorf("environment variable API_PATH is not set")
+	}
+
+	name := path.Base(dir)
+
+	localIP, err := common.GetLocalIP()
+	if err != nil {
+		return "", "", fmt.Errorf("error getting local IP address: %w", err)
+	}
+
+	gatewayURL, err = url.JoinPath(fmt.Sprintf("http://%s", localIP), name, apiPath)
+	if err != nil {
+		return "", "", fmt.Errorf("error building gateway url: %w", err)
+	}
+
+	portalURL, err = url.JoinPath(fmt.Sprintf("http://%s", localIP), name, "/dataportal/")
+	if err != nil {
+		return "", "", fmt.Errorf("error building dataportal url: %w", err)
+	}
+
+	return portalURL, gatewayURL, nil
 }

@@ -1,8 +1,8 @@
 package docker
 
 import (
-	"epos-cli/cmd/docker/internal"
-	"epos-cli/common"
+	"epos-opensource/cmd/docker/internal"
+	"epos-opensource/common"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -24,7 +24,7 @@ var PopulateCmd = &cobra.Command{
 			return
 		}
 
-		common.PrintUrls(portalURL, gatewayURL, fmt.Sprintf("epos-cli docker populate %s", name))
+		common.PrintUrls(portalURL, gatewayURL, fmt.Sprintf("epos-opensource docker populate %s", name))
 	},
 }
 

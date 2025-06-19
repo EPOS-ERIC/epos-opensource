@@ -14,9 +14,9 @@ var Version = "dev"
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "epos-cli",
+	Use:   "epos-opensource",
 	Short: "Manage ePOS environments and utilities",
-	Long: `epos-cli provides commands for working with local Docker environments
+	Long: `epos-opensoucre provides commands for working with local Docker environments
 used by the ePOS project. Use the "docker" group of commands to deploy, update
 or delete an environment.`,
 

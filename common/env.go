@@ -1,13 +1,10 @@
+// Package common contains common functions used throughout the cli commands. Functions like Prints, CreateFileWithContent and GetEnvDir
 package common
 
 import (
 	"fmt"
-	"net/url"
 	"os"
 	"path"
-	"path/filepath"
-
-	"github.com/joho/godotenv"
 )
 
 var configPath string
@@ -26,7 +23,7 @@ func init() {
 	}
 }
 
-// Helper function to create a file with given content
+// CreateFileWithContent creates a file with given content
 func CreateFileWithContent(filePath, content string) error {
 	file, err := os.Create(filePath)
 	if err != nil {
@@ -83,7 +80,7 @@ func GetEnvDir(customPath, name, prefix string) (string, error) {
 	return envPath, nil
 }
 
-// removeEnvDir deletes the environment directory with logs
+// RemoveEnvDir deletes the environment directory with logs
 func RemoveEnvDir(dir string) error {
 	PrintStep("Deleting environment directory: %s", dir)
 	if err := DeleteEnvDir(dir); err != nil {
@@ -91,66 +88,4 @@ func RemoveEnvDir(dir string) error {
 	}
 	PrintDone("Deleted environment directory: %s", dir)
 	return nil
-}
-
-func BuildEnvURLs(dir string) (portalURL, gatewayURL string, err error) {
-	env, err := godotenv.Read(filepath.Join(dir, ".env"))
-	if err != nil {
-		return "", "", fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
-	}
-	if _, ok := env["DATAPORTAL_PORT"]; !ok {
-		return "", "", fmt.Errorf("environment variable DATAPORTAL_PORT is not set")
-	}
-	if _, ok := env["GATEWAY_PORT"]; !ok {
-		return "", "", fmt.Errorf("environment variable GATEWAY_PORT is not set")
-	}
-	if _, ok := env["DEPLOY_PATH"]; !ok {
-		return "", "", fmt.Errorf("environment variable DEPLOY_PATH is not set")
-	}
-	if _, ok := env["API_PATH"]; !ok {
-		return "", "", fmt.Errorf("environment variable API_PATH is not set")
-	}
-
-	localIP, err := GetLocalIP()
-	if err != nil {
-		return "", "", fmt.Errorf("error getting local IP address: %w", err)
-	}
-
-	portalURL = "http://" + localIP + ":" + env["DATAPORTAL_PORT"]
-	gatewayURL, err = url.JoinPath("http://"+localIP+":"+env["GATEWAY_PORT"], env["DEPLOY_PATH"], env["API_PATH"], "ui")
-	if err != nil {
-		return "", "", fmt.Errorf("error building path for gateway url: %w", err)
-	}
-	return portalURL, gatewayURL, nil
-}
-
-func GetApiURL(dir string) (*url.URL, error) {
-	env, err := godotenv.Read(filepath.Join(dir, ".env"))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
-	}
-	// check that all the vars we need are set
-	if _, ok := env["GATEWAY_PORT"]; !ok {
-		return nil, fmt.Errorf("environment variable GATEWAY_PORT is not set")
-	}
-	if _, ok := env["DEPLOY_PATH"]; !ok {
-		return nil, fmt.Errorf("environment variable DEPLOY_PATH is not set")
-	}
-	if _, ok := env["API_PATH"]; !ok {
-		return nil, fmt.Errorf("environment variable API_PATH is not set")
-	}
-
-	localIP, err := GetLocalIP()
-	if err != nil {
-		return nil, fmt.Errorf("error getting local ip: %w", err)
-	}
-	postPath, err := url.JoinPath(fmt.Sprintf("http://%s:%s", localIP, env["GATEWAY_PORT"]), env["DEPLOY_PATH"], env["API_PATH"])
-	if err != nil {
-		return nil, fmt.Errorf("error building post url: %w", err)
-	}
-	posturl, err := url.Parse(postPath)
-	if err != nil {
-		return nil, fmt.Errorf("error building post url: %w", err)
-	}
-	return posturl, nil
 }

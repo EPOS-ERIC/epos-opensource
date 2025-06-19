@@ -1,7 +1,7 @@
 package internal
 
 import (
-	"epos-cli/common"
+	"epos-opensource/common"
 	"fmt"
 	"io"
 	"os"

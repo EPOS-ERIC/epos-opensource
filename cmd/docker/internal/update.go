@@ -2,8 +2,9 @@ package internal
 
 import (
 	_ "embed"
-	"epos-cli/common"
+	"epos-opensource/common"
 	"fmt"
+	"net/url"
 )
 
 // update logic:
@@ -123,10 +124,11 @@ func Update(envFile, composeFile, path, name string, force, pullImages bool) (po
 		// Don't return error as the main operation succeeded
 	}
 
-	portalURL, gatewayURL, err = common.BuildEnvURLs(dir)
+	portalURL, gatewayURL, err = buildEnvURLs(dir)
 	if err != nil {
 		return "", "", fmt.Errorf("error building env urls for environment '%s': %w", dir, err)
 	}
 
-	return portalURL, gatewayURL, nil
+	gatewayURL, err = url.JoinPath(gatewayURL, "ui")
+	return portalURL, gatewayURL, err
 }

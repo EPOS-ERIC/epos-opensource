@@ -8,7 +8,7 @@ import (
 )
 
 func initConfigPath() {
-	dir := "epos-cli"
+	dir := "epos-opensource"
 	home, err := os.UserHomeDir()
 	if err != nil {
 		PrintError("failed to get user home directory on macOS: %v", err)

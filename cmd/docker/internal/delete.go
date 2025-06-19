@@ -2,7 +2,7 @@ package internal
 
 import (
 	_ "embed"
-	"epos-cli/common"
+	"epos-opensource/common"
 	"fmt"
 )
 

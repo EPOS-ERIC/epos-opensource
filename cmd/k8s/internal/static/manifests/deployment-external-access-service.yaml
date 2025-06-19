@@ -24,18 +24,22 @@ spec:
             - secretRef:
                 name: epos-secret
           readinessProbe:
-            httpGet:
-              path: /api/external-access-service/v1/actuator/health
-              port: 8080
+            exec:
+              command:
+                - sh
+                - -c
+                - curl --fail --silent http://localhost:8080/api/external-access-service/v1/actuator/health | grep UP || exit 1
             initialDelaySeconds: 10
             periodSeconds: 30
             timeoutSeconds: 5
             failureThreshold: 5
           livenessProbe:
-            httpGet:
-              path: /api/external-access-service/v1/actuator/health
-              port: 8080
-            initialDelaySeconds: 30
+            exec:
+              command:
+                - sh
+                - -c
+                - curl --fail --silent http://localhost:8080/api/external-access-service/v1/actuator/health | grep UP || exit 1
+            initialDelaySeconds: 10
             periodSeconds: 30
             timeoutSeconds: 5
             failureThreshold: 5

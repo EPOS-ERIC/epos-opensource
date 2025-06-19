@@ -1,8 +1,8 @@
 package k8s
 
 import (
-	"epos-cli/cmd/k8s/internal"
-	"epos-cli/common"
+	"epos-opensource/cmd/k8s/internal"
+	"epos-opensource/common"
 
 	"github.com/spf13/cobra"
 )

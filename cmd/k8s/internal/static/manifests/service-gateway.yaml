@@ -9,6 +9,23 @@ spec:
   ports:
     - name: gateway
       port: 5000
-      targetPort: 5000
-      nodePort: ${GATEWAY_PORT}
-  type: NodePort
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: ${NAMESPACE}
+  name: gateway
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /${NAMESPACE}/api/v1/
+spec:
+  ingressClassName: ${INGRESS_CLASS}
+  rules:
+    - http:
+        paths:
+          - path: /${NAMESPACE}/api/v1/
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway
+                port:
+                  number: 5000

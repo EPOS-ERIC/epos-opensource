@@ -2,8 +2,9 @@ package internal
 
 import (
 	_ "embed"
-	"epos-cli/common"
+	"epos-opensource/common"
 	"fmt"
+	"net/url"
 )
 
 func Deploy(envFile, composeFile, path, name string, pullImages bool) (portalURL, gatewayURL string, err error) {
@@ -40,7 +41,12 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) (portalURL
 		return "", "", err
 	}
 
-	if err := common.PopulateOntologies(dir); err != nil {
+	portalURL, gatewayURL, err = buildEnvURLs(dir)
+	if err != nil {
+		return "", "", fmt.Errorf("error building env urls for environment '%s': %w", dir, err)
+	}
+
+	if err := common.PopulateOntologies(gatewayURL); err != nil {
 		common.PrintError("error initializing the ontologies in the environment: %v", err)
 
 		if err := downStack(dir, false); err != nil {
@@ -51,12 +57,9 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) (portalURL
 			return "", "", fmt.Errorf("error deleting environment %s: %w", dir, err)
 		}
 		common.PrintError("stack deployment failed")
+		return "", "", err
 	}
 
-	portalURL, gatewayURL, err = common.BuildEnvURLs(dir)
-	if err != nil {
-		return "", "", fmt.Errorf("error building env urls for environment '%s': %w", dir, err)
-	}
-
-	return portalURL, gatewayURL, nil
+	gatewayURL, err = url.JoinPath(gatewayURL, "ui")
+	return portalURL, gatewayURL, err
 }

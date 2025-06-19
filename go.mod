@@ -1,4 +1,4 @@
-module epos-cli
+module epos-opensource
 
 go 1.24.4
 

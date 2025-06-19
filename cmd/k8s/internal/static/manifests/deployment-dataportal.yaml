@@ -25,7 +25,7 @@ spec:
                 name: epos-secret
           env:
             - name: BASE_URL
-              value: /
+              value: /${NAMESPACE}/dataportal/
             - name: API_HOST
               value: http://gateway:5000/api
           readinessProbe:

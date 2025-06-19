@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"epos-cli/cmd/k8s"
+	"epos-opensource/cmd/k8s"
 
 	"github.com/spf13/cobra"
 )
@@ -18,6 +18,6 @@ func init() {
 	k8sCmd.AddCommand(k8s.DeployCmd)
 	k8sCmd.AddCommand(k8s.DeleteCmd)
 	// k8sCmd.AddCommand(docker.UpdateCmd)
-	// k8sCmd.AddCommand(docker.PopulateCmd)
+	// k8sCmd.AddCommand(k8s.PopulateCmd)
 	rootCmd.AddCommand(k8sCmd)
 }

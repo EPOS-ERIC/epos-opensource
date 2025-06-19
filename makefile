@@ -1,12 +1,12 @@
-BIN=epos-cli
+BIN=epos-opensource
 VERSION?=make
 
 run: build
-	./epos-cli
+	./$(BIN)
 	@make clean
 
 build:
-	go build -ldflags "-X epos-cli/cmd.Version=$(VERSION)" -o $(BIN) .
+	go build -ldflags "-X $(BIN)/cmd.Version=$(VERSION)" -o $(BIN) .
 
 clean:
 	rm -f $(BIN)

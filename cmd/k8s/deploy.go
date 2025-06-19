@@ -1,8 +1,9 @@
+// Package k8s contains the cobra cmd implementation for the k8s management
 package k8s
 
 import (
-	"epos-cli/cmd/k8s/internal"
-	"epos-cli/common"
+	"epos-opensource/cmd/k8s/internal"
+	"epos-opensource/common"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -20,7 +21,7 @@ var DeployCmd = &cobra.Command{
 			common.PrintError("%v", err)
 			return
 		}
-		common.PrintUrls(portalURL, gatewayURL, fmt.Sprintf("epos-cli kubernetes deploy %s", name))
+		common.PrintUrls(portalURL, gatewayURL, fmt.Sprintf("epos-opensource  kubernetes deploy %s", name))
 	},
 }
 

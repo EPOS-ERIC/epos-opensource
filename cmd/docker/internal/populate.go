@@ -1,7 +1,7 @@
 package internal
 
 import (
-	"epos-cli/common"
+	"epos-opensource/common"
 	"fmt"
 	"io"
 	"io/fs"
@@ -38,9 +38,14 @@ func Populate(path, name, ttlDir string) (portalURL, gatewayURL string, err erro
 		}
 	}(name)
 
-	postURL, err := common.GetApiURL(dir)
+	portalURL, gatewayURL, err = buildEnvURLs(dir)
 	if err != nil {
-		return "", "", fmt.Errorf("error getting api URL for env %s: %w", name, err)
+		return "", "", fmt.Errorf("error building env urls for environment '%s': %w", dir, err)
+	}
+
+	postURL, err := url.Parse(gatewayURL)
+	if err != nil {
+		return "", "", fmt.Errorf("error parsing url '%s': %w", gatewayURL, err)
 	}
 	postURL = postURL.JoinPath("/populate")
 
@@ -128,10 +133,6 @@ func Populate(path, name, ttlDir string) (portalURL, gatewayURL string, err erro
 		return "", "", fmt.Errorf("failed to ingest metadata in directory %s", ttlDir)
 	}
 
-	portalURL, gatewayURL, err = common.BuildEnvURLs(dir)
-	if err != nil {
-		return "", "", fmt.Errorf("error building env urls for environment '%s': %w", dir, err)
-	}
-
-	return portalURL, gatewayURL, nil
+	gatewayURL, err = url.JoinPath(gatewayURL, "ui")
+	return portalURL, gatewayURL, err
 }

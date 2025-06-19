@@ -27,18 +27,24 @@ spec:
             - name: converter-plugins
               mountPath: /opt/converter/plugins
           readinessProbe:
-            httpGet:
-              path: /api/converter-service/v1/actuator/health
-              port: 8080
+            exec:
+              command:
+                - sh
+                - -c
+                - wget --quiet --tries=1 -O - http://localhost:8080/api/converter-service/v1/actuator/health \
+                  | grep -i 'healthy' || exit 1
             initialDelaySeconds: 10
             periodSeconds: 30
             timeoutSeconds: 5
             failureThreshold: 5
           livenessProbe:
-            httpGet:
-              path: /api/converter-service/v1/actuator/health
-              port: 8080
-            initialDelaySeconds: 30
+            exec:
+              command:
+                - sh
+                - -c
+                - wget --quiet --tries=1 -O - http://localhost:8080/api/converter-service/v1/actuator/health \
+                  | grep -i 'healthy' || exit 1
+            initialDelaySeconds: 10
             periodSeconds: 30
             timeoutSeconds: 5
             failureThreshold: 5
