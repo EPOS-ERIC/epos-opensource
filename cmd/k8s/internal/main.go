@@ -153,6 +153,11 @@ func loadEnvAndExpandManifests(envPath, name string) error {
 	}
 
 	os.Setenv("NAMESPACE", name)
+	_, apiURL, err := buildEnvURLs(envPath)
+	if err != nil {
+		return fmt.Errorf("error building API URL: %w", err)
+	}
+	os.Setenv("API_HOST", apiURL)
 
 	files, err := os.ReadDir(envPath)
 	if err != nil {
