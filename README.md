@@ -1,54 +1,67 @@
-# EPOS Open Source
+# EPOS Open Source CLI
 
-## Introduction
+A command-line tool for deploying the EPOS Platform locally using Docker Compose or Kubernetes.
 
-epos-opensource is part of the EPOS Open Source project for local installation using either Docker or Kubernetes.
-It consists of a simple cli tool to deploy instances of the EPOS Platform.
+## Features
 
-Use the `epos-opensource` binary to spin up local environment on Linux, Mac OS X or Windows.
+- Deploy new environments
+- Populate environments with metadata
+- Update or delete an existing environment
+- Manage multiple named deployments
 
-## Prerequisites
+## Requirements
 
-- For Kubernetes installation of the environment `kubectl` must be installed and accessible on path. A context must be set where the namespace with the EPOS Platform will be deployed. For further information follow the [official guidelines](https://kubernetes.io/docs/home/)
-- For Docker environments, Docker must be installed and `docker compose` must be accessible on path. For further information follow the [official guidelines](https://docs.docker.com/get-docker/)
+- Docker and Docker Compose for Docker-based setups
+- `kubectl` and access to a Kubernetes cluster for Kubernetes deployments
 
 ## Installation
 
-1. **Download the Binary:**  
-    Grab the binary for your platform from the [releases](https://github.com/epos-eu/epos-opensource/releases) section.
-   Give permissions on `` file and move on binary folder from a Terminal (in Linux/MacOS):
-2. **Make it executable:**
+### Pre-built binaries
+
+1. Download the archive for your platform from the [releases](https://github.com/epos-eu/epos-opensource/releases).
+2. Make the binary executable and place it in your `$PATH`:
    ```shell
    chmod +x epos-opensource
+   mv epos-opensource /usr/local/bin/
    ```
-3. **Test it:**
+3. Check the installation:
    ```shell
-   ./epos-opensource --version
+   epos-opensource --version
    ```
+
+### Build from source
+
+- Make sure to have the Go 1.24.4 (or more recent) toolchain when building from source
+
+```shell
+make build
+```
 
 ## Usage
 
-For a complete list of available commands and their options:
+List all commands with:
 
-```sh
+```shell
 epos-opensource --help
 ```
 
-For help with a specific command:
+### Docker example
 
-```sh
-epos-opensource [command] --help
+```shell
+epos-opensource docker deploy myenv
+```
+
+### Kubernetes example
+
+```shell
+epos-opensource kubernetes deploy myenv
 ```
 
 ## Maintenance
 
-We regularly update images used in this stack.
+Container images referenced by the tool are updated regularly.
 
 ## Contributing
-
-If you want to contribute to a project and make it better, your help is very welcome. Contributing is also a great way to learn more about social coding on Github, new technologies and and their ecosystems and how to make constructive, helpful bug reports, feature requests and the noblest of all contributions: a good, clean pull request.
-
-### How to make a clean pull request
 
 Look for a project's contribution instructions. If there are any, follow them.
 
@@ -65,13 +78,9 @@ Look for a project's contribution instructions. If there are any, follow them.
 - Squash your commits into a single commit with git's [interactive rebase](https://help.github.com/articles/interactive-rebase). Create a new branch if necessary.
 - Push your branch to your fork on Github/GitLab, the remote `origin`.
 - From your fork open a pull request in the correct branch. Target the project's `develop` branch if there is one, else go for `master` or `main`!
-- …
+- ...
 - If the maintainer requests further changes just push them to your branch. The PR will be updated automatically.
 - Once the pull request is approved and merged you can pull the changes from `upstream` to your local repo and delete
   your extra branch(es).
 
-And last but not least: Always write your commit messages in the present tense. Your commit message should describe what the commit, when applied, does to the code – not what you did to the code.
-
-```
-
-```
+And last but not least: Always write your commit messages in the present tense. Your commit message should describe what the commit, when applied, does to the code, not what you did to the code.
