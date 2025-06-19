@@ -36,7 +36,7 @@ func NewEnvDir(customEnvFilePath, customComposeFilePath, customPath, name string
 	}
 
 	// Create the directory
-	if err := os.MkdirAll(envPath, 0700); err != nil {
+	if err := os.MkdirAll(envPath, 0777); err != nil {
 		return "", fmt.Errorf("failed to create env directory %s: %w", envPath, err)
 	}
 

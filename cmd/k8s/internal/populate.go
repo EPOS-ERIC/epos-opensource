@@ -7,21 +7,27 @@ import (
 	"io/fs"
 	"net/http"
 	"net/url"
+	"os"
+	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 )
 
-func Populate(path, name, ttlDir string) (portalURL, gatewayURL string, err error) {
+func Populate(customPath, name, ttlDir string) (portalURL, gatewayURL string, err error) {
 	common.PrintStep("Populating environment: %s", name)
-	dir, err := common.GetEnvDir(path, name, pathPrefix)
+	dir, err := common.GetEnvDir(customPath, name, pathPrefix)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get environment directory: %w", err)
 	}
 	common.PrintDone("Environment found in dir: %s", dir)
 
+	ttlDir, err = filepath.Abs(ttlDir)
+	if err != nil {
+		return "", "", fmt.Errorf("error finding absolute path for given metadata path '%s': %w", ttlDir, err)
+	}
+
 	common.PrintStep("Deploying metadata-cache")
-	port, err := deployMetadataCache(ttlDir, name)
+	err = deployMetadataCache(dir, ttlDir, name)
 	if err != nil {
 		common.PrintError("Failed to deploy metadata-cache: %v", err)
 		return "", "", fmt.Errorf("failed to deploy metadata-cache: %w", err)
@@ -30,7 +36,7 @@ func Populate(path, name, ttlDir string) (portalURL, gatewayURL string, err erro
 	// make sure that the metadata-cache gets removed and URLs are printed last on success
 	defer func(name string) {
 		common.PrintStep("Removing metadata-cache: %s-metadata-cache", name)
-		err := deleteMetadataCache(name)
+		err := deleteMetadataCache(dir, name)
 		if err != nil {
 			common.PrintError("Error while removing deployed metadata cache: %v. You might have to remove it manually.", err)
 		} else {
@@ -51,11 +57,6 @@ func Populate(path, name, ttlDir string) (portalURL, gatewayURL string, err erro
 
 	common.PrintDone("Deployed metadata-cache with mounted dir: %s", ttlDir)
 	common.PrintStep("Starting the ingestion of the '*.ttl' files")
-
-	localIP, err := common.GetLocalIP()
-	if err != nil {
-		return "", "", fmt.Errorf("error getting local IP address: %w", err)
-	}
 
 	ingestionError := false
 	err = filepath.WalkDir(ttlDir, func(path string, d fs.DirEntry, err error) error {
@@ -84,7 +85,7 @@ func Populate(path, name, ttlDir string) (portalURL, gatewayURL string, err erro
 		q.Set("model", "EPOS-DCAT-AP-V1")
 		q.Set("mapping", "EDM-TO-DCAT-AP")
 
-		fileURL, err := url.JoinPath("http://"+localIP+":"+strconv.Itoa(port), relPath)
+		fileURL, err := url.JoinPath("http://metadata-cache:80", relPath)
 		if err != nil {
 			common.PrintError("Error while building URL for file '%s': %v", d.Name(), err)
 			ingestionError = true
@@ -135,4 +136,55 @@ func Populate(path, name, ttlDir string) (portalURL, gatewayURL string, err erro
 
 	gatewayURL, err = url.JoinPath(gatewayURL, "ui/")
 	return portalURL, gatewayURL, err
+}
+
+// deployMetadataCache deploys an nginx docker container running a file server exposing a volume
+func deployMetadataCache(dir, ttlDir, envName string) error {
+	metadataCachePath := path.Join(dir, "metadata-cache.yaml")
+	os.Setenv("TTL_FILES_DIR_PATH", ttlDir)
+	os.Setenv("NAMESPACE", envName)
+
+	expandedManifest := os.ExpandEnv(metadataCacheManifest)
+	err := os.WriteFile(metadataCachePath, []byte(expandedManifest), 0777)
+	if err != nil {
+		return fmt.Errorf("error writing metadata-cache manifest to dir '%s': %w", metadataCachePath, err)
+	}
+
+	err = runKubectl(dir, false, "apply", "-f", "metadata-cache.yaml")
+	if err != nil {
+		return fmt.Errorf("error applying metadata-cache deployment: %w", err)
+	}
+
+	err = waitDeployments(dir, envName, []string{"metadata-cache"})
+	if err != nil {
+		return fmt.Errorf("error while waiting for metadata-cache deployment to start: %w", err)
+	}
+
+	return nil
+}
+
+// deleteMetadataCache removes a deployment of a metadata cache container
+func deleteMetadataCache(dir, envName string) error {
+	// Delete the deployment
+	err := runKubectl(dir, false, "delete", "-f", "metadata-cache.yaml")
+	if err != nil {
+		return fmt.Errorf("error deleting metadata-cache deployment: %w", err)
+	}
+
+	// Wait for it to be completely gone
+	err = runKubectl(dir, false, "wait", "--for=delete", "deployment/metadata-cache",
+		"--timeout=60s", "-n", envName)
+	if err != nil {
+		return fmt.Errorf("error waiting for metadata-cache deployment to be deleted: %w", err)
+	}
+
+	// delete the manifest
+	metadataCachePath := path.Join(dir, "metadata-cache.yaml")
+
+	err = os.Remove(metadataCachePath)
+	if err != nil {
+		return fmt.Errorf("error removing metadata-cache.yaml: %w", err)
+	}
+
+	return nil
 }

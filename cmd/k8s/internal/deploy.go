@@ -49,6 +49,6 @@ func Deploy(envFile, composeFile, path, name string) (portalURL, gatewayURL stri
 		return "", "", err
 	}
 
-	gatewayURL, err = url.JoinPath(gatewayURL, "ui")
+	gatewayURL, err = url.JoinPath(gatewayURL, "ui/")
 	return portalURL, gatewayURL, err
 }

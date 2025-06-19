@@ -18,6 +18,6 @@ func init() {
 	k8sCmd.AddCommand(k8s.DeployCmd)
 	k8sCmd.AddCommand(k8s.DeleteCmd)
 	// k8sCmd.AddCommand(docker.UpdateCmd)
-	// k8sCmd.AddCommand(k8s.PopulateCmd)
+	k8sCmd.AddCommand(k8s.PopulateCmd)
 	rootCmd.AddCommand(k8sCmd)
 }

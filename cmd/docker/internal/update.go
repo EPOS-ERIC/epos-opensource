@@ -129,6 +129,6 @@ func Update(envFile, composeFile, path, name string, force, pullImages bool) (po
 		return "", "", fmt.Errorf("error building env urls for environment '%s': %w", dir, err)
 	}
 
-	gatewayURL, err = url.JoinPath(gatewayURL, "ui")
+	gatewayURL, err = url.JoinPath(gatewayURL, "ui/")
 	return portalURL, gatewayURL, err
 }

@@ -113,7 +113,7 @@ func createTmpCopy(dir string) (string, error) {
 func restoreTmpDir(tmpDir, targetDir string) error {
 	common.PrintStep("Restoring environment from backup")
 
-	if err := os.MkdirAll(targetDir, 0700); err != nil {
+	if err := os.MkdirAll(targetDir, 0777); err != nil {
 		return fmt.Errorf("failed to create target directory: %w", err)
 	}
 

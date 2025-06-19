@@ -60,6 +60,6 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) (portalURL
 		return "", "", err
 	}
 
-	gatewayURL, err = url.JoinPath(gatewayURL, "ui")
+	gatewayURL, err = url.JoinPath(gatewayURL, "ui/")
 	return portalURL, gatewayURL, err
 }
