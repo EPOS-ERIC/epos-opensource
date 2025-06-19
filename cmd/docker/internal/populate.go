@@ -20,6 +20,11 @@ func Populate(path, name, ttlDir string) (portalURL, gatewayURL string, err erro
 	}
 	common.PrintDone("Environment found in dir: %s", dir)
 
+	ttlDir, err = filepath.Abs(ttlDir)
+	if err != nil {
+		return "", "", fmt.Errorf("error finding absolute path for given metadata path '%s': %w", ttlDir, err)
+	}
+
 	common.PrintStep("Deploying metadata-cache")
 	port, err := deployMetadataCache(ttlDir, name)
 	if err != nil {

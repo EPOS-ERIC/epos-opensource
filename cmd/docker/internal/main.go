@@ -104,7 +104,7 @@ func buildEnvURLs(dir string) (portalURL, gatewayURL string, err error) {
 
 	portalURL = fmt.Sprintf("http://%s:%s", localIP, dataportalPort)
 
-	gatewayURL, err = url.JoinPath(fmt.Sprintf("http://%s:%s", localIP, gatewayPort), apiPath, "ui")
+	gatewayURL, err = url.JoinPath(fmt.Sprintf("http://%s:%s", localIP, gatewayPort), apiPath)
 	if err != nil {
 		return "", "", fmt.Errorf("error building gateway url: %w", err)
 	}

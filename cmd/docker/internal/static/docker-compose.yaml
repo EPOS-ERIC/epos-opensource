@@ -88,6 +88,9 @@ services:
       - FACETS_DEFAULT
       - FACETS_TYPE_DEFAULT
 
+      - APICONTEXT=${API_PATH}
+      - APIHOST=http://localhost:${GATEWAY_PORT}/
+
       - MONITORING
       - MONITORING_URL
       - MONITORING_USER
@@ -151,11 +154,8 @@ services:
       - CONNECTION_POOL_MIN_SIZE
       - CONNECTION_POOL_MAX_SIZE
 
-      - BASECONTEXT=
-      - PERSISTENCE_NAME
-      - APIHOST=localhost
-      - APICONTEXT=${API_PATH}
-      - MONITORING
+      # - PERSISTENCE_NAME
+      # - APICONTEXT=${API_PATH}
     healthcheck:
       test: "curl --fail --silent http://localhost:8080/api/external-access-service/v1/actuator/health | grep UP || exit 1"
       interval: 30s
