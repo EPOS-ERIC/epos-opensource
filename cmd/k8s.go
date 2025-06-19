@@ -8,7 +8,7 @@ import (
 
 var k8sCmd = &cobra.Command{
 	Use:   "kubernetes",
-	Short: "Manage kubernetes environments",
+	Short: "Manage Kubernetes environments",
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},

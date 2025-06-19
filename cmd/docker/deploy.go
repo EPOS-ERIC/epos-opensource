@@ -9,8 +9,9 @@ import (
 )
 
 var DeployCmd = &cobra.Command{
-	Use:   "deploy <name to give to the environment>",
+	Use:   "deploy [env-name]",
 	Short: "Create a new environment using Docker Compose",
+	Long:  "Deploys a new Docker Compose environment with the specified name.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]

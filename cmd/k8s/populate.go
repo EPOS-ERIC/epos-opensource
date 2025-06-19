@@ -9,8 +9,9 @@ import (
 )
 
 var PopulateCmd = &cobra.Command{
-	Use:   "populate [name] [ttlDir]",
-	Short: "populates an existing kubernetes environment",
+	Use:   "populate [env-name] [ttl-directory]",
+	Short: "Ingest TTL files into a Kubernetes environment",
+	Long:  "Populate an existing Kubernetes environment with all *.ttl files found in the specified directory (recursively).",
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]

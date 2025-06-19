@@ -8,8 +8,9 @@ import (
 )
 
 var DeleteCmd = &cobra.Command{
-	Use:   "delete <name of an existing environment>",
-	Short: "Stop and remove a kubernetes environment",
+	Use:   "delete [env-name]",
+	Short: "Stop and remove a Kubernetes environment",
+	Long:  "Deletes the Kubernetes environment and namespace with the given name.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]

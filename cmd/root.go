@@ -15,10 +15,10 @@ var Version = "dev"
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "epos-opensource",
-	Short: "Manage ePOS environments and utilities",
-	Long: `epos-opensoucre provides commands for working with local Docker environments
-used by the ePOS project. Use the "docker" group of commands to deploy, update
-or delete an environment.`,
+	Short: "Manage EPOS environments and utilities",
+	Long: `epos-opensource provides commands for managing local EPOS environments
+using Docker Compose or Kubernetes. Use the "docker" and "kubernetes" command
+groups to deploy, populate, update, or delete an environment.`,
 
 	// If no subcommand is provided, show help.
 	Run: func(cmd *cobra.Command, args []string) {

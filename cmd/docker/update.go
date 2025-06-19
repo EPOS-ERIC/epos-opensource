@@ -11,8 +11,9 @@ import (
 var force bool
 
 var UpdateCmd = &cobra.Command{
-	Use:   "update <name of an existing environment>",
+	Use:   "update [env-name]",
 	Short: "Recreate an environment with new settings",
+	Long:  "Re-deploy an existing Docker Compose environment after modifying configuration.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]

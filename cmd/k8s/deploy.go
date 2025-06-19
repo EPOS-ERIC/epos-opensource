@@ -10,8 +10,9 @@ import (
 )
 
 var DeployCmd = &cobra.Command{
-	Use:   "deploy <name to give to the environment>",
+	Use:   "deploy [env-name]",
 	Short: "Create a new environment using Kubernetes",
+	Long:  "Deploys a new Kubernetes environment in a new namespace with the provided name.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
