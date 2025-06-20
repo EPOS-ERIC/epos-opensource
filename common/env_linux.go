@@ -4,6 +4,7 @@ package common
 
 import (
 	"os"
+	"path"
 )
 
 func initConfigPath() {
@@ -12,5 +13,5 @@ func initConfigPath() {
 		PrintError("failed to get user home directory on Linux: %v", err)
 		os.Exit(1)
 	}
-	configPath = home
+	configPath = path.Join(home, "epos-opensource")
 }
