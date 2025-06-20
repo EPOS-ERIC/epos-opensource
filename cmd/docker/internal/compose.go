@@ -3,7 +3,6 @@ package internal
 import (
 	"fmt"
 	"os/exec"
-	"strconv"
 
 	"github.com/epos-eu/epos-opensource/common"
 )
@@ -46,47 +45,4 @@ func downStack(dir string, removeVolumes bool) error {
 	}
 	_, err := common.RunCommand(composeCommand(dir, "", "down"), false)
 	return err
-}
-
-// deployMetadataCache deploys an nginx docker container running a file server exposing a volume
-func deployMetadataCache(dir, envName string) (int, error) {
-	port, err := common.GetFreePort()
-	if err != nil {
-		return 0, fmt.Errorf("error getting a free port for the metadata-cache: %w", err)
-	}
-	cmd := exec.Command(
-		"docker",
-		"run",
-		"-d",
-		"--name",
-		envName+"-metadata-cache",
-		"-p",
-		strconv.Itoa(port)+":80",
-		"-v",
-		dir+":/usr/share/nginx/html",
-		"nginx",
-	)
-
-	_, err = common.RunCommand(cmd, false)
-	if err != nil {
-		return 0, fmt.Errorf("error deploying metadata-cache: %w", err)
-	}
-
-	return port, nil
-}
-
-// deployMetadataCache removes a deployment of a metadata cache container
-func deleteMetadataCache(envName string) error {
-	cmd := exec.Command(
-		"docker",
-		"rm",
-		"-f",
-		envName+"-metadata-cache",
-	)
-
-	if _, err := common.RunCommand(cmd, false); err != nil {
-		return fmt.Errorf("error removing metadata-cache: %w", err)
-	}
-
-	return nil
 }

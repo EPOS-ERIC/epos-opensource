@@ -47,9 +47,21 @@ func Populate(customPath, name, ttlDir string) (portalURL, gatewayURL string, er
 		return "", "", fmt.Errorf("error building env urls for environment '%s': %w", dir, err)
 	}
 
-	err = metadataServer.PostFiles(gatewayURL)
+	port, err := common.FreePort()
 	if err != nil {
-		return "", "", fmt.Errorf("error populating environment: %w", err)
+		return "", "", fmt.Errorf("error getting free port: %w", err)
+	}
+	// start a port forward locally to the ingestor service and use that to do the populate posts
+	err = ForwardAndRun(name, "ingestor-service", port, 8080, func(host string, port int) error {
+		url := fmt.Sprintf("http://%s:%d/api/ingestor-service/v1/", host, port)
+		err = metadataServer.PostFiles(url)
+		if err != nil {
+			return fmt.Errorf("error populating environment: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return "", "", fmt.Errorf("error populating environment through port-forward: %w", err)
 	}
 
 	gatewayURL, err = url.JoinPath(gatewayURL, "ui/")
