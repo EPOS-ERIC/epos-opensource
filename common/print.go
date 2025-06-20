@@ -38,11 +38,6 @@ func PrintStep(format string, a ...any) {
 	fmt.Printf("%s[STEP]\t%s%s\n", colorCyan, message, colorReset)
 }
 
-func PrintWait(format string, a ...any) {
-	message := fmt.Sprintf(format, a...)
-	fmt.Printf("%s[WAITING]\t%s%s\n", colorPurple, message, colorReset)
-}
-
 func PrintDone(format string, a ...any) {
 	message := fmt.Sprintf(format, a...)
 	fmt.Printf("%s[DONE]\t%s%s\n", colorGreen, message, colorReset)
