@@ -16,6 +16,16 @@ A command-line tool for deploying the EPOS Platform locally using Docker Compose
 
 ## Installation
 
+### Using Go
+
+If you have Go 1.16 or later installed, you can install the latest version directly:
+
+```shell
+go install github.com/epos-eu/epos-opensource@latest
+```
+
+Make sure your `$GOPATH/bin` (or `$HOME/go/bin` if `GOPATH` is not set) is in your `$PATH` to run the command from anywhere.
+
 ### Pre-built binaries
 
 1. Download the archive for your platform from the [releases](https://github.com/epos-eu/epos-opensource/releases).
@@ -31,7 +41,7 @@ A command-line tool for deploying the EPOS Platform locally using Docker Compose
 
 ### Build from source
 
-- Make sure to have the Go 1.24.4 (or more recent) toolchain when building from source
+- Make sure to have the Go 1.24.4 (or more later) toolchain when building from source
 
 ```shell
 make build
