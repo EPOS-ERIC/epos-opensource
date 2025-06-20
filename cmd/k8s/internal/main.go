@@ -33,9 +33,6 @@ var EmbeddedManifestContents map[string]string
 //go:embed static/.env
 var envFile string
 
-//go:embed static/deployment-metadata-cache.yaml
-var metadataCacheManifest string
-
 func init() {
 	dirEntries, err := fs.ReadDir(manifestsFs, embedManifestsPath)
 	if err != nil {
