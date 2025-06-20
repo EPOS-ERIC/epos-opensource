@@ -13,7 +13,6 @@ import (
 )
 
 // ForwardAndRun spins up kubectl port-forward, runs fn, then cleans up.
-// If localPort==0 an ephemeral port is chosen.
 func ForwardAndRun(namespace, deployment string, localPort, remotePort int, fn func(host string, port int) error) error {
 	args := []string{
 		"port-forward",
@@ -37,15 +36,6 @@ func ForwardAndRun(namespace, deployment string, localPort, remotePort int, fn f
 	if err := waitForForward(stdout, stderr, 10*time.Second); err != nil {
 		return err
 	}
-
-	// resp, err := http.Get(fmt.Sprintf("http://%s:%d/api/ingestor-service/v1/populate", "127.0.0.1", localPort))
-	// if err != nil {
-	// 	return fmt.Errorf("ERROR: %w", err)
-	// }
-	// resp.Body.Close()
-	// if resp.StatusCode != 200 {
-	// 	return fmt.Errorf("ERROR: status code %d", resp.StatusCode)
-	// }
 
 	if err := fn("127.0.0.1", localPort); err != nil {
 		return err
