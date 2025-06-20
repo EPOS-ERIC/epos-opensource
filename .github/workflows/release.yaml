@@ -32,8 +32,9 @@ jobs:
           GOOS: ${{ matrix.platform.goos }}
           GOARCH: ${{ matrix.platform.goarch }}
           VERSION: ${{ github.ref_name }}
+          EXT: ${{ matrix.platform.ext }}
         run: |
-          go build -ldflags "-X github.com/epos-eu/epos-opensource/cmd.Version=$VERSION" -o epos-opensource-${{ matrix.platform.os }}${{ matrix.platform.ext }} .
+          make build-release
 
       - name: Upload Artifact for ${{ matrix.platform.os }}
         uses: actions/upload-artifact@v4
