@@ -225,14 +225,16 @@ func waitDeployments(dir, namespace string, names []string) error {
 
 // deployManifests deploys all resources to the namespace in stages:
 // 1. Create namespace, 2. Setup environment, 3. Deploy infra, 4. Deploy services, 5. Deploy gateway/portal.
-func deployManifests(dir, namespace string) error {
-	common.PrintStep("Creating namespace %s", namespace)
-	if err := runKubectl(dir, true, "get", "namespace", namespace); err != nil {
-		if err := runKubectl(dir, false, "create", "namespace", namespace); err != nil {
-			return fmt.Errorf("failed to create namespace %s: %w", namespace, err)
+func deployManifests(dir, namespace string, createNamespace bool) error {
+	if createNamespace {
+		common.PrintStep("Creating namespace %s", namespace)
+		if err := runKubectl(dir, true, "get", "namespace", namespace); err != nil {
+			if err := runKubectl(dir, false, "create", "namespace", namespace); err != nil {
+				return fmt.Errorf("failed to create namespace %s: %w", namespace, err)
+			}
+		} else {
+			return fmt.Errorf("namespace %s already exists", namespace)
 		}
-	} else {
-		return fmt.Errorf("namespace %s already exists", namespace)
 	}
 
 	common.PrintStep("Setting up the environment")
