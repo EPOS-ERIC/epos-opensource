@@ -2,7 +2,6 @@ package internal
 
 import (
 	"embed"
-	"github.com/epos-eu/epos-opensource/common"
 	"fmt"
 	"io/fs"
 	"log"
@@ -11,7 +10,10 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
+
+	"github.com/epos-eu/epos-opensource/common"
 
 	"github.com/joho/godotenv"
 	"golang.org/x/sync/errgroup"
@@ -188,7 +190,8 @@ func loadEnvAndExpandManifests(envPath, name string) error {
 func runKubectl(dir string, suppressOut bool, args ...string) error {
 	cmd := exec.Command("kubectl", args...)
 	cmd.Dir = dir
-	return common.RunCommand(cmd, suppressOut)
+	_, err := common.RunCommand(cmd, suppressOut)
+	return err
 }
 
 // applyParallel runs kubectl apply for all targets concurrently.
@@ -302,6 +305,8 @@ func deleteNamespace(name string) error {
 	return nil
 }
 
+// buildEnvURLs returns the base urls for the dataportal and the gateway.
+// It tries to get the ip of the ingress of the cluster, and if there is an error it returns the localIP
 func buildEnvURLs(dir string) (portalURL, gatewayURL string, err error) {
 	env, err := godotenv.Read(filepath.Join(dir, ".env"))
 	if err != nil {
@@ -314,20 +319,43 @@ func buildEnvURLs(dir string) (portalURL, gatewayURL string, err error) {
 
 	name := path.Base(dir)
 
-	localIP, err := common.GetLocalIP()
+	ip, err := getIngressIP(name)
 	if err != nil {
-		return "", "", fmt.Errorf("error getting local IP address: %w", err)
+		ip, err = common.GetLocalIP()
+		if err != nil {
+			return "", "", fmt.Errorf("error getting IP address: %w", err)
+		}
 	}
 
-	gatewayURL, err = url.JoinPath(fmt.Sprintf("http://%s", localIP), name, apiPath)
+	gatewayURL, err = url.JoinPath(fmt.Sprintf("http://%s", ip), name, apiPath)
 	if err != nil {
 		return "", "", fmt.Errorf("error building gateway url: %w", err)
 	}
 
-	portalURL, err = url.JoinPath(fmt.Sprintf("http://%s", localIP), name, "/dataportal/")
+	portalURL, err = url.JoinPath(fmt.Sprintf("http://%s", ip), name, "/dataportal/")
 	if err != nil {
 		return "", "", fmt.Errorf("error building dataportal url: %w", err)
 	}
 
 	return portalURL, gatewayURL, nil
+}
+
+func getIngressIP(namespace string) (string, error) {
+	cmd := exec.Command(
+		"kubectl",
+		"get", "ingress", "gateway",
+		"-n", namespace,
+		"-o", `jsonpath={.status.loadBalancer.ingress[0].ip}{.status.loadBalancer.ingress[0].hostname}`,
+	)
+	out, err := common.RunCommand(cmd, true)
+	if err != nil {
+		return "", fmt.Errorf("error getting ingress ip: %w", err)
+	}
+	out = strings.Trim(out, "\n")
+
+	if out == "" {
+		return "", fmt.Errorf("error getting ingress IP: ip is empty")
+	}
+
+	return out, nil
 }

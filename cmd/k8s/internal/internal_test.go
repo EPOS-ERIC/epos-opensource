@@ -63,7 +63,7 @@ func TestNewEnvDir(t *testing.T) {
 
 				// custom .env
 				customEnvFile, _ := os.CreateTemp(base, "custom.env")
-				customEnvContent := "FOO=bar\n"
+				customEnvContent := "FOO=bar\nAPI_PATH=something"
 				customEnvFile.WriteString(customEnvContent)
 				customEnvFile.Close()
 
@@ -131,7 +131,6 @@ func TestNewEnvDir(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt // capture
 		t.Run(tt.name, func(t *testing.T) {
 			customEnv, customManif, basePath, envName, preCreate := tt.setup(t)
 

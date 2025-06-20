@@ -1,9 +1,10 @@
 package internal
 
 import (
-	"github.com/epos-eu/epos-opensource/common"
 	"fmt"
 	"net/url"
+
+	"github.com/epos-eu/epos-opensource/common"
 )
 
 func Deploy(envFile, composeFile, path, name string) (portalURL, gatewayURL string, err error) {
@@ -32,6 +33,16 @@ func Deploy(envFile, composeFile, path, name string) (portalURL, gatewayURL stri
 
 	portalURL, gatewayURL, err = buildEnvURLs(dir)
 	if err != nil {
+		common.PrintError("error building env urls for the environment: %v", err)
+
+		if err := deleteNamespace(name); err != nil {
+			common.PrintWarn("error deleting namespace %s, %v", name, err)
+		}
+
+		if err := common.RemoveEnvDir(dir); err != nil {
+			return "", "", fmt.Errorf("error deleting environment %s: %w", dir, err)
+		}
+		common.PrintError("stack deployment failed")
 		return "", "", fmt.Errorf("error building env urls for environment '%s': %w", dir, err)
 	}
 
