@@ -65,7 +65,7 @@ services:
       - RABBITMQ_DEFAULT_VHOST=${RABBITMQ_VHOST}
     restart: always
     healthcheck:
-      test: "rabbitmq-diagnostics -q ping"
+      test: "rabbitmq-diagnostics check_running"
       interval: 30s
       timeout: 5s
       retries: 5
@@ -188,7 +188,7 @@ services:
       test: "wget --quiet --tries=1 -O - http://localhost:8080/api/converter-service/v1/actuator/health | grep -i 'healthy' || exit 1"
       interval: 30s
       timeout: 5s
-      retries: 500
+      retries: 5
       start_period: 5s
     depends_on:
       rabbitmq:
