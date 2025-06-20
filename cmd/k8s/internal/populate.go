@@ -34,11 +34,11 @@ func Populate(customPath, name, ttlDir string) (portalURL, gatewayURL string, er
 
 	// Make sure the metadata server is stopped and URLs are printed last on success.
 	defer func(env string) {
-		common.PrintStep("Stopping metadata server: %s-metadata-server", env)
+		common.PrintStep("Stopping metadata server")
 		if err := metadataServer.Stop(); err != nil {
 			common.PrintError("Error while removing metadata server deployment: %v. You might have to remove it manually.", err)
 		} else {
-			common.PrintDone("Metadata server removed successfully")
+			common.PrintDone("Metadata server stopped successfully")
 		}
 	}(name)
 
@@ -47,12 +47,14 @@ func Populate(customPath, name, ttlDir string) (portalURL, gatewayURL string, er
 		return "", "", fmt.Errorf("error building env urls for environment '%s': %w", dir, err)
 	}
 
+	common.PrintStep("Starting port-forward to ingestor-service pod")
 	port, err := common.FreePort()
 	if err != nil {
 		return "", "", fmt.Errorf("error getting free port: %w", err)
 	}
 	// start a port forward locally to the ingestor service and use that to do the populate posts
 	err = ForwardAndRun(name, "ingestor-service", port, 8080, func(host string, port int) error {
+		common.PrintDone("Port forward started successfully")
 		url := fmt.Sprintf("http://%s:%d/api/ingestor-service/v1/", host, port)
 		err = metadataServer.PostFiles(url)
 		if err != nil {

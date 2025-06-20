@@ -57,3 +57,18 @@ func RunCommand(cmd *exec.Cmd, interceptOut bool) (string, error) {
 	}
 	return "", nil
 }
+
+// StartCommand starts cmd after applying the same configuration as RunCommand,
+// but without waiting for it to exit. It does not redirect stdout or stderr,
+// allowing callers to set up pipes as needed.
+func StartCommand(cmd *exec.Cmd) error {
+	if cmd.Stdin == nil {
+		cmd.Stdin = os.Stdin
+	}
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+
+	cmd.Env = append(cmd.Env, os.Environ()...)
+	cmd.Env = append(cmd.Env, "COMPOSE_STATUS_STDOUT=1")
+
+	return cmd.Start()
+}
