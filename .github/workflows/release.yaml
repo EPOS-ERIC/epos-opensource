@@ -20,7 +20,7 @@ jobs:
           - { os: "windows", goos: "windows", goarch: "amd64", ext: ".exe" }
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -40,7 +40,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: epos-opensource-${{ matrix.platform.os }}
-          path: epos-opensource-${{ matrix.platform.os }}${{ matrix.platform.ext }}
+          path: epos-opensource-${{ matrix.platform.goos }}-${{ matrix.platform.goarch }}${{ matrix.platform.ext }}
 
   release:
     needs: build
@@ -49,17 +49,24 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: .
+          path: artifacts
+
+      - name: List downloaded artifacts (debug)
+        run: |
+          find artifacts -type f -name "*" | sort
 
       - name: Create GitHub Release and Upload Binaries
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: "${{ github.ref_name }}"
+          draft: false
+          prerelease: false
+          generate_release_notes: true
           files: |
-            epos-opensource-linux/epos-opensource-linux
-            epos-opensource-macos/epos-opensource-macos
-            epos-opensource-macos-arm64/epos-opensource-macos-arm64
-            epos-opensource-windows/epos-opensource-windows.exe
+            artifacts/epos-opensource-linux/epos-opensource-linux-amd64
+            artifacts/epos-opensource-macos/epos-opensource-darwin-amd64
+            artifacts/epos-opensource-macos-arm64/epos-opensource-darwin-arm64
+            artifacts/epos-opensource-windows/epos-opensource-windows-amd64.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
