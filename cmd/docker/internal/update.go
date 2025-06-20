@@ -7,7 +7,7 @@ import (
 	"net/url"
 )
 
-// update logic:
+// Update logic:
 // find the old env, if it does not exist give an error
 // if it exists, create a copy of it in a tmp dir
 // if force is set do a docker compose down on the original env
