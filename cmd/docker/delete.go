@@ -1,8 +1,8 @@
 package docker
 
 import (
-	"epos-opensource/cmd/docker/internal"
-	"epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/cmd/docker/internal"
+	"github.com/epos-eu/epos-opensource/common"
 
 	"github.com/spf13/cobra"
 )

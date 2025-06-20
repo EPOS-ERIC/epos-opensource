@@ -1,6 +1,6 @@
 package internal
 
-import "epos-opensource/common"
+import "github.com/epos-eu/epos-opensource/common"
 
 func Export(path string) error {
 	err := common.Export(path, ".env", []byte(envFile))

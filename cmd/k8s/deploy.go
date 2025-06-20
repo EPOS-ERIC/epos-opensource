@@ -2,8 +2,8 @@
 package k8s
 
 import (
-	"epos-opensource/cmd/k8s/internal"
-	"epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/cmd/k8s/internal"
+	"github.com/epos-eu/epos-opensource/common"
 	"fmt"
 
 	"github.com/spf13/cobra"

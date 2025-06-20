@@ -2,7 +2,7 @@ package internal
 
 import (
 	"embed"
-	"epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/common"
 	"fmt"
 	"io/fs"
 	"log"

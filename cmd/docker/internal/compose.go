@@ -1,7 +1,7 @@
 package internal
 
 import (
-	"epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/common"
 	"fmt"
 	"os/exec"
 	"strconv"

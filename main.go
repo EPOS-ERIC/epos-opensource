@@ -1,6 +1,6 @@
 package main
 
-import "epos-opensource/cmd"
+import "github.com/epos-eu/epos-opensource/cmd"
 
 func main() {
 	cmd.Execute()
