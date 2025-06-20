@@ -3,10 +3,14 @@ package common
 import (
 	"context"
 	"fmt"
+	"io"
+	"io/fs"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -66,3 +70,104 @@ func (ms *MetadataServer) Stop() error {
 
 // Addr returns the full "ip:port" string (valid after Start()).
 func (ms *MetadataServer) Addr() string { return ms.addr }
+
+// PostFiles walks the server's directory tree and POSTs **every file
+// ending in `.ttl`** to the EPOS gateway associated with *gatewayURL*.
+//
+//   - gatewayURL should be the base URL of the EPOS Gateway (e.g.
+//     "http://localhost:8080" or "https://gateway.epos.eu").  The
+//     function will automatically append the "/populate" endpoint and
+//     encode the required query parameters.
+//   - The MetadataServer **must be running**; the function uses Addr()
+//     to build public URLs for each TTL file.
+//   - If any file fails to ingest—or if directory traversal itself
+//     fails—the function returns a non‑nil error.  The ingestion stops
+//     at the first fatal directory walk error but continues on HTTP
+//     errors.
+func (ms *MetadataServer) PostFiles(gatewayURL string) error {
+	postURL, err := url.Parse(gatewayURL)
+	if err != nil {
+		return fmt.Errorf("error parsing url '%s': %w", gatewayURL, err)
+	}
+	postURL = postURL.JoinPath("/populate")
+
+	PrintDone("Deployed metadata server with mounted dir: %s", ms.dir)
+	PrintStep("Starting the ingestion of the '*.ttl' files")
+
+	ingestionError := false
+	err = filepath.WalkDir(ms.dir, func(path string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			PrintError("Error while walking directory: %v", walkErr)
+			ingestionError = true
+			return nil
+		}
+
+		if !strings.HasSuffix(d.Name(), ".ttl") {
+			return nil
+		}
+
+		PrintStep("Ingesting file: %s", d.Name())
+		relPath, err := filepath.Rel(ms.dir, path)
+		if err != nil {
+			PrintError("Error getting relative path: %v", err)
+			ingestionError = true
+			return nil
+		}
+
+		q := postURL.Query()
+		// TODO: remove securityCode once it's removed from the ingestor
+		q.Set("securityCode", "changeme")
+		q.Set("type", "single")
+		q.Set("model", "EPOS-DCAT-AP-V1")
+		q.Set("mapping", "EDM-TO-DCAT-AP")
+
+		fileURL, err := url.JoinPath("http://", ms.Addr(), relPath)
+		if err != nil {
+			PrintError("Error while building URL for file '%s': %v", d.Name(), err)
+			ingestionError = true
+			return nil
+		}
+
+		q.Set("path", fileURL)
+		postURL.RawQuery = q.Encode()
+
+		r, err := http.NewRequest("POST", postURL.String(), nil)
+		if err != nil {
+			PrintError("Error building request for file '%s': %v", d.Name(), err)
+			ingestionError = true
+			return nil
+		}
+
+		r.Header.Add("accept", "*/*")
+		res, err := http.DefaultClient.Do(r)
+		if err != nil {
+			PrintError("Error ingesting file '%s' in database: %v", d.Name(), err)
+			ingestionError = true
+			return nil
+		}
+		defer res.Body.Close()
+
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			PrintError("Error reading response body for file '%s': %v", d.Name(), err)
+			ingestionError = true
+			return nil
+		}
+
+		if res.StatusCode != http.StatusOK {
+			PrintError("Error ingesting file '%s' in database: received status code %d. Body of response: %s", d.Name(), res.StatusCode, string(body))
+			ingestionError = true
+			return nil
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed to ingest metadata in directory %s: %w", ms.dir, err)
+	}
+
+	if ingestionError {
+		return fmt.Errorf("failed to ingest metadata in directory %s", ms.dir)
+	}
+	return nil
+}
