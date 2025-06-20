@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"runtime/debug"
 	"time"
 
 	"github.com/google/go-github/v72/github"
@@ -11,6 +12,17 @@ import (
 )
 
 var Version = "dev"
+
+func getVersion() string {
+	if Version != "" && Version != "dev" {
+		return Version
+	}
+
+	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "(devel)" {
+		return info.Main.Version
+	}
+	return "dev"
+}
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -26,7 +38,7 @@ groups to deploy, populate, update, or delete an environment.`,
 			cmd.Help()
 		}
 	},
-	Version: Version,
+	Version: getVersion(),
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
