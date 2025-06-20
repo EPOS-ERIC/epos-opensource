@@ -31,8 +31,8 @@ Make sure your `$GOPATH/bin` (or `$HOME/go/bin` if `GOPATH` is not set) is in yo
 1. Download the archive for your platform from the [releases](https://github.com/epos-eu/epos-opensource/releases).
 2. Make the binary executable and place it in your `$PATH`:
    ```shell
-   chmod +x epos-opensource
-   mv epos-opensource /usr/local/bin/
+   chmod +x epos-opensource-{your version}
+   mv epos-opensource-{your version} /usr/local/bin/
    ```
 3. Check the installation:
    ```shell
