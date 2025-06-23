@@ -6,42 +6,47 @@ A command-line tool for deploying the EPOS Platform locally using Docker Compose
 
 - Deploy new environments
 - Populate environments with metadata
-- Update or delete an existing environment
+- Update or delete existing environments
 - Manage multiple named deployments
 
 ## Requirements
 
-- Docker and Docker Compose for Docker-based setups
-- `kubectl` and access to a Kubernetes cluster for Kubernetes deployments
+- Docker and Docker Compose (for Docker-based setups)
+- `kubectl` and access to a Kubernetes cluster (for Kubernetes-based setups)
+- Go 1.16 or later (for installation via `go install`)
+- Go 1.24.4 or later (for building from source)
 
 ## Installation
 
 ### Using Go
 
-If you have Go 1.16 or later installed, you can install the latest version directly:
+Install the latest version:
 
 ```shell
 go install github.com/epos-eu/epos-opensource@latest
 ```
 
-Make sure your `$GOPATH/bin` (or `$HOME/go/bin` if `GOPATH` is not set) is in your `$PATH` to run the command from anywhere.
+Ensure `$GOPATH/bin` (or `$HOME/go/bin`) is in your `$PATH`.
 
 ### Pre-built binaries
 
-1. Download the archive for your platform from the [releases](https://github.com/epos-eu/epos-opensource/releases).
-2. Make the binary executable and place it in your `$PATH`:
+1. Download the appropriate archive from the [releases](https://github.com/epos-eu/epos-opensource/releases).
+2. Make the binary executable and move it to your `$PATH`:
+
    ```shell
    chmod +x epos-opensource-{your version}
-   mv epos-opensource-{your version} /usr/local/bin/
+   mv epos-opensource-{your version} /usr/local/bin/epos-opensource
    ```
-3. Check the installation:
+
+3. Verify the installation:
+
    ```shell
    epos-opensource --version
    ```
 
 ### Build from source
 
-- Make sure to have the Go 1.24.4 (or more later) toolchain when building from source
+Build using `make` with Go 1.24.4 or later:
 
 ```shell
 make build
@@ -49,7 +54,7 @@ make build
 
 ## Usage
 
-List all commands with:
+List available commands:
 
 ```shell
 epos-opensource --help
@@ -69,28 +74,32 @@ epos-opensource kubernetes deploy myenv
 
 ## Maintenance
 
-Container images referenced by the tool are updated regularly.
+Referenced container images are updated regularly.
+
+## Contributions Welcome
+
+We welcome all contributions, including bug reports, feature ideas, documentation, or code changes.
+
+If you have questions or are unsure how to get started, feel free to [open an issue](https://github.com/epos-eu/epos-opensource/issues). We are happy to assist!
 
 ## Contributing
 
-Look for a project's contribution instructions. If there are any, follow them.
+1. Fork the repository and clone it locally.
+2. Create a new branch from `main` or `develop`.
+3. Make your changes and follow the existing code style.
+4. Add or update tests and documentation as needed.
+5. Commit your changes using clear, present-tense messages.
+6. Push your branch and open a pull request.
 
-- Create a personal fork of the project on Github/GitLab.
-- Clone the fork on your local machine. Your remote repo on Github/GitLab is called `origin`.
-- Add the original repository as a remote called `upstream`.
-- If you created your fork a while ago be sure to pull upstream changes into your local repository.
-- Create a new branch to work on! Branch from `develop` if it exists, else from `master` or `main`.
-- Implement/fix your feature, comment your code.
-- Follow the code style of the project, including indentation.
-- If the project has tests run them!
-- Write or adapt tests as needed.
-- Add or change the documentation as needed.
-- Squash your commits into a single commit with git's [interactive rebase](https://help.github.com/articles/interactive-rebase). Create a new branch if necessary.
-- Push your branch to your fork on Github/GitLab, the remote `origin`.
-- From your fork open a pull request in the correct branch. Target the project's `develop` branch if there is one, else go for `master` or `main`!
-- ...
-- If the maintainer requests further changes just push them to your branch. The PR will be updated automatically.
-- Once the pull request is approved and merged you can pull the changes from `upstream` to your local repo and delete
-  your extra branch(es).
+Before submitting:
 
-And last but not least: Always write your commit messages in the present tense. Your commit message should describe what the commit, when applied, does to the code, not what you did to the code.
+- Pull the latest changes from upstream.
+- Squash commits if needed.
+- Ensure all tests pass.
+
+After submitting:
+
+- Address any feedback on your pull request.
+- Update your branch until it is approved and merged.
+
+Thank you for your contribution!

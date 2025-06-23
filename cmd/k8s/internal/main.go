@@ -318,6 +318,7 @@ func buildEnvURLs(dir string) (portalURL, gatewayURL string, err error) {
 
 	ip, err := getIngressIP(name)
 	if err != nil {
+		common.PrintWarn("error getting ingress IP, falling back to local IP: %v", err)
 		ip, err = common.GetLocalIP()
 		if err != nil {
 			return "", "", fmt.Errorf("error getting IP address: %w", err)
