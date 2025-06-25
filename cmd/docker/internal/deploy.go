@@ -2,8 +2,8 @@ package internal
 
 import (
 	_ "embed"
-	"github.com/epos-eu/epos-opensource/common"
 	"fmt"
+	"github.com/epos-eu/epos-opensource/common"
 	"net/url"
 )
 

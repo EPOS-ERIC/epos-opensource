@@ -2,17 +2,18 @@
 package k8s
 
 import (
+	"fmt"
+
 	"github.com/epos-eu/epos-opensource/cmd/k8s/internal"
 	"github.com/epos-eu/epos-opensource/common"
-	"fmt"
 
 	"github.com/spf13/cobra"
 )
 
 var DeployCmd = &cobra.Command{
 	Use:   "deploy [env-name]",
-	Short: "Create a new environment using Kubernetes",
-	Long:  "Deploys a new Kubernetes environment in a new namespace with the provided name.",
+	Short: "Create and deploy a new Kubernetes environment in a dedicated namespace",
+	Long:  "Sets up a new Kubernetes environment in a fresh namespace, applying all required manifests and configuration. Fails if the namespace already exists.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]

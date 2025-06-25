@@ -1,9 +1,10 @@
 package k8s
 
 import (
+	"fmt"
+
 	"github.com/epos-eu/epos-opensource/cmd/k8s/internal"
 	"github.com/epos-eu/epos-opensource/common"
-	"fmt"
 
 	"github.com/spf13/cobra"
 )
@@ -12,8 +13,8 @@ var force bool
 
 var UpdateCmd = &cobra.Command{
 	Use:   "update [env-name] [flags]",
-	Short: "Recreate an environment with new settings",
-	Long:  "Re-deploy an existing Kubernetes environment after modifying its configuration.",
+	Short: "Update and redeploy an existing Kubernetes environment",
+	Long:  "Recreates the specified environment with updated configuration or manifests. Optionally deletes and recreates the namespace if --force is used. Ensures rollback if the update fails.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]

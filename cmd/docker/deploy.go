@@ -1,9 +1,9 @@
 package docker
 
 import (
+	"fmt"
 	"github.com/epos-eu/epos-opensource/cmd/docker/internal"
 	"github.com/epos-eu/epos-opensource/common"
-	"fmt"
 
 	"github.com/spf13/cobra"
 )

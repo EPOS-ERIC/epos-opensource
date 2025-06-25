@@ -1,8 +1,8 @@
 package internal
 
 import (
-	"github.com/epos-eu/epos-opensource/common"
 	"fmt"
+	"github.com/epos-eu/epos-opensource/common"
 )
 
 func Delete(customPath, name string) error {
