@@ -31,7 +31,7 @@ var manifestsFs embed.FS
 var EmbeddedManifestContents map[string]string
 
 //go:embed static/.env
-var envFile string
+var EnvFile string
 
 func init() {
 	dirEntries, err := fs.ReadDir(manifestsFs, embedManifestsPath)
@@ -81,7 +81,7 @@ func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name strin
 		}
 	}()
 
-	envContent, err := common.GetContentFromPathOrDefault(customEnvFilePath, envFile)
+	envContent, err := common.GetContentFromPathOrDefault(customEnvFilePath, EnvFile)
 	if err != nil {
 		return "", fmt.Errorf("failed to get .env file content: %w", err)
 	}

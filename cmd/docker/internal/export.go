@@ -5,13 +5,13 @@ import (
 )
 
 func Export(path string) error {
-	err := common.Export(path, ".env", []byte(envFile))
+	err := common.Export(path, ".env", []byte(EnvFile))
 	if err != nil {
 		return err
 	}
 	common.PrintDone("Exported %s", ".env")
 
-	err = common.Export(path, "docker-compose.yaml", []byte(composeFile))
+	err = common.Export(path, "docker-compose.yaml", []byte(ComposeFile))
 	if err != nil {
 		return err
 	}

@@ -16,10 +16,10 @@ import (
 const pathPrefix = "docker"
 
 //go:embed static/docker-compose.yaml
-var composeFile string
+var ComposeFile string
 
 //go:embed static/.env
-var envFile string
+var EnvFile string
 
 // NewEnvDir creates a new environment directory with .env and docker-compose.yaml files.
 // If customEnvFilePath or customComposeFilePath are provided, it reads the content from those files.
@@ -52,7 +52,7 @@ func NewEnvDir(customEnvFilePath, customComposeFilePath, customPath, name string
 	}()
 
 	// Get .env file content (from file path or use default)
-	envContent, err := common.GetContentFromPathOrDefault(customEnvFilePath, envFile)
+	envContent, err := common.GetContentFromPathOrDefault(customEnvFilePath, EnvFile)
 	if err != nil {
 		return "", fmt.Errorf("failed to get .env file content: %w", err)
 	}
@@ -63,7 +63,7 @@ func NewEnvDir(customEnvFilePath, customComposeFilePath, customPath, name string
 	}
 
 	// Get docker-compose.yaml file content (from file path or use default)
-	composeContent, err := common.GetContentFromPathOrDefault(customComposeFilePath, composeFile)
+	composeContent, err := common.GetContentFromPathOrDefault(customComposeFilePath, ComposeFile)
 	if err != nil {
 		return "", fmt.Errorf("failed to get docker-compose.yaml file content: %w", err)
 	}

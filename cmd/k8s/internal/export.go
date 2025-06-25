@@ -3,7 +3,7 @@ package internal
 import "github.com/epos-eu/epos-opensource/common"
 
 func Export(path string) error {
-	err := common.Export(path, ".env", []byte(envFile))
+	err := common.Export(path, ".env", []byte(EnvFile))
 	if err != nil {
 		return err
 	}

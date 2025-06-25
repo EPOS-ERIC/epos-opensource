@@ -35,8 +35,8 @@ func TestNewEnvDir(t *testing.T) {
 			wantErr: false,
 			check: func(t *testing.T, envPath, _, _ string) {
 				// .env should equal the embedded envFile
-				if got := mustRead(t, filepath.Join(envPath, ".env")); got != envFile {
-					t.Fatalf(".env content mismatch. got=\n%s, want=\n%s", got, envFile)
+				if got := mustRead(t, filepath.Join(envPath, ".env")); got != EnvFile {
+					t.Fatalf(".env content mismatch. got=\n%s, want=\n%s", got, EnvFile)
 				}
 
 				// Each embedded manifest should be present with its ENV-expanded content.
