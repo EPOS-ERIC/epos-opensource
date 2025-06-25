@@ -3,7 +3,7 @@ package k8s
 import (
 	"fmt"
 
-	"github.com/epos-eu/epos-opensource/cmd/k8s/internal"
+	"github.com/epos-eu/epos-opensource/cmd/k8s/k8score"
 	"github.com/epos-eu/epos-opensource/common"
 
 	"github.com/spf13/cobra"
@@ -18,7 +18,7 @@ var PopulateCmd = &cobra.Command{
 		name := args[0]
 		ttlDir := args[1]
 
-		portalURL, gatewayURL, err := internal.Populate(path, name, ttlDir)
+		portalURL, gatewayURL, err := k8score.Populate(path, name, ttlDir)
 		if err != nil {
 			common.PrintError("%v", err)
 			return

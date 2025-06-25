@@ -1,4 +1,4 @@
-package internal
+package k8score
 
 import "github.com/epos-eu/epos-opensource/common"
 

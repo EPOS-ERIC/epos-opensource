@@ -3,7 +3,7 @@ package k8s
 import (
 	"fmt"
 
-	"github.com/epos-eu/epos-opensource/cmd/k8s/internal"
+	"github.com/epos-eu/epos-opensource/cmd/k8s/k8score"
 	"github.com/epos-eu/epos-opensource/common"
 
 	"github.com/spf13/cobra"
@@ -19,7 +19,7 @@ var UpdateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		portalURL, gatewayURL, err := internal.Update(envFile, manifestsDir, path, name, force)
+		portalURL, gatewayURL, err := k8score.Update(envFile, manifestsDir, path, name, force)
 		if err != nil {
 			common.PrintError("%v", err)
 			return

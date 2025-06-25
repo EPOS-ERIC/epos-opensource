@@ -1,11 +1,12 @@
-// Package internal contains the internal functions used by the kubernetes cmd to manage the environments
-package internal
+// Package k8score contains the internal functions used by the kubernetes cmd to manage the environments
+package k8score
 
 import (
 	_ "embed"
 	"fmt"
-	"github.com/epos-eu/epos-opensource/common"
 	"net/url"
+
+	"github.com/epos-eu/epos-opensource/common"
 )
 
 // Update logic:

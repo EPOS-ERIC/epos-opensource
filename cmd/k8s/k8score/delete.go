@@ -1,7 +1,8 @@
-package internal
+package k8score
 
 import (
 	"fmt"
+
 	"github.com/epos-eu/epos-opensource/common"
 )
 
