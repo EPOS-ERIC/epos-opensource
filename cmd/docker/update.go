@@ -2,7 +2,8 @@ package docker
 
 import (
 	"fmt"
-	"github.com/epos-eu/epos-opensource/cmd/docker/internal"
+
+	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
 	"github.com/epos-eu/epos-opensource/common"
 
 	"github.com/spf13/cobra"
@@ -18,7 +19,7 @@ var UpdateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		portalURL, gatewayURL, err := internal.Update(envFile, composeFile, path, name, force, pullImages)
+		portalURL, gatewayURL, err := dockercore.Update(envFile, composeFile, path, name, force, pullImages)
 		if err != nil {
 			common.PrintError("%v", err)
 			return

@@ -1,11 +1,12 @@
-// Package internal contains the internal functions used by the docker cmd to manage the environments
-package internal
+// Package dockercore contains the internal functions used by the docker cmd to manage the environments
+package dockercore
 
 import (
 	_ "embed"
 	"fmt"
-	"github.com/epos-eu/epos-opensource/common"
 	"net/url"
+
+	"github.com/epos-eu/epos-opensource/common"
 )
 
 // Update logic:

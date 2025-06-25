@@ -1,7 +1,7 @@
 package docker
 
 import (
-	"github.com/epos-eu/epos-opensource/cmd/docker/internal"
+	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
 	"github.com/epos-eu/epos-opensource/common"
 
 	"github.com/spf13/cobra"
@@ -14,7 +14,7 @@ var ExportCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		path := args[0]
-		err := internal.Export(path)
+		err := dockercore.Export(path)
 		if err != nil {
 			common.PrintError("%v", err)
 			return

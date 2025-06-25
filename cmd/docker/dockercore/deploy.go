@@ -1,10 +1,11 @@
-package internal
+package dockercore
 
 import (
 	_ "embed"
 	"fmt"
-	"github.com/epos-eu/epos-opensource/common"
 	"net/url"
+
+	"github.com/epos-eu/epos-opensource/common"
 )
 
 func Deploy(envFile, composeFile, path, name string, pullImages bool) (portalURL, gatewayURL string, err error) {

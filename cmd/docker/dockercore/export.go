@@ -1,4 +1,4 @@
-package internal
+package dockercore
 
 import (
 	"github.com/epos-eu/epos-opensource/common"

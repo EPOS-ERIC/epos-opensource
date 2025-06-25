@@ -1,7 +1,7 @@
 package docker
 
 import (
-	"github.com/epos-eu/epos-opensource/cmd/docker/internal"
+	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
 	"github.com/epos-eu/epos-opensource/common"
 
 	"github.com/spf13/cobra"
@@ -15,7 +15,7 @@ var DeleteCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		err := internal.Delete(path, name)
+		err := dockercore.Delete(path, name)
 		if err != nil {
 			common.PrintError("%v", err)
 			return

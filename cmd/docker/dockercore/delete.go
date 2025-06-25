@@ -1,8 +1,9 @@
-package internal
+package dockercore
 
 import (
 	_ "embed"
 	"fmt"
+
 	"github.com/epos-eu/epos-opensource/common"
 )
 
