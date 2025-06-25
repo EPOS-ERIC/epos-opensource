@@ -1,9 +1,10 @@
 package k8s
 
 import (
+	"fmt"
+
 	"github.com/epos-eu/epos-opensource/cmd/k8s/internal"
 	"github.com/epos-eu/epos-opensource/common"
-	"fmt"
 
 	"github.com/spf13/cobra"
 )

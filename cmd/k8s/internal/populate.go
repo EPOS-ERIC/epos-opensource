@@ -63,7 +63,11 @@ func Populate(customPath, name, ttlDir string) (portalURL, gatewayURL string, er
 		return nil
 	})
 	if err != nil {
-		return "", "", fmt.Errorf("error populating environment through port-forward: %w", err)
+		common.PrintWarn("error populating environment through port-forward, trying with direct IP. error: %v", err)
+		err = metadataServer.PostFiles(gatewayURL)
+		if err != nil {
+			return "", "", fmt.Errorf("error populating environment: %w", err)
+		}
 	}
 
 	gatewayURL, err = url.JoinPath(gatewayURL, "ui/")

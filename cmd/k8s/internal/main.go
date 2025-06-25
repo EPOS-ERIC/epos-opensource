@@ -339,21 +339,51 @@ func buildEnvURLs(dir string) (portalURL, gatewayURL string, err error) {
 }
 
 func getIngressIP(namespace string) (string, error) {
-	cmd := exec.Command(
-		"kubectl",
-		"get", "ingress", "gateway",
-		"-n", namespace,
-		"-o", `jsonpath={.status.loadBalancer.ingress[0].ip}{.status.loadBalancer.ingress[0].hostname}`,
+	const (
+		maxWait  = 30 * time.Second
+		interval = 2 * time.Second
 	)
-	out, err := common.RunCommand(cmd, true)
-	if err != nil {
-		return "", fmt.Errorf("error getting ingress ip: %w", err)
-	}
-	out = strings.Trim(out, "\n")
+	common.PrintStep("Waiting for ingress IP/hostname to be assigned...")
+	start := time.Now()
+	for {
+		// Try to get the IP first
+		cmd := exec.Command(
+			"kubectl",
+			"get", "ingress", "gateway",
+			"-n", namespace,
+			"-o", `jsonpath={.status.loadBalancer.ingress[0].ip}`,
+		)
+		out, err := common.RunCommand(cmd, true)
+		if err != nil {
+			return "", fmt.Errorf("error getting ingress ip: %w", err)
+		}
+		ip := strings.TrimSpace(out)
+		if ip != "" {
+			common.PrintDone("Ingress assigned IP: %s", ip)
+			return ip, nil
+		}
 
-	if out == "" {
-		return "", fmt.Errorf("error getting ingress IP: ip is empty")
-	}
+		// If IP is empty, try hostname
+		cmd = exec.Command(
+			"kubectl",
+			"get", "ingress", "gateway",
+			"-n", namespace,
+			"-o", `jsonpath={.status.loadBalancer.ingress[0].hostname}`,
+		)
+		out, err = common.RunCommand(cmd, true)
+		if err != nil {
+			return "", fmt.Errorf("error getting ingress hostname: %w", err)
+		}
+		hostname := strings.TrimSpace(out)
+		if hostname != "" {
+			common.PrintDone("Ingress assigned hostname: %s", hostname)
+			return hostname, nil
+		}
 
-	return out, nil
+		if time.Since(start) > maxWait {
+			break
+		}
+		time.Sleep(interval)
+	}
+	return "", fmt.Errorf("error getting ingress IP: both ip and hostname are empty after waiting %s", maxWait)
 }

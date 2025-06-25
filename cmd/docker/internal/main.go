@@ -2,12 +2,13 @@ package internal
 
 import (
 	_ "embed"
-	"github.com/epos-eu/epos-opensource/common"
 	"fmt"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+
+	"github.com/epos-eu/epos-opensource/common"
 
 	"github.com/joho/godotenv"
 )

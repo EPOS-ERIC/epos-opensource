@@ -35,8 +35,8 @@ func ForwardAndRun(namespace, deployment string, localPort, remotePort int, fn f
 	}
 	defer stopProcess(cmd.Process)
 
-	if err := waitForForward(stdout, stderr, 10*time.Second); err != nil {
-		return err
+	if err := waitForForward(stdout, stderr, 30*time.Second); err != nil {
+		return fmt.Errorf("error waiting ror port-forward: %w", err)
 	}
 
 	if err := fn("127.0.0.1", localPort); err != nil {
@@ -65,7 +65,7 @@ func waitForForward(stdout, stderr io.Reader, timeout time.Duration) error {
 					return nil
 				}
 			} else {
-				return errors.New("kubectl exited before forwarding was ready")
+				return fmt.Errorf("kubectl exited before forwarding was ready: %w", scan.Err())
 			}
 		}
 	}
