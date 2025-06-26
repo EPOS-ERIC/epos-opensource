@@ -1,11 +1,13 @@
 package dockercore
 
 import (
+	"context"
 	_ "embed"
 	"fmt"
 	"net/url"
 
 	"github.com/epos-eu/epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/db"
 )
 
 func Deploy(envFile, composeFile, path, name string, pullImages bool) (portalURL, gatewayURL string, err error) {
@@ -58,6 +60,21 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) (portalURL
 			return "", "", fmt.Errorf("error deleting environment %s: %w", dir, err)
 		}
 		common.PrintError("stack deployment failed")
+		return "", "", err
+	}
+
+	// TODO add to installed environments
+	q, err := db.Get()
+	if err != nil {
+		return "", "", err
+	}
+
+	_, err = q.InsertEnv(context.Background(), db.InsertEnvParams{
+		Name:      name,
+		Directory: dir,
+		Platform:  "docker",
+	})
+	if err != nil {
 		return "", "", err
 	}
 

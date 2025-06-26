@@ -8,6 +8,6 @@ import (
 )
 
 func initConfigPath() {
-	dir := "epos-opensource"
+	dir := ".epos-opensource"
 	configPath = path.Join(os.Getenv("APPDATA"), dir)
 }
