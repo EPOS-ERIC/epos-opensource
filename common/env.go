@@ -7,19 +7,16 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+
+	"github.com/epos-eu/epos-opensource/common/configdir"
 )
 
-var configPath string
-
 func init() {
-	// Initialize the platform-specific config path
-	initConfigPath()
-
 	// Create the directory if it doesn't exist
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		err = os.MkdirAll(configPath, 0777)
+	if _, err := os.Stat(configdir.GetConfigPath()); os.IsNotExist(err) {
+		err = os.MkdirAll(configdir.GetConfigPath(), 0777)
 		if err != nil {
-			PrintError("failed to create config directory %s: %v", configPath, err)
+			PrintError("failed to create config directory %s: %v", configdir.GetConfigPath(), err)
 			os.Exit(1)
 		}
 	}
@@ -66,7 +63,7 @@ func BuildEnvPath(customPath, name, prefix string) string {
 	if customPath != "" {
 		basePath = customPath
 	} else {
-		basePath = path.Join(configPath, prefix)
+		basePath = path.Join(configdir.GetConfigPath(), prefix)
 	}
 	return path.Join(basePath, name)
 }

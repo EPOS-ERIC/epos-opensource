@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	_ "embed"
+	"fmt"
 	"os"
 	"path"
 
+	"github.com/epos-eu/epos-opensource/common/configdir"
 	_ "modernc.org/sqlite"
 )
 
@@ -15,40 +17,34 @@ import (
 //go:embed schema.sql
 var schema string
 
-const (
-	dir    = "~/.epos-opensource"
-	dbName = "db.db"
-)
+const dbName = "db.db"
 
 // Get opens a new connection to the db. if it does not exist in the file system it is created.
 func Get() (*Queries, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
-	}
-	dbDir := path.Join(homeDir, ".epos-opensource")
-	err = os.MkdirAll(dbDir, 0755)
-	if err != nil {
-		return nil, err
-	}
+	dbDir := configdir.GetConfigPath()
 	dbFile := path.Join(dbDir, dbName)
+
+	err := os.MkdirAll(dbDir, 0755)
+	if err != nil {
+		return nil, fmt.Errorf("error creating db directory %s: %w", dbDir, err)
+	}
 
 	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
 		file, err := os.Create(dbFile)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error creating db file %s: %w", dbFile, err)
 		}
 		file.Close()
 	}
 
 	db, err := sql.Open("sqlite", dbFile)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error opening sqlite db %s: %w", dbFile, err)
 	}
 
 	_, err = db.Exec(schema)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating db schema: %w", err)
 	}
 
 	queries := New(db)
@@ -59,7 +55,7 @@ func Get() (*Queries, error) {
 func DeleteEnv(name, platform string) error {
 	q, err := Get()
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting db connection: %w", err)
 	}
 
 	err = q.DeleteEnv(context.Background(), DeleteEnvParams{
@@ -67,7 +63,7 @@ func DeleteEnv(name, platform string) error {
 		Platform: "docker",
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("error deleting env %s for platform %s from db: %w", name, platform, err)
 	}
 
 	return nil
@@ -76,7 +72,7 @@ func DeleteEnv(name, platform string) error {
 func InsertEnv(name, dir, platform string) error {
 	q, err := Get()
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting db connection: %w", err)
 	}
 
 	_, err = q.InsertEnv(context.Background(), InsertEnvParams{
@@ -85,7 +81,7 @@ func InsertEnv(name, dir, platform string) error {
 		Platform:  platform,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("error inserting env %s (dir: %s, platform: %s) in db: %w", name, dir, platform, err)
 	}
 
 	return nil
@@ -94,12 +90,12 @@ func InsertEnv(name, dir, platform string) error {
 func GetEnvs(platform string) ([]Environment, error) {
 	q, err := Get()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting db connection: %w", err)
 	}
 
 	envs, err := q.GetPlatformEnvs(context.Background(), platform)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting platform envs for %s: %w", platform, err)
 	}
 
 	return envs, nil
