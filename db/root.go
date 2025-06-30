@@ -61,7 +61,7 @@ func DeleteEnv(name, platform string) error {
 
 	err = q.DeleteEnv(context.Background(), DeleteEnvParams{
 		Name:     name,
-		Platform: "docker",
+		Platform: platform,
 	})
 	if err != nil {
 		return fmt.Errorf("error deleting env %s for platform %s from db: %w", name, platform, err)

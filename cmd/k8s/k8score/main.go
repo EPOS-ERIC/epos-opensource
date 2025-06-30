@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	pathPrefix         = "k8s"
+	platform           = "kubernetes"
 	embedManifestsPath = "static/manifests"
 )
 
@@ -60,7 +60,7 @@ func init() {
 // Uses custom files if provided, otherwise uses embedded defaults.
 // Expands environment variables in all manifest files.
 func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name string) (string, error) {
-	envPath := common.BuildEnvPath(customPath, name, pathPrefix)
+	envPath := common.BuildEnvPath(customPath, name, platform)
 
 	if _, err := os.Stat(envPath); err == nil {
 		return "", fmt.Errorf("directory %s already exists", envPath)

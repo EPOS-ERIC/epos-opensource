@@ -22,7 +22,7 @@ func Update(envFile, composeFile, path, name string, force bool) (portalURL, gat
 	common.PrintStep("Updating environment: %s", name)
 
 	// Find the old env, if it does not exist give an error
-	dir, err := common.GetEnvDir(path, name, pathPrefix)
+	dir, err := common.GetEnvDir(path, name, platform)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get environment directory: %w", err)
 	}
