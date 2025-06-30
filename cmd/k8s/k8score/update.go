@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	"github.com/epos-eu/epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/db"
 )
 
 // Update logic:
@@ -27,6 +28,12 @@ func Update(envFile, composeFile, name string, force bool) (portalURL, gatewayUR
 		return "", "", fmt.Errorf("failed to get environment directory: %w", err)
 	}
 
+	kubeEnv, err := db.GetKubernetesByName(name)
+	if err != nil || kubeEnv == nil {
+		return "", "", fmt.Errorf("failed to get kubernetes context for environment %s: %w", name, err)
+	}
+	context := kubeEnv.Context
+
 	common.PrintInfo("Environment directory: %s", dir)
 
 	// If it exists, create a copy of it in a tmp dir
@@ -44,7 +51,7 @@ func Update(envFile, composeFile, name string, force bool) (portalURL, gatewayUR
 		if err := common.RestoreTmpDir(tmpDir, dir); err != nil {
 			return fmt.Errorf("failed to restore from backup: %w", err)
 		}
-		if err := deployManifests(dir, name, true); err != nil {
+		if err := deployManifests(dir, name, true, context); err != nil {
 			return fmt.Errorf("failed to deploy restored environment: %w", err)
 		}
 		return nil
@@ -54,7 +61,7 @@ func Update(envFile, composeFile, name string, force bool) (portalURL, gatewayUR
 
 	// If force is set delete the original env
 	if force {
-		if err := deleteNamespace(name); err != nil {
+		if err := deleteNamespace(name, context); err != nil {
 			if restoreErr := restoreFromTmp(); restoreErr != nil {
 				common.PrintError("Restore failed: %v", restoreErr)
 			}
@@ -81,7 +88,7 @@ func Update(envFile, composeFile, name string, force bool) (portalURL, gatewayUR
 
 	common.PrintStep("Creating new environment directory")
 
-	dir, err = NewEnvDir(envFile, composeFile, dir, name)
+	dir, err = NewEnvDir(envFile, composeFile, dir, name, context)
 	if err != nil {
 		if restoreErr := restoreFromTmp(); restoreErr != nil {
 			common.PrintError("Restore failed: %v", restoreErr)
@@ -95,7 +102,7 @@ func Update(envFile, composeFile, name string, force bool) (portalURL, gatewayUR
 	common.PrintDone("Updated environment created in directory: %s", dir)
 
 	// Deploy the updated manifests
-	if err := deployManifests(dir, name, force); err != nil {
+	if err := deployManifests(dir, name, force, context); err != nil {
 		common.PrintError("Deploy failed: %v", err)
 		if restoreErr := restoreFromTmp(); restoreErr != nil {
 			common.PrintError("Restore failed: %v", restoreErr)
@@ -112,7 +119,7 @@ func Update(envFile, composeFile, name string, force bool) (portalURL, gatewayUR
 		// Don't return error as the main operation succeeded
 	}
 
-	portalURL, gatewayURL, err = buildEnvURLs(dir)
+	portalURL, gatewayURL, err = buildEnvURLs(dir, context)
 	if err != nil {
 		return "", "", fmt.Errorf("error building env urls for environment '%s': %w", dir, err)
 	}

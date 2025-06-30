@@ -15,13 +15,16 @@ import (
 )
 
 // ForwardAndRun spins up kubectl port-forward, runs fn, then cleans up.
-func ForwardAndRun(namespace, deployment string, localPort, remotePort int, fn func(host string, port int) error) error {
+func ForwardAndRun(namespace, deployment string, localPort, remotePort int, context string, fn func(host string, port int) error) error {
 	args := []string{
 		"port-forward",
 		"deployment/" + deployment,
 		fmt.Sprintf("%d:%d", localPort, remotePort),
 		"-n",
 		namespace,
+	}
+	if context != "" {
+		args = append(args, "--context", context)
 	}
 
 	cmd := exec.Command("kubectl", args...)

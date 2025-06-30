@@ -15,10 +15,16 @@ func Delete(name string) error {
 		return fmt.Errorf("failed to resolve environment directory: %w", err)
 	}
 
+	kubeEnv, err := db.GetKubernetesByName(name)
+	if err != nil || kubeEnv == nil {
+		return fmt.Errorf("failed to get kubernetes context for environment %s: %w", name, err)
+	}
+	context := kubeEnv.Context
+
 	common.PrintInfo("Environment directory: %s", dir)
 	common.PrintStep("Deleting namespace")
 
-	if err := deleteNamespace(name); err != nil {
+	if err := deleteNamespace(name, context); err != nil {
 		return fmt.Errorf("error deleting namespace %s, %w", name, err)
 	}
 
