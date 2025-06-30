@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/epos-eu/epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/db"
 )
 
 func Delete(customPath, name string) error {
@@ -25,6 +26,11 @@ func Delete(customPath, name string) error {
 
 	if err := common.RemoveEnvDir(dir); err != nil {
 		return fmt.Errorf("failed to remove directory %s: %w", dir, err)
+	}
+
+	err = db.DeleteEnv(name, "kubernetes")
+	if err != nil {
+		return fmt.Errorf("failed to delete env %s (dir: %s, platform: %s) in db: %w", name, dir, "kubernetes", err)
 	}
 
 	common.PrintDone("Deleted environment: %s", name)

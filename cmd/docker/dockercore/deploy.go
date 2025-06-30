@@ -1,7 +1,6 @@
 package dockercore
 
 import (
-	"context"
 	_ "embed"
 	"fmt"
 	"net/url"
@@ -63,21 +62,14 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) (portalURL
 		return "", "", err
 	}
 
-	// TODO add to installed environments
-	q, err := db.Get()
+	err = db.InsertEnv(name, dir, "docker")
 	if err != nil {
-		return "", "", err
-	}
-
-	_, err = q.InsertEnv(context.Background(), db.InsertEnvParams{
-		Name:      name,
-		Directory: dir,
-		Platform:  "docker",
-	})
-	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("failed to insert env %s (dir: %s, platform: %s) in db: %w", name, dir, "docker", err)
 	}
 
 	gatewayURL, err = url.JoinPath(gatewayURL, "ui/")
+	if err != nil {
+		return portalURL, "", fmt.Errorf("failed to build gateway URL: %w", err)
+	}
 	return portalURL, gatewayURL, err
 }

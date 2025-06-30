@@ -57,6 +57,28 @@ func (q *Queries) GetAllEnvs(ctx context.Context) ([]Environment, error) {
 	return items, nil
 }
 
+const getEnvByNameAndPlatform = `-- name: GetEnvByNameAndPlatform :one
+SELECT
+    name, directory, platform
+FROM
+    environment
+WHERE
+    name = ?
+    AND platform = ?
+`
+
+type GetEnvByNameAndPlatformParams struct {
+	Name     string
+	Platform string
+}
+
+func (q *Queries) GetEnvByNameAndPlatform(ctx context.Context, arg GetEnvByNameAndPlatformParams) (Environment, error) {
+	row := q.db.QueryRowContext(ctx, getEnvByNameAndPlatform, arg.Name, arg.Platform)
+	var i Environment
+	err := row.Scan(&i.Name, &i.Directory, &i.Platform)
+	return i, err
+}
+
 const getPlatformEnvs = `-- name: GetPlatformEnvs :many
 SELECT
     name, directory, platform

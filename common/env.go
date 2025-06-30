@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/epos-eu/epos-opensource/common/configdir"
+	"github.com/epos-eu/epos-opensource/db"
 )
 
 func init() {
@@ -69,14 +70,15 @@ func BuildEnvPath(customPath, name, prefix string) string {
 }
 
 // GetEnvDir validates that the full directory path exists and returns it
-func GetEnvDir(customPath, name, prefix string) (string, error) {
-	envPath := BuildEnvPath(customPath, name, prefix)
-	if _, err := os.Stat(envPath); os.IsNotExist(err) {
-		return "", fmt.Errorf("directory %s does not exist: %w", envPath, err)
-	} else if err != nil {
-		return "", fmt.Errorf("failed to check directory %s: %w", envPath, err)
+func GetEnvDir(customPath, name, platform string) (string, error) {
+	env, dbErr := db.GetEnv(name, platform)
+	if dbErr != nil {
+		return "", fmt.Errorf("failed to check environment in db: %w", dbErr)
 	}
-	return envPath, nil
+	if env == nil {
+		return "", fmt.Errorf("environment '%s' for platform '%s' does not exist in the database", name, platform)
+	}
+	return env.Directory, nil
 }
 
 // RemoveEnvDir deletes the environment directory with logs

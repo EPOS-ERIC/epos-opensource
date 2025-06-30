@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	"github.com/epos-eu/epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/db"
 )
 
 func Deploy(envFile, composeFile, path, name string) (portalURL, gatewayURL string, err error) {
@@ -60,6 +61,14 @@ func Deploy(envFile, composeFile, path, name string) (portalURL, gatewayURL stri
 		return "", "", err
 	}
 
+	err = db.InsertEnv(name, dir, "kubernetes")
+	if err != nil {
+		return "", "", fmt.Errorf("failed to insert env %s (dir: %s, platform: %s) in db: %w", name, dir, "kubernetes", err)
+	}
+
 	gatewayURL, err = url.JoinPath(gatewayURL, "ui/")
+	if err != nil {
+		return portalURL, "", fmt.Errorf("failed to build gateway URL: %w", err)
+	}
 	return portalURL, gatewayURL, err
 }

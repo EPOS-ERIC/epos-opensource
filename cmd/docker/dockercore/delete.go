@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"github.com/epos-eu/epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/db"
 )
 
 func Delete(customPath, name string) error {
 	common.PrintStep("Deleting environment: %s", name)
 
-	dir, err := common.GetEnvDir(customPath, name, pathPrefix)
+	dir, err := common.GetEnvDir(customPath, name, platform)
 	if err != nil {
 		return fmt.Errorf("failed to resolve environment directory: %w", err)
 	}
@@ -26,6 +27,11 @@ func Delete(customPath, name string) error {
 
 	if err := common.RemoveEnvDir(dir); err != nil {
 		return fmt.Errorf("failed to remove directory %s: %w", dir, err)
+	}
+
+	err = db.DeleteEnv(name, "docker")
+	if err != nil {
+		return fmt.Errorf("failed to delete env %s (dir: %s, platform: %s) in db: %w", name, dir, "docker", err)
 	}
 
 	common.PrintDone("Deleted environment: %s", name)

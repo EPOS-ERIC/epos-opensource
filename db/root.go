@@ -19,7 +19,7 @@ var schema string
 
 const dbName = "db.db"
 
-// Get opens a new connection to the db. if it does not exist in the file system it is created.
+// Get opens a new connection to the database, creating the database file and schema if they do not exist.
 func Get() (*Queries, error) {
 	dbDir := configdir.GetConfigPath()
 	dbFile := path.Join(dbDir, dbName)
@@ -52,6 +52,7 @@ func Get() (*Queries, error) {
 	return queries, nil
 }
 
+// DeleteEnv removes an environment entry from the database for the given name and platform.
 func DeleteEnv(name, platform string) error {
 	q, err := Get()
 	if err != nil {
@@ -69,6 +70,7 @@ func DeleteEnv(name, platform string) error {
 	return nil
 }
 
+// InsertEnv adds a new environment entry to the database.
 func InsertEnv(name, dir, platform string) error {
 	q, err := Get()
 	if err != nil {
@@ -87,6 +89,7 @@ func InsertEnv(name, dir, platform string) error {
 	return nil
 }
 
+// GetEnvs retrieves all environment entries for the specified platform from the database.
 func GetEnvs(platform string) ([]Environment, error) {
 	q, err := Get()
 	if err != nil {
@@ -99,4 +102,23 @@ func GetEnvs(platform string) ([]Environment, error) {
 	}
 
 	return envs, nil
+}
+
+// GetEnv retrieves a single environment entry for the specified name and platform from the database.
+func GetEnv(name, platform string) (*Environment, error) {
+	q, err := Get()
+	if err != nil {
+		return nil, fmt.Errorf("error getting db connection: %w", err)
+	}
+	env, err := q.GetEnvByNameAndPlatform(context.Background(), GetEnvByNameAndPlatformParams{
+		Name:     name,
+		Platform: platform,
+	})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error getting env %s for platform %s: %w", name, platform, err)
+	}
+	return &env, nil
 }

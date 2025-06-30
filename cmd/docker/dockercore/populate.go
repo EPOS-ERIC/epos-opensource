@@ -10,7 +10,7 @@ import (
 
 func Populate(path, name, ttlDir string) (portalURL, gatewayURL string, err error) {
 	common.PrintStep("Populating environment: %s", name)
-	dir, err := common.GetEnvDir(path, name, pathPrefix)
+	dir, err := common.GetEnvDir(path, name, platform)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get environment directory: %w", err)
 	}

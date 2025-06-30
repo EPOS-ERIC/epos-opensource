@@ -27,3 +27,12 @@ FROM
 WHERE
     platform = ?;
 
+-- name: GetEnvByNameAndPlatform :one
+SELECT
+    *
+FROM
+    environment
+WHERE
+    name = ?
+    AND platform = ?;
+
