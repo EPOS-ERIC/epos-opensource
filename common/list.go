@@ -10,6 +10,11 @@ import (
 )
 
 func PrintEnvironmentList(envs []db.Environment, title string) {
+	if len(envs) == 0 {
+		PrintInfo("No installed environments found")
+		return
+	}
+
 	t := table.NewWriter()
 	t.SetTitle(title)
 	t.SetStyle(table.StyleRounded)
