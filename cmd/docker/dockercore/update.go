@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	"github.com/epos-eu/epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/db"
 )
 
 // Update logic:
@@ -18,50 +19,46 @@ import (
 // deploy the updated compose
 // if everything goes right, delete the tmp dir and finish
 // else restore the tmp dir, deploy the old restored env and give an error in output
-func Update(envFile, composeFile, path, name string, force, pullImages bool) (portalURL, gatewayURL string, err error) {
+func Update(envFile, composeFile, name string, force, pullImages bool) (portalURL, gatewayURL string, err error) {
 	common.PrintStep("Updating environment: %s", name)
 
-	// Find the old env, if it does not exist give an error
-	dir, err := common.GetEnvDir(path, name, pathPrefix)
+	env, err := db.GetDockerByName(name)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to get environment directory: %w", err)
+		return "", "", fmt.Errorf("error getting docker environment from db called '%s': %w", name, err)
 	}
-
-	common.PrintInfo("Environment directory: %s", dir)
+	gatewayURL = env.ApiUrl
+	portalURL = env.GuiUrl
 
 	// If it exists, create a copy of it in a tmp dir
-	tmpDir, err := common.CreateTmpCopy(dir)
+	tmpDir, err := common.CreateTmpCopy(env.Directory)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create backup copy: %w", err)
 	}
 
-	// Cleanup function to restore from tmp if needed
-	restoreFromTmp := func() error {
+	handleFailure := func(msg string, mainErr error) (string, string, error) {
 		common.PrintStep("Restoring environment from backup")
-		if err := common.RemoveEnvDir(dir); err != nil {
+		if err := common.RemoveEnvDir(env.Directory); err != nil {
 			common.PrintError("Failed to remove corrupted directory: %v", err)
 		}
-		if err := common.RestoreTmpDir(tmpDir, dir); err != nil {
-			return fmt.Errorf("failed to restore from backup: %w", err)
+		if err := common.RestoreTmpDir(tmpDir, env.Directory); err != nil {
+			common.PrintError("Failed to restore from backup: %v", err)
+		} else {
+			if err := deployStack(env.Directory, name); err != nil {
+				common.PrintError("Failed to deploy restored environment: %v", err)
+			}
 		}
-		if err := deployStack(dir, name); err != nil {
-			return fmt.Errorf("failed to deploy restored environment: %w", err)
+		if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
+			common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
 		}
-		return nil
+		return "", "", fmt.Errorf(msg, mainErr)
 	}
 
 	common.PrintStep("Updating stack")
 
 	// If force is set do a docker compose down on the original env
 	if force {
-		if err := downStack(dir, true); err != nil {
-			if restoreErr := restoreFromTmp(); restoreErr != nil {
-				common.PrintError("Restore failed: %v", restoreErr)
-			}
-			if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
-				common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
-			}
-			return "", "", fmt.Errorf("docker compose down failed: %w", err)
+		if err := downStack(env.Directory, true); err != nil {
+			return handleFailure("docker compose down failed: %w", err)
 		}
 		common.PrintDone("Stopped environment: %s", name)
 	}
@@ -69,27 +66,15 @@ func Update(envFile, composeFile, path, name string, force, pullImages bool) (po
 	common.PrintStep("Removing old environment directory")
 
 	// Remove the contents of the env dir and create the updated env file and docker-compose
-	if err := common.RemoveEnvDir(dir); err != nil {
-		if restoreErr := restoreFromTmp(); restoreErr != nil {
-			common.PrintError("Restore failed: %v", restoreErr)
-		}
-		if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
-			common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
-		}
-		return "", "", fmt.Errorf("failed to remove directory %s: %w", dir, err)
+	if err := common.RemoveEnvDir(env.Directory); err != nil {
+		return handleFailure("failed to remove directory %s: %w", fmt.Errorf("%s: %w", env.Directory, err))
 	}
 
 	common.PrintStep("Creating new environment directory")
 
-	dir, err = NewEnvDir(envFile, composeFile, path, name)
+	dir, err := NewEnvDir(envFile, composeFile, env.Directory, name)
 	if err != nil {
-		if restoreErr := restoreFromTmp(); restoreErr != nil {
-			common.PrintError("Restore failed: %v", restoreErr)
-		}
-		if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
-			common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
-		}
-		return "", "", fmt.Errorf("failed to prepare environment directory: %w", err)
+		return handleFailure("failed to prepare environment directory: %w", err)
 	}
 
 	common.PrintDone("Updated environment created in directory: %s", dir)
@@ -98,37 +83,19 @@ func Update(envFile, composeFile, path, name string, force, pullImages bool) (po
 	if pullImages {
 		if err := pullEnvImages(dir, name); err != nil {
 			common.PrintError("Pulling images failed: %v", err)
-			if restoreErr := restoreFromTmp(); restoreErr != nil {
-				common.PrintError("Restore failed: %v", restoreErr)
-			}
-			if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
-				common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
-			}
-			return "", "", err
+			return handleFailure("pulling images failed: %w", err)
 		}
 	}
 
 	// Deploy the updated compose
 	if err := deployStack(dir, name); err != nil {
 		common.PrintError("Deploy failed: %v", err)
-		if restoreErr := restoreFromTmp(); restoreErr != nil {
-			common.PrintError("Restore failed: %v", restoreErr)
-		}
-		if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
-			common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
-		}
-		return "", "", err
+		return handleFailure("deploy failed: %w", err)
 	}
 
 	// If everything goes right, delete the tmp dir and finish
-	if err := common.RemoveTmpDir(tmpDir); err != nil {
-		common.PrintError("Failed to cleanup tmp dir: %v", err)
-		// Don't return error as the main operation succeeded
-	}
-
-	portalURL, gatewayURL, err = buildEnvURLs(dir)
-	if err != nil {
-		return "", "", fmt.Errorf("error building env urls for environment '%s': %w", dir, err)
+	if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
+		common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
 	}
 
 	gatewayURL, err = url.JoinPath(gatewayURL, "ui/")

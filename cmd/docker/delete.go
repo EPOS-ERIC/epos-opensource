@@ -15,14 +15,10 @@ var DeleteCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		err := dockercore.Delete(path, name)
+		err := dockercore.Delete(name)
 		if err != nil {
 			common.PrintError("%v", err)
 			return
 		}
 	},
-}
-
-func init() {
-	DeleteCmd.Flags().StringVarP(&path, "path", "p", "", "Location for the environment files")
 }

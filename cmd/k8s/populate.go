@@ -18,16 +18,12 @@ var PopulateCmd = &cobra.Command{
 		name := args[0]
 		ttlDir := args[1]
 
-		portalURL, gatewayURL, err := k8score.Populate(path, name, ttlDir)
+		portalURL, gatewayURL, err := k8score.Populate(name, ttlDir)
 		if err != nil {
 			common.PrintError("%v", err)
 			return
 		}
 
-		common.PrintUrls(portalURL, gatewayURL, fmt.Sprintf("epos-opensource  kubernetes deploy %s", name))
+		common.PrintUrls(portalURL, gatewayURL, fmt.Sprintf("epos-opensource kubernetes deploy %s", name))
 	},
-}
-
-func init() {
-	PopulateCmd.Flags().StringVarP(&path, "path", "p", "", "Location for the environment files if not default")
 }

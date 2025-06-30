@@ -13,7 +13,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-const pathPrefix = "docker"
+const platform = "docker"
 
 //go:embed static/docker-compose.yaml
 var ComposeFile string
@@ -27,7 +27,10 @@ var EnvFile string
 // Returns the path to the created environment directory.
 // If any error occurs after directory creation, the directory and its contents are automatically cleaned up.
 func NewEnvDir(customEnvFilePath, customComposeFilePath, customPath, name string) (string, error) {
-	envPath := common.BuildEnvPath(customPath, name, pathPrefix)
+	envPath, err := common.BuildEnvPath(customPath, name, platform)
+	if err != nil {
+		return "", err
+	}
 
 	// Check if directory already exists
 	if _, err := os.Stat(envPath); err == nil {

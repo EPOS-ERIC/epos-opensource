@@ -3,7 +3,7 @@ VERSION?=makefile
 GOOS?=$(shell go env GOOS)
 GOARCH?=$(shell go env GOARCH)
 
-build:
+build: generate
 	go build -ldflags "-X github.com/epos-eu/epos-opensource/cmd.Version=$(VERSION)" -o $(BIN) .
 
 # Build for specific platform (used by CI)
@@ -12,6 +12,9 @@ build-release:
 
 clean:
 	rm -f $(BIN)*
+
+generate:
+	go generate ./...
 
 vet:
 	go vet ./...

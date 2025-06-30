@@ -5,27 +5,32 @@ import (
 	"fmt"
 
 	"github.com/epos-eu/epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/db"
 )
 
-func Delete(customPath, name string) error {
+func Delete(name string) error {
 	common.PrintStep("Deleting environment: %s", name)
 
-	dir, err := common.GetEnvDir(customPath, name, pathPrefix)
+	env, err := db.GetDockerByName(name)
 	if err != nil {
-		return fmt.Errorf("failed to resolve environment directory: %w", err)
+		return fmt.Errorf("error getting docker environment from db called '%s': %w", name, err)
 	}
 
-	common.PrintInfo("Environment directory: %s", dir)
 	common.PrintStep("Stopping stack")
 
-	if err := downStack(dir, true); err != nil {
+	if err := downStack(env.Directory, true); err != nil {
 		return fmt.Errorf("docker compose down failed: %w", err)
 	}
 
 	common.PrintDone("Stopped environment: %s", name)
 
-	if err := common.RemoveEnvDir(dir); err != nil {
-		return fmt.Errorf("failed to remove directory %s: %w", dir, err)
+	if err := common.RemoveEnvDir(env.Directory); err != nil {
+		return fmt.Errorf("failed to remove directory %s: %w", env.Directory, err)
+	}
+
+	err = db.DeleteDocker(name)
+	if err != nil {
+		return fmt.Errorf("failed to delete docker %s (dir: %s) in db: %w", name, env.Directory, err)
 	}
 
 	common.PrintDone("Deleted environment: %s", name)

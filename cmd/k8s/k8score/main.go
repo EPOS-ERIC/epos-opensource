@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	pathPrefix         = "k8s"
+	platform           = "kubernetes"
 	embedManifestsPath = "static/manifests"
 )
 
@@ -59,8 +59,11 @@ func init() {
 // NewEnvDir creates an environment directory with .env and manifest files.
 // Uses custom files if provided, otherwise uses embedded defaults.
 // Expands environment variables in all manifest files.
-func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name string) (string, error) {
-	envPath := common.BuildEnvPath(customPath, name, pathPrefix)
+func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name, context string) (string, error) {
+	envPath, err := common.BuildEnvPath(customPath, name, platform)
+	if err != nil {
+		return "", err
+	}
 
 	if _, err := os.Stat(envPath); err == nil {
 		return "", fmt.Errorf("directory %s already exists", envPath)
@@ -100,7 +103,7 @@ func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name strin
 		}
 	}
 
-	if err := loadEnvAndExpandManifests(envPath, name); err != nil {
+	if err := loadEnvAndExpandManifests(envPath, name, context); err != nil {
 		return "", fmt.Errorf("failed to process environment variables: %w", err)
 	}
 
@@ -145,14 +148,14 @@ func copyEmbeddedManifests(envPath string) error {
 	return nil
 }
 
-func loadEnvAndExpandManifests(envPath, name string) error {
+func loadEnvAndExpandManifests(envPath, name, context string) error {
 	envFilePath := path.Join(envPath, ".env")
 	if err := godotenv.Load(envFilePath); err != nil {
 		return fmt.Errorf("failed to load environment file %q: %w", envFilePath, err)
 	}
 
 	os.Setenv("NAMESPACE", name)
-	_, apiURL, err := buildEnvURLs(envPath)
+	_, apiURL, err := buildEnvURLs(envPath, context)
 	if err != nil {
 		return fmt.Errorf("error building API URL: %w", err)
 	}
@@ -184,7 +187,10 @@ func loadEnvAndExpandManifests(envPath, name string) error {
 }
 
 // runKubectl executes kubectl with given args in the specified directory.
-func runKubectl(dir string, suppressOut bool, args ...string) error {
+func runKubectl(dir string, suppressOut bool, context string, args ...string) error {
+	if context != "" {
+		args = append(args, "--context", context)
+	}
 	cmd := exec.Command("kubectl", args...)
 	cmd.Dir = dir
 	_, err := common.RunCommand(cmd, suppressOut)
@@ -193,28 +199,28 @@ func runKubectl(dir string, suppressOut bool, args ...string) error {
 
 // applyParallel runs kubectl apply for all targets concurrently.
 // If withService is true, applies both deployment-X.yaml and service-X.yaml files.
-func applyParallel(dir string, targets []string, withService bool) error {
+func applyParallel(dir string, targets []string, withService bool, context string) error {
 	var g errgroup.Group
 
 	for _, t := range targets {
 		g.Go(func() error {
 			if withService {
-				return runKubectl(dir, false,
+				return runKubectl(dir, false, context,
 					"apply", "-f", fmt.Sprintf("deployment-%s.yaml", t), "-f", fmt.Sprintf("service-%s.yaml", t))
 			}
-			return runKubectl(dir, false, "apply", "-f", t)
+			return runKubectl(dir, false, context, "apply", "-f", t)
 		})
 	}
 	return g.Wait()
 }
 
 // waitDeployments waits for all deployments to be ready with 1 minute timeout each.
-func waitDeployments(dir, namespace string, names []string) error {
+func waitDeployments(dir, namespace string, names []string, context string) error {
 	var g errgroup.Group
 
 	for _, n := range names {
 		g.Go(func() error {
-			return runKubectl(dir, false,
+			return runKubectl(dir, false, context,
 				"rollout", "status", fmt.Sprintf("deployment/%s", n),
 				"--timeout", (2 * time.Minute).String(),
 				"-n", namespace)
@@ -225,11 +231,11 @@ func waitDeployments(dir, namespace string, names []string) error {
 
 // deployManifests deploys all resources to the namespace in stages:
 // 1. Create namespace, 2. Setup environment, 3. Deploy infra, 4. Deploy services, 5. Deploy gateway/portal.
-func deployManifests(dir, namespace string, createNamespace bool) error {
+func deployManifests(dir, namespace string, createNamespace bool, context string) error {
 	if createNamespace {
 		common.PrintStep("Creating namespace %s", namespace)
-		if err := runKubectl(dir, true, "get", "namespace", namespace); err != nil {
-			if err := runKubectl(dir, false, "create", "namespace", namespace); err != nil {
+		if err := runKubectl(dir, true, context, "get", "namespace", namespace); err != nil {
+			if err := runKubectl(dir, false, context, "create", "namespace", namespace); err != nil {
 				return fmt.Errorf("failed to create namespace %s: %w", namespace, err)
 			}
 		} else {
@@ -245,22 +251,22 @@ func deployManifests(dir, namespace string, createNamespace bool) error {
 		"pvc-converter-plugins.yaml",
 	}
 	for _, f := range setup {
-		if err := runKubectl(dir, false, "apply", "-f", f); err != nil {
+		if err := runKubectl(dir, false, context, "apply", "-f", f); err != nil {
 			return fmt.Errorf("failed to apply %s: %w", f, err)
 		}
 	}
 
 	infra := []string{"rabbitmq", "metadata-database"}
 	common.PrintStep("Deploying infrastructure components")
-	if err := applyParallel(dir, infra, true); err != nil {
+	if err := applyParallel(dir, infra, true, context); err != nil {
 		return fmt.Errorf("failed to deploy infrastructure components: %w", err)
 	}
-	if err := runKubectl(dir, false, "apply", "-f", "service-rabbitmq-management.yaml"); err != nil {
+	if err := runKubectl(dir, false, context, "apply", "-f", "service-rabbitmq-management.yaml"); err != nil {
 		return fmt.Errorf("failed to apply RabbitMQ management service: %w", err)
 	}
 
 	common.PrintStep("Waiting for infrastructure to be ready")
-	if err := waitDeployments(dir, namespace, infra); err != nil {
+	if err := waitDeployments(dir, namespace, infra, context); err != nil {
 		return fmt.Errorf("infrastructure deployment failed: %w", err)
 	}
 
@@ -273,21 +279,21 @@ func deployManifests(dir, namespace string, createNamespace bool) error {
 		"backoffice-service",
 	}
 	common.PrintStep("Deploying services")
-	if err := applyParallel(dir, services, true); err != nil {
+	if err := applyParallel(dir, services, true, context); err != nil {
 		return fmt.Errorf("failed to deploy services: %w", err)
 	}
 
 	common.PrintStep("Waiting for services to be ready")
-	if err := waitDeployments(dir, namespace, services); err != nil {
+	if err := waitDeployments(dir, namespace, services, context); err != nil {
 		return fmt.Errorf("services deployment failed: %w", err)
 	}
 
 	finals := []string{"gateway", "dataportal"}
 	common.PrintStep("Deploying gateway and dataportal")
-	if err := applyParallel(dir, finals, true); err != nil {
+	if err := applyParallel(dir, finals, true, context); err != nil {
 		return fmt.Errorf("failed to deploy gateway and dataportal: %w", err)
 	}
-	if err := waitDeployments(dir, namespace, finals); err != nil {
+	if err := waitDeployments(dir, namespace, finals, context); err != nil {
 		return fmt.Errorf("gateway and dataportal deployment failed: %w", err)
 	}
 
@@ -295,8 +301,8 @@ func deployManifests(dir, namespace string, createNamespace bool) error {
 }
 
 // deleteNamespace removes the specified namespace and all its resources.
-func deleteNamespace(name string) error {
-	if err := runKubectl(".", false, "delete", "namespace", name); err != nil {
+func deleteNamespace(name, context string) error {
+	if err := runKubectl(".", false, context, "delete", "namespace", name); err != nil {
 		return fmt.Errorf("failed to delete namespace %s: %w", name, err)
 	}
 	return nil
@@ -304,7 +310,7 @@ func deleteNamespace(name string) error {
 
 // buildEnvURLs returns the base urls for the dataportal and the gateway.
 // It tries to get the ip of the ingress of the cluster, and if there is an error it returns the localIP
-func buildEnvURLs(dir string) (portalURL, gatewayURL string, err error) {
+func buildEnvURLs(dir, context string) (portalURL, gatewayURL string, err error) {
 	env, err := godotenv.Read(filepath.Join(dir, ".env"))
 	if err != nil {
 		return "", "", fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
@@ -316,7 +322,7 @@ func buildEnvURLs(dir string) (portalURL, gatewayURL string, err error) {
 
 	name := path.Base(dir)
 
-	ip, err := getIngressIP(name)
+	ip, err := getIngressIP(name, context)
 	if err != nil {
 		common.PrintWarn("error getting ingress IP, falling back to local IP: %v", err)
 		ip, err = common.GetLocalIP()
@@ -338,7 +344,8 @@ func buildEnvURLs(dir string) (portalURL, gatewayURL string, err error) {
 	return portalURL, gatewayURL, nil
 }
 
-func getIngressIP(namespace string) (string, error) {
+// getIngressIP returns the ingress IP or hostname for the given namespace, using the provided context.
+func getIngressIP(namespace, context string) (string, error) {
 	const (
 		maxWait  = 30 * time.Second
 		interval = 2 * time.Second
@@ -347,12 +354,11 @@ func getIngressIP(namespace string) (string, error) {
 	start := time.Now()
 	for {
 		// Try to get the IP first
-		cmd := exec.Command(
-			"kubectl",
-			"get", "ingress", "gateway",
-			"-n", namespace,
-			"-o", `jsonpath={.status.loadBalancer.ingress[0].ip}`,
-		)
+		args := []string{"get", "ingress", "gateway", "-n", namespace, "-o", `jsonpath={.status.loadBalancer.ingress[0].ip}`}
+		if context != "" {
+			args = append(args, "--context", context)
+		}
+		cmd := exec.Command("kubectl", args...)
 		out, err := common.RunCommand(cmd, true)
 		if err != nil {
 			return "", fmt.Errorf("error getting ingress ip: %w", err)
@@ -364,12 +370,11 @@ func getIngressIP(namespace string) (string, error) {
 		}
 
 		// If IP is empty, try hostname
-		cmd = exec.Command(
-			"kubectl",
-			"get", "ingress", "gateway",
-			"-n", namespace,
-			"-o", `jsonpath={.status.loadBalancer.ingress[0].hostname}`,
-		)
+		args = []string{"get", "ingress", "gateway", "-n", namespace, "-o", `jsonpath={.status.loadBalancer.ingress[0].hostname}`}
+		if context != "" {
+			args = append(args, "--context", context)
+		}
+		cmd = exec.Command("kubectl", args...)
 		out, err = common.RunCommand(cmd, true)
 		if err != nil {
 			return "", fmt.Errorf("error getting ingress hostname: %w", err)

@@ -19,7 +19,7 @@ var UpdateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		portalURL, gatewayURL, err := dockercore.Update(envFile, composeFile, path, name, force, pullImages)
+		portalURL, gatewayURL, err := dockercore.Update(envFile, composeFile, name, force, pullImages)
 		if err != nil {
 			common.PrintError("%v", err)
 			return
@@ -32,7 +32,6 @@ var UpdateCmd = &cobra.Command{
 func init() {
 	UpdateCmd.Flags().StringVarP(&envFile, "env-file", "e", "", "Path to the environment variables file (.env)")
 	UpdateCmd.Flags().StringVarP(&composeFile, "compose-file", "c", "", "Path to the Docker Compose file")
-	UpdateCmd.Flags().StringVarP(&path, "path", "p", "", "Location for the environment files")
 	UpdateCmd.Flags().BoolVarP(&force, "force", "f", false, "Remove the current containers before redeploying")
 	UpdateCmd.Flags().BoolVarP(&pullImages, "update-images", "u", false, "Download Docker images before starting")
 }

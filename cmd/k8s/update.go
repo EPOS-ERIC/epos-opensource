@@ -19,7 +19,7 @@ var UpdateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		portalURL, gatewayURL, err := k8score.Update(envFile, manifestsDir, path, name, force)
+		portalURL, gatewayURL, err := k8score.Update(envFile, manifestsDir, name, force)
 		if err != nil {
 			common.PrintError("%v", err)
 			return
@@ -32,6 +32,5 @@ var UpdateCmd = &cobra.Command{
 func init() {
 	UpdateCmd.Flags().BoolVarP(&force, "force", "f", false, "Remove the current containers before redeploying")
 	UpdateCmd.Flags().StringVarP(&envFile, "env-file", "e", "", "Path to the environment variables file (.env)")
-	UpdateCmd.Flags().StringVarP(&path, "path", "p", "", "Location for the environment files")
 	UpdateCmd.Flags().StringVarP(&manifestsDir, "manifests-dir", "m", "", "Path to the directory containing the manifests files")
 }

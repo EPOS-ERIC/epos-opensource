@@ -7,19 +7,16 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+
+	"github.com/epos-eu/epos-opensource/common/configdir"
 )
 
-var configPath string
-
 func init() {
-	// Initialize the platform-specific config path
-	initConfigPath()
-
 	// Create the directory if it doesn't exist
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		err = os.MkdirAll(configPath, 0777)
+	if _, err := os.Stat(configdir.GetConfigPath()); os.IsNotExist(err) {
+		err = os.MkdirAll(configdir.GetConfigPath(), 0777)
 		if err != nil {
-			PrintError("failed to create config directory %s: %v", configPath, err)
+			PrintError("failed to create config directory %s: %v", configdir.GetConfigPath(), err)
 			os.Exit(1)
 		}
 	}
@@ -61,25 +58,18 @@ func DeleteEnvDir(path string) error {
 }
 
 // BuildEnvPath constructs the environment directory path
-func BuildEnvPath(customPath, name, prefix string) string {
+func BuildEnvPath(customPath, name, prefix string) (string, error) {
 	var basePath string
 	if customPath != "" {
-		basePath = customPath
+		var err error
+		basePath, err = filepath.Abs(customPath)
+		if err != nil {
+			return "", fmt.Errorf("error finding absolute path for path %s: %w", customPath, err)
+		}
 	} else {
-		basePath = path.Join(configPath, prefix)
+		basePath = path.Join(configdir.GetConfigPath(), prefix)
 	}
-	return path.Join(basePath, name)
-}
-
-// GetEnvDir validates that the full directory path exists and returns it
-func GetEnvDir(customPath, name, prefix string) (string, error) {
-	envPath := BuildEnvPath(customPath, name, prefix)
-	if _, err := os.Stat(envPath); os.IsNotExist(err) {
-		return "", fmt.Errorf("directory %s does not exist: %w", envPath, err)
-	} else if err != nil {
-		return "", fmt.Errorf("failed to check directory %s: %w", envPath, err)
-	}
-	return envPath, nil
+	return path.Join(basePath, name), nil
 }
 
 // RemoveEnvDir deletes the environment directory with logs
