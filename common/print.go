@@ -16,6 +16,7 @@ const (
 	colorPurple = "\033[35m"
 	colorCyan   = "\033[36m"
 	colorWhite  = "\033[37m"
+	copyright   = "Copyright (C) 2023  EPOS ERIC"
 	logo        = `
                                                  *************                              
 &&&&&&&&&&&&&&&&&& *&&&&&&&%&&&%               *****************               &&&&&&/      
@@ -94,7 +95,7 @@ func PrintUrls(portalURL, gatewayURL, title string) {
 		return nil
 	})
 
-	t.AppendFooter(table.Row{"Copyright (C) 2023  EPOS ERIC", "Copyright (C) 2023  EPOS ERIC"}, rowMerge)
+	t.AppendFooter(table.Row{copyright, copyright}, rowMerge)
 
 	fmt.Println(t.Render())
 }

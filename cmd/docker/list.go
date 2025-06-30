@@ -16,6 +16,6 @@ var ListCmd = &cobra.Command{
 			return
 		}
 
-		common.PrintEnvironmentList(dockerEnvs, "all environments")
+		common.PrintEnvironmentList(dockerEnvs, "installed docker environments")
 	},
 }

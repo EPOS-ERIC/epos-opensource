@@ -22,7 +22,7 @@ var listCmd = &cobra.Command{
 		}
 
 		envs := append(dockerEnvs, kubeEnvs...)
-		common.PrintEnvironmentList(envs, "all environments")
+		common.PrintEnvironmentList(envs, "list installed environments")
 	},
 }
 

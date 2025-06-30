@@ -16,6 +16,6 @@ var ListCmd = &cobra.Command{
 			return
 		}
 
-		common.PrintEnvironmentList(kubeEnvs, "all environments")
+		common.PrintEnvironmentList(kubeEnvs, "installed kubernetes environments")
 	},
 }
