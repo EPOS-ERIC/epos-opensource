@@ -11,11 +11,11 @@ var ListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "list installed docker environments",
 	Run: func(cmd *cobra.Command, args []string) {
-		dockerEnvs, err := db.GetEnvs("docker")
+		dockerEnvs, err := db.GetAllDocker()
 		if err != nil {
 			return
 		}
 
-		common.PrintEnvironmentList(dockerEnvs, "installed docker environments")
+		common.PrintDockerList(dockerEnvs, "installed docker environments")
 	},
 }

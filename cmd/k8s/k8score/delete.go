@@ -28,9 +28,9 @@ func Delete(name string) error {
 		return fmt.Errorf("failed to remove directory %s: %w", dir, err)
 	}
 
-	err = db.DeleteEnv(name, "kubernetes")
+	err = db.DeleteKubernetes(name)
 	if err != nil {
-		return fmt.Errorf("failed to delete env %s (dir: %s, platform: %s) in db: %w", name, dir, "kubernetes", err)
+		return fmt.Errorf("failed to delete kubernetes %s (dir: %s) in db: %w", name, dir, err)
 	}
 
 	common.PrintDone("Deleted environment: %s", name)

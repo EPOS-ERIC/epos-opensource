@@ -2,19 +2,17 @@ package common
 
 import (
 	"fmt"
-	"slices"
 
 	"github.com/epos-eu/epos-opensource/db"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 )
 
-func PrintEnvironmentList(envs []db.Environment, title string) {
-	if len(envs) == 0 {
+func PrintInfraList(rows [][]any, headers []string, title string) {
+	if len(rows) == 0 {
 		PrintInfo("No installed environments found")
 		return
 	}
-
 	t := table.NewWriter()
 	t.SetTitle(title)
 	t.SetStyle(table.StyleRounded)
@@ -23,45 +21,45 @@ func PrintEnvironmentList(envs []db.Environment, title string) {
 	t.Style().Color.Border = text.Colors{text.FgGreen}
 	t.Style().Color.Footer = text.Colors{text.FgGreen}
 	t.Style().Color.Separator = text.Colors{text.FgGreen}
-	t.SetColumnConfigs([]table.ColumnConfig{
-		{Number: 1, Colors: text.Colors{text.FgYellow, text.Bold}, AlignHeader: text.AlignCenter},
-		{Number: 2, Colors: text.Colors{text.FgHiCyan}, AlignHeader: text.AlignCenter},
-		{Number: 3, Colors: text.Colors{text.FgHiCyan}, AlignHeader: text.AlignCenter},
-	})
-
-	t.AppendHeader(table.Row{"Platform", "Name", "Directory"})
-
-	// Sort environments by platform, then name
-	sortedEnvs := make([]db.Environment, len(envs))
-	copy(sortedEnvs, envs)
-	slices.SortFunc(sortedEnvs, func(a, b db.Environment) int {
-		if a.Platform == b.Platform {
-			if a.Name < b.Name {
-				return -1
-			} else if a.Name > b.Name {
-				return 1
-			}
-			return 0
-		}
-		if a.Platform < b.Platform {
-			return -1
-		}
-		return 1
-	})
-
-	for _, env := range sortedEnvs {
-		t.AppendRow(table.Row{env.Platform, env.Name, env.Directory})
+	colConfigs := make([]table.ColumnConfig, len(headers))
+	for i := range headers {
+		colConfigs[i] = table.ColumnConfig{Number: i + 1, Colors: text.Colors{text.FgHiCyan}, AlignHeader: text.AlignCenter}
 	}
-
+	t.SetColumnConfigs(colConfigs)
+	headerAny := make([]any, len(headers))
+	for i, h := range headers {
+		headerAny[i] = h
+	}
+	t.AppendHeader(table.Row(headerAny))
+	for _, row := range rows {
+		t.AppendRow(table.Row(row))
+	}
 	rowMerge := table.RowConfig{
 		AutoMerge:      true,
 		AutoMergeAlign: text.AlignLeft,
 	}
-	t.AppendFooter(table.Row{
-		copyright,
-		copyright,
-		copyright,
-	}, rowMerge)
-
+	footer := make([]any, len(headers))
+	for i := range footer {
+		footer[i] = copyright
+	}
+	t.AppendFooter(table.Row(footer), rowMerge)
 	fmt.Println(t.Render())
+}
+
+func PrintDockerList(dockers []db.Docker, title string) {
+	rows := make([][]any, len(dockers))
+	for i, d := range dockers {
+		rows[i] = []any{d.Name, d.Directory, d.ApiUrl, d.GuiUrl}
+	}
+	headers := []string{"Name", "Directory", "API URL", "GUI URL"}
+	PrintInfraList(rows, headers, title)
+}
+
+func PrintKubernetesList(kubes []db.Kubernetes, title string) {
+	rows := make([][]any, len(kubes))
+	for i, k := range kubes {
+		rows[i] = []any{k.Name, k.Directory, k.Context, k.ApiUrl, k.GuiUrl}
+	}
+	headers := []string{"Name", "Directory", "Context", "API URL", "GUI URL"}
+	PrintInfraList(rows, headers, title)
 }

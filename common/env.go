@@ -75,14 +75,30 @@ func BuildEnvPath(customPath, name, prefix string) (string, error) {
 
 // GetEnvDir validates that the full directory path exists and returns it
 func GetEnvDir(name, platform string) (string, error) {
-	env, dbErr := db.GetEnv(name, platform)
-	if dbErr != nil {
-		return "", fmt.Errorf("failed to check environment in db: %w", dbErr)
+	var dir string
+	switch platform {
+	case "docker":
+		docker, err := db.GetDockerByName(name)
+		if err != nil {
+			return "", fmt.Errorf("failed to check docker environment in db: %w", err)
+		}
+		if docker == nil {
+			return "", fmt.Errorf("docker environment '%s' does not exist in the database", name)
+		}
+		dir = docker.Directory
+	case "kubernetes":
+		kube, err := db.GetKubernetesByName(name)
+		if err != nil {
+			return "", fmt.Errorf("failed to check kubernetes environment in db: %w", err)
+		}
+		if kube == nil {
+			return "", fmt.Errorf("kubernetes environment '%s' does not exist in the database", name)
+		}
+		dir = kube.Directory
+	default:
+		return "", fmt.Errorf("unknown platform: %s", platform)
 	}
-	if env == nil {
-		return "", fmt.Errorf("environment '%s' for platform '%s' does not exist in the database", name, platform)
-	}
-	return env.Directory, nil
+	return dir, nil
 }
 
 // RemoveEnvDir deletes the environment directory with logs

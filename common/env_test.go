@@ -40,11 +40,11 @@ func TestGetEnvDir(t *testing.T) {
 			t.Parallel()
 
 			if tc.insertEnv {
-				err := db.InsertEnv(tc.envName, testDir, testPlatform)
+				err := db.InsertDocker(tc.envName, testDir, "", "")
 				if err != nil {
 					t.Fatalf("failed to insert test env: %v", err)
 				}
-				defer func() { _ = db.DeleteEnv(tc.envName, testPlatform) }()
+				defer func() { _ = db.DeleteDocker(tc.envName) }()
 			}
 
 			dir, err := GetEnvDir(tc.envName, testPlatform)

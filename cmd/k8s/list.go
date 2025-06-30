@@ -9,13 +9,13 @@ import (
 
 var ListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "list installed docker environments",
+	Short: "list installed kubernetes environments",
 	Run: func(cmd *cobra.Command, args []string) {
-		kubeEnvs, err := db.GetEnvs("kubernetes")
+		kubeEnvs, err := db.GetAllKubernetes()
 		if err != nil {
 			return
 		}
 
-		common.PrintEnvironmentList(kubeEnvs, "installed kubernetes environments")
+		common.PrintKubernetesList(kubeEnvs, "installed kubernetes environments")
 	},
 }

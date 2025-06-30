@@ -52,73 +52,123 @@ func Get() (*Queries, error) {
 	return queries, nil
 }
 
-// DeleteEnv removes an environment entry from the database for the given name and platform.
-func DeleteEnv(name, platform string) error {
+// InsertKubernetes adds a new kubernetes entry to the database.
+func InsertKubernetes(name, dir, contextStr, apiURL, guiURL string) error {
 	q, err := Get()
 	if err != nil {
 		return fmt.Errorf("error getting db connection: %w", err)
 	}
-
-	err = q.DeleteEnv(context.Background(), DeleteEnvParams{
-		Name:     name,
-		Platform: platform,
-	})
-	if err != nil {
-		return fmt.Errorf("error deleting env %s for platform %s from db: %w", name, platform, err)
-	}
-
-	return nil
-}
-
-// InsertEnv adds a new environment entry to the database.
-func InsertEnv(name, dir, platform string) error {
-	q, err := Get()
-	if err != nil {
-		return fmt.Errorf("error getting db connection: %w", err)
-	}
-
-	_, err = q.InsertEnv(context.Background(), InsertEnvParams{
+	_, err = q.InsertKubernetes(context.Background(), InsertKubernetesParams{
 		Name:      name,
 		Directory: dir,
-		Platform:  platform,
+		Context:   contextStr,
+		ApiUrl:    apiURL,
+		GuiUrl:    guiURL,
 	})
 	if err != nil {
-		return fmt.Errorf("error inserting env %s (dir: %s, platform: %s) in db: %w", name, dir, platform, err)
+		return fmt.Errorf("error inserting kubernetes %s (dir: %s) in db: %w", name, dir, err)
 	}
-
 	return nil
 }
 
-// GetEnvs retrieves all environment entries for the specified platform from the database.
-func GetEnvs(platform string) ([]Environment, error) {
+// DeleteKubernetes removes a kubernetes entry from the database for the given name.
+func DeleteKubernetes(name string) error {
 	q, err := Get()
 	if err != nil {
-		return nil, fmt.Errorf("error getting db connection: %w", err)
+		return fmt.Errorf("error getting db connection: %w", err)
 	}
-
-	envs, err := q.GetPlatformEnvs(context.Background(), platform)
+	err = q.DeleteKubernetes(context.Background(), name)
 	if err != nil {
-		return nil, fmt.Errorf("error getting platform envs for %s: %w", platform, err)
+		return fmt.Errorf("error deleting kubernetes %s from db: %w", name, err)
 	}
-
-	return envs, nil
+	return nil
 }
 
-// GetEnv retrieves a single environment entry for the specified name and platform from the database.
-func GetEnv(name, platform string) (*Environment, error) {
+// GetKubernetesByName retrieves a single kubernetes entry by name from the database.
+func GetKubernetesByName(name string) (*Kubernetes, error) {
 	q, err := Get()
 	if err != nil {
 		return nil, fmt.Errorf("error getting db connection: %w", err)
 	}
-	env, err := q.GetEnvByNameAndPlatform(context.Background(), GetEnvByNameAndPlatformParams{
-		Name:     name,
-		Platform: platform,
-	})
+	kube, err := q.GetKubernetesByName(context.Background(), name)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("error getting env %s for platform %s: %w", name, platform, err)
+		return nil, fmt.Errorf("error getting kubernetes %s: %w", name, err)
 	}
-	return &env, nil
+	return &kube, nil
+}
+
+// GetAllKubernetes retrieves all kubernetes entries from the database.
+func GetAllKubernetes() ([]Kubernetes, error) {
+	q, err := Get()
+	if err != nil {
+		return nil, fmt.Errorf("error getting db connection: %w", err)
+	}
+	kubes, err := q.GetAllKubernetes(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("error getting all kubernetes: %w", err)
+	}
+	return kubes, nil
+}
+
+// InsertDocker adds a new docker entry to the database.
+func InsertDocker(name, dir, apiURL, guiURL string) error {
+	q, err := Get()
+	if err != nil {
+		return fmt.Errorf("error getting db connection: %w", err)
+	}
+	_, err = q.InsertDocker(context.Background(), InsertDockerParams{
+		Name:      name,
+		Directory: dir,
+		ApiUrl:    apiURL,
+		GuiUrl:    guiURL,
+	})
+	if err != nil {
+		return fmt.Errorf("error inserting docker %s (dir: %s) in db: %w", name, dir, err)
+	}
+	return nil
+}
+
+// DeleteDocker removes a docker entry from the database for the given name.
+func DeleteDocker(name string) error {
+	q, err := Get()
+	if err != nil {
+		return fmt.Errorf("error getting db connection: %w", err)
+	}
+	err = q.DeleteDocker(context.Background(), name)
+	if err != nil {
+		return fmt.Errorf("error deleting docker %s from db: %w", name, err)
+	}
+	return nil
+}
+
+// GetDockerByName retrieves a single docker entry by name from the database.
+func GetDockerByName(name string) (*Docker, error) {
+	q, err := Get()
+	if err != nil {
+		return nil, fmt.Errorf("error getting db connection: %w", err)
+	}
+	docker, err := q.GetDockerByName(context.Background(), name)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error getting docker %s: %w", name, err)
+	}
+	return &docker, nil
+}
+
+// GetAllDocker retrieves all docker entries from the database.
+func GetAllDocker() ([]Docker, error) {
+	q, err := Get()
+	if err != nil {
+		return nil, fmt.Errorf("error getting db connection: %w", err)
+	}
+	dockers, err := q.GetAllDocker(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("error getting all docker: %w", err)
+	}
+	return dockers, nil
 }

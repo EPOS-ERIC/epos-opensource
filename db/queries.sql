@@ -1,38 +1,57 @@
--- name: GetAllEnvs :many
+-- Kubernetes queries
+-- name: GetAllKubernetes :many
 SELECT
     *
 FROM
-    environment;
+    kubernetes;
 
--- name: InsertEnv :one
+-- name: InsertKubernetes :one
 INSERT INTO
-    environment (name, directory, platform)
+    kubernetes (name, directory, context, api_url, gui_url)
 VALUES
-    (?, ?, ?)
+    (?, ?, ?, ?, ?)
 RETURNING
     *;
 
--- name: DeleteEnv :exec
+-- name: DeleteKubernetes :exec
 DELETE FROM
-    environment
+    kubernetes
 WHERE
-    name = ?
-    AND platform = ?;
+    name = ?;
 
--- name: GetPlatformEnvs :many
+-- name: GetKubernetesByName :one
 SELECT
     *
 FROM
-    environment
+    kubernetes
 WHERE
-    platform = ?;
+    name = ?;
 
--- name: GetEnvByNameAndPlatform :one
+-- Docker queries
+-- name: GetAllDocker :many
 SELECT
     *
 FROM
-    environment
-WHERE
-    name = ?
-    AND platform = ?;
+    docker;
 
+-- name: InsertDocker :one
+INSERT INTO
+    docker (name, directory, api_url, gui_url)
+VALUES
+    (?, ?, ?, ?)
+RETURNING
+    *;
+
+-- name: DeleteDocker :exec
+DELETE FROM
+    docker
+WHERE
+    name = ?;
+
+-- name: GetDockerByName :one
+SELECT
+    *
+FROM
+    docker
+WHERE
+    name = ?;

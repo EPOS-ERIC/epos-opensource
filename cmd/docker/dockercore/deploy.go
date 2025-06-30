@@ -74,15 +74,6 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) (portalURL
 		return "", "", err
 	}
 
-	err = db.InsertEnv(name, dir, "docker")
-	if err != nil {
-		cleanup()
-		if cleanupErr != nil {
-			return "", "", cleanupErr
-		}
-		return "", "", fmt.Errorf("failed to insert env %s (dir: %s, platform: %s) in db: %w", name, dir, "docker", err)
-	}
-
 	gatewayURL, err = url.JoinPath(gatewayURL, "ui/")
 	if err != nil {
 		cleanup()
@@ -90,6 +81,15 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) (portalURL
 			return "", "", cleanupErr
 		}
 		return portalURL, "", fmt.Errorf("failed to build gateway URL: %w", err)
+	}
+
+	err = db.InsertDocker(name, dir, gatewayURL, portalURL)
+	if err != nil {
+		cleanup()
+		if cleanupErr != nil {
+			return "", "", cleanupErr
+		}
+		return "", "", fmt.Errorf("failed to insert docker %s (dir: %s) in db: %w", name, dir, err)
 	}
 	return portalURL, gatewayURL, err
 }

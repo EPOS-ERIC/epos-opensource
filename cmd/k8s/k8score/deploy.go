@@ -45,10 +45,10 @@ func Deploy(envFile, composeFile, path, name string) (portalURL, gatewayURL stri
 		return handleFailure("error initializing the ontologies: %w", err)
 	}
 
-	err = db.InsertEnv(name, dir, "kubernetes")
+	err = db.InsertKubernetes(name, dir, name, gatewayURL, portalURL)
 	if err != nil {
-		common.PrintError("failed to insert env in db: %v", err)
-		return handleFailure("failed to insert env %s (dir: %s, platform: %s) in db: %w", fmt.Errorf("%s, %s, %w", name, dir, err))
+		common.PrintError("failed to insert kubernetes in db: %v", err)
+		return handleFailure("failed to insert kubernetes %s (dir: %s) in db: %w", fmt.Errorf("%s, %s, %w", name, dir, err))
 	}
 
 	gatewayURL, err = url.JoinPath(gatewayURL, "ui/")

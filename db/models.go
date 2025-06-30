@@ -4,8 +4,17 @@
 
 package db
 
-type Environment struct {
+type Docker struct {
 	Name      string
 	Directory string
-	Platform  string
+	ApiUrl    string
+	GuiUrl    string
+}
+
+type Kubernetes struct {
+	Name      string
+	Directory string
+	Context   string
+	ApiUrl    string
+	GuiUrl    string
 }

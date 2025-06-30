@@ -9,41 +9,53 @@ import (
 	"context"
 )
 
-const deleteEnv = `-- name: DeleteEnv :exec
+const deleteDocker = `-- name: DeleteDocker :exec
 DELETE FROM
-    environment
+    docker
 WHERE
     name = ?
-    AND platform = ?
 `
 
-type DeleteEnvParams struct {
-	Name     string
-	Platform string
-}
-
-func (q *Queries) DeleteEnv(ctx context.Context, arg DeleteEnvParams) error {
-	_, err := q.db.ExecContext(ctx, deleteEnv, arg.Name, arg.Platform)
+func (q *Queries) DeleteDocker(ctx context.Context, name string) error {
+	_, err := q.db.ExecContext(ctx, deleteDocker, name)
 	return err
 }
 
-const getAllEnvs = `-- name: GetAllEnvs :many
-SELECT
-    name, directory, platform
-FROM
-    environment
+const deleteKubernetes = `-- name: DeleteKubernetes :exec
+DELETE FROM
+    kubernetes
+WHERE
+    name = ?
 `
 
-func (q *Queries) GetAllEnvs(ctx context.Context) ([]Environment, error) {
-	rows, err := q.db.QueryContext(ctx, getAllEnvs)
+func (q *Queries) DeleteKubernetes(ctx context.Context, name string) error {
+	_, err := q.db.ExecContext(ctx, deleteKubernetes, name)
+	return err
+}
+
+const getAllDocker = `-- name: GetAllDocker :many
+SELECT
+    name, directory, api_url, gui_url
+FROM
+    docker
+`
+
+// Docker queries
+func (q *Queries) GetAllDocker(ctx context.Context) ([]Docker, error) {
+	rows, err := q.db.QueryContext(ctx, getAllDocker)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Environment
+	var items []Docker
 	for rows.Next() {
-		var i Environment
-		if err := rows.Scan(&i.Name, &i.Directory, &i.Platform); err != nil {
+		var i Docker
+		if err := rows.Scan(
+			&i.Name,
+			&i.Directory,
+			&i.ApiUrl,
+			&i.GuiUrl,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -57,78 +69,151 @@ func (q *Queries) GetAllEnvs(ctx context.Context) ([]Environment, error) {
 	return items, nil
 }
 
-const getEnvByNameAndPlatform = `-- name: GetEnvByNameAndPlatform :one
+const getAllKubernetes = `-- name: GetAllKubernetes :many
 SELECT
-    name, directory, platform
+    name, directory, context, api_url, gui_url
 FROM
-    environment
-WHERE
-    name = ?
-    AND platform = ?
+    kubernetes
 `
 
-type GetEnvByNameAndPlatformParams struct {
-	Name     string
-	Platform string
+// Kubernetes queries
+func (q *Queries) GetAllKubernetes(ctx context.Context) ([]Kubernetes, error) {
+	rows, err := q.db.QueryContext(ctx, getAllKubernetes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Kubernetes
+	for rows.Next() {
+		var i Kubernetes
+		if err := rows.Scan(
+			&i.Name,
+			&i.Directory,
+			&i.Context,
+			&i.ApiUrl,
+			&i.GuiUrl,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
-func (q *Queries) GetEnvByNameAndPlatform(ctx context.Context, arg GetEnvByNameAndPlatformParams) (Environment, error) {
-	row := q.db.QueryRowContext(ctx, getEnvByNameAndPlatform, arg.Name, arg.Platform)
-	var i Environment
-	err := row.Scan(&i.Name, &i.Directory, &i.Platform)
+const getDockerByName = `-- name: GetDockerByName :one
+SELECT
+    name, directory, api_url, gui_url
+FROM
+    docker
+WHERE
+    name = ?
+`
+
+func (q *Queries) GetDockerByName(ctx context.Context, name string) (Docker, error) {
+	row := q.db.QueryRowContext(ctx, getDockerByName, name)
+	var i Docker
+	err := row.Scan(
+		&i.Name,
+		&i.Directory,
+		&i.ApiUrl,
+		&i.GuiUrl,
+	)
 	return i, err
 }
 
-const getPlatformEnvs = `-- name: GetPlatformEnvs :many
+const getKubernetesByName = `-- name: GetKubernetesByName :one
 SELECT
-    name, directory, platform
+    name, directory, context, api_url, gui_url
 FROM
-    environment
+    kubernetes
 WHERE
-    platform = ?
+    name = ?
 `
 
-func (q *Queries) GetPlatformEnvs(ctx context.Context, platform string) ([]Environment, error) {
-	rows, err := q.db.QueryContext(ctx, getPlatformEnvs, platform)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Environment
-	for rows.Next() {
-		var i Environment
-		if err := rows.Scan(&i.Name, &i.Directory, &i.Platform); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+func (q *Queries) GetKubernetesByName(ctx context.Context, name string) (Kubernetes, error) {
+	row := q.db.QueryRowContext(ctx, getKubernetesByName, name)
+	var i Kubernetes
+	err := row.Scan(
+		&i.Name,
+		&i.Directory,
+		&i.Context,
+		&i.ApiUrl,
+		&i.GuiUrl,
+	)
+	return i, err
 }
 
-const insertEnv = `-- name: InsertEnv :one
+const insertDocker = `-- name: InsertDocker :one
 INSERT INTO
-    environment (name, directory, platform)
+    docker (name, directory, api_url, gui_url)
 VALUES
-    (?, ?, ?)
+    (?, ?, ?, ?)
 RETURNING
-    name, directory, platform
+    name, directory, api_url, gui_url
 `
 
-type InsertEnvParams struct {
+type InsertDockerParams struct {
 	Name      string
 	Directory string
-	Platform  string
+	ApiUrl    string
+	GuiUrl    string
 }
 
-func (q *Queries) InsertEnv(ctx context.Context, arg InsertEnvParams) (Environment, error) {
-	row := q.db.QueryRowContext(ctx, insertEnv, arg.Name, arg.Directory, arg.Platform)
-	var i Environment
-	err := row.Scan(&i.Name, &i.Directory, &i.Platform)
+func (q *Queries) InsertDocker(ctx context.Context, arg InsertDockerParams) (Docker, error) {
+	row := q.db.QueryRowContext(ctx, insertDocker,
+		arg.Name,
+		arg.Directory,
+		arg.ApiUrl,
+		arg.GuiUrl,
+	)
+	var i Docker
+	err := row.Scan(
+		&i.Name,
+		&i.Directory,
+		&i.ApiUrl,
+		&i.GuiUrl,
+	)
+	return i, err
+}
+
+const insertKubernetes = `-- name: InsertKubernetes :one
+INSERT INTO
+    kubernetes (name, directory, context, api_url, gui_url)
+VALUES
+    (?, ?, ?, ?, ?)
+RETURNING
+    name, directory, context, api_url, gui_url
+`
+
+type InsertKubernetesParams struct {
+	Name      string
+	Directory string
+	Context   string
+	ApiUrl    string
+	GuiUrl    string
+}
+
+func (q *Queries) InsertKubernetes(ctx context.Context, arg InsertKubernetesParams) (Kubernetes, error) {
+	row := q.db.QueryRowContext(ctx, insertKubernetes,
+		arg.Name,
+		arg.Directory,
+		arg.Context,
+		arg.ApiUrl,
+		arg.GuiUrl,
+	)
+	var i Kubernetes
+	err := row.Scan(
+		&i.Name,
+		&i.Directory,
+		&i.Context,
+		&i.ApiUrl,
+		&i.GuiUrl,
+	)
 	return i, err
 }

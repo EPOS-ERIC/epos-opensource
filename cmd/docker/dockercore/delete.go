@@ -29,9 +29,9 @@ func Delete(name string) error {
 		return fmt.Errorf("failed to remove directory %s: %w", dir, err)
 	}
 
-	err = db.DeleteEnv(name, "docker")
+	err = db.DeleteDocker(name)
 	if err != nil {
-		return fmt.Errorf("failed to delete env %s (dir: %s, platform: %s) in db: %w", name, dir, "docker", err)
+		return fmt.Errorf("failed to delete docker %s (dir: %s) in db: %w", name, dir, err)
 	}
 
 	common.PrintDone("Deleted environment: %s", name)
