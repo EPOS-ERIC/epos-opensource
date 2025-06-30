@@ -85,19 +85,19 @@ func DeleteKubernetes(name string) error {
 }
 
 // GetKubernetesByName retrieves a single kubernetes entry by name from the database.
-func GetKubernetesByName(name string) (*Kubernetes, error) {
+func GetKubernetesByName(name string) (kube Kubernetes, err error) {
 	q, err := Get()
 	if err != nil {
-		return nil, fmt.Errorf("error getting db connection: %w", err)
+		return kube, fmt.Errorf("error getting db connection: %w", err)
 	}
-	kube, err := q.GetKubernetesByName(context.Background(), name)
+	kube, err = q.GetKubernetesByName(context.Background(), name)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return kube, nil
 		}
-		return nil, fmt.Errorf("error getting kubernetes %s: %w", name, err)
+		return kube, fmt.Errorf("error getting kubernetes %s: %w", name, err)
 	}
-	return &kube, nil
+	return kube, nil
 }
 
 // GetAllKubernetes retrieves all kubernetes entries from the database.
@@ -145,19 +145,19 @@ func DeleteDocker(name string) error {
 }
 
 // GetDockerByName retrieves a single docker entry by name from the database.
-func GetDockerByName(name string) (*Docker, error) {
+func GetDockerByName(name string) (docker Docker, err error) {
 	q, err := Get()
 	if err != nil {
-		return nil, fmt.Errorf("error getting db connection: %w", err)
+		return docker, fmt.Errorf("error getting db connection: %w", err)
 	}
-	docker, err := q.GetDockerByName(context.Background(), name)
+	docker, err = q.GetDockerByName(context.Background(), name)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return docker, nil
 		}
-		return nil, fmt.Errorf("error getting docker %s: %w", name, err)
+		return docker, fmt.Errorf("error getting docker %s: %w", name, err)
 	}
-	return &docker, nil
+	return docker, nil
 }
 
 // GetAllDocker retrieves all docker entries from the database.

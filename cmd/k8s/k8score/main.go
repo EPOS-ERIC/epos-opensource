@@ -206,7 +206,7 @@ func applyParallel(dir string, targets []string, withService bool, context strin
 		g.Go(func() error {
 			if withService {
 				return runKubectl(dir, false, context,
-					"apply", "-f", fmt.Sprintf("deployment-%s.yaml", t), "-f", fmt.Sprintf("service-%s.yaml", target))
+					"apply", "-f", fmt.Sprintf("deployment-%s.yaml", t), "-f", fmt.Sprintf("service-%s.yaml", t))
 			}
 			return runKubectl(dir, false, context, "apply", "-f", t)
 		})

@@ -22,22 +22,17 @@ import (
 func Update(envFile, composeFile, name string, force bool) (portalURL, gatewayURL string, err error) {
 	common.PrintStep("Updating environment: %s", name)
 
-	// Find the old env, if it does not exist give an error
-	dir, err := common.GetEnvDir(name, platform)
+	env, err := db.GetKubernetesByName(name)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to get environment directory: %w", err)
+		return "", "", fmt.Errorf("error getting kubernetes environment from db called '%s': %w", name, err)
 	}
+	portalURL = env.GuiUrl
+	gatewayURL = env.ApiUrl
 
-	kubeEnv, err := db.GetKubernetesByName(name)
-	if err != nil || kubeEnv == nil {
-		return "", "", fmt.Errorf("failed to get kubernetes context for environment %s: %w", name, err)
-	}
-	context := kubeEnv.Context
-
-	common.PrintInfo("Environment directory: %s", dir)
+	common.PrintInfo("Environment directory: %s", env.Directory)
 
 	// If it exists, create a copy of it in a tmp dir
-	tmpDir, err := common.CreateTmpCopy(dir)
+	tmpDir, err := common.CreateTmpCopy(env.Directory)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create backup copy: %w", err)
 	}
@@ -45,13 +40,13 @@ func Update(envFile, composeFile, name string, force bool) (portalURL, gatewayUR
 	// Cleanup function to restore from tmp if needed
 	restoreFromTmp := func() error {
 		common.PrintStep("Restoring environment from backup")
-		if err := common.RemoveEnvDir(dir); err != nil {
+		if err := common.RemoveEnvDir(env.Directory); err != nil {
 			common.PrintError("Failed to remove corrupted directory: %v", err)
 		}
-		if err := common.RestoreTmpDir(tmpDir, dir); err != nil {
+		if err := common.RestoreTmpDir(tmpDir, env.Directory); err != nil {
 			return fmt.Errorf("failed to restore from backup: %w", err)
 		}
-		if err := deployManifests(dir, name, true, context); err != nil {
+		if err := deployManifests(env.Directory, name, true, env.Context); err != nil {
 			return fmt.Errorf("failed to deploy restored environment: %w", err)
 		}
 		return nil
@@ -61,7 +56,7 @@ func Update(envFile, composeFile, name string, force bool) (portalURL, gatewayUR
 
 	// If force is set delete the original env
 	if force {
-		if err := deleteNamespace(name, context); err != nil {
+		if err := deleteNamespace(name, env.Context); err != nil {
 			if restoreErr := restoreFromTmp(); restoreErr != nil {
 				common.PrintError("Restore failed: %v", restoreErr)
 			}
@@ -76,19 +71,19 @@ func Update(envFile, composeFile, name string, force bool) (portalURL, gatewayUR
 	common.PrintStep("Removing old environment directory")
 
 	// Remove the contents of the env dir and create the updated env file and manifests
-	if err := common.RemoveEnvDir(dir); err != nil {
+	if err := common.RemoveEnvDir(env.Directory); err != nil {
 		if restoreErr := restoreFromTmp(); restoreErr != nil {
 			common.PrintError("Restore failed: %v", restoreErr)
 		}
 		if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
 			common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
 		}
-		return "", "", fmt.Errorf("failed to remove directory %s: %w", dir, err)
+		return "", "", fmt.Errorf("failed to remove directory %s: %w", env.Directory, err)
 	}
 
 	common.PrintStep("Creating new environment directory")
 
-	dir, err = NewEnvDir(envFile, composeFile, dir, name, context)
+	dir, err := NewEnvDir(envFile, composeFile, env.Directory, name, env.Context)
 	if err != nil {
 		if restoreErr := restoreFromTmp(); restoreErr != nil {
 			common.PrintError("Restore failed: %v", restoreErr)
@@ -102,7 +97,7 @@ func Update(envFile, composeFile, name string, force bool) (portalURL, gatewayUR
 	common.PrintDone("Updated environment created in directory: %s", dir)
 
 	// Deploy the updated manifests
-	if err := deployManifests(dir, name, force, context); err != nil {
+	if err := deployManifests(dir, name, force, env.Context); err != nil {
 		common.PrintError("Deploy failed: %v", err)
 		if restoreErr := restoreFromTmp(); restoreErr != nil {
 			common.PrintError("Restore failed: %v", restoreErr)
@@ -117,11 +112,6 @@ func Update(envFile, composeFile, name string, force bool) (portalURL, gatewayUR
 	if err := common.RemoveTmpDir(tmpDir); err != nil {
 		common.PrintError("Failed to cleanup tmp dir: %v", err)
 		// Don't return error as the main operation succeeded
-	}
-
-	portalURL, gatewayURL, err = buildEnvURLs(dir, context)
-	if err != nil {
-		return "", "", fmt.Errorf("error building env urls for environment '%s': %w", dir, err)
 	}
 
 	gatewayURL, err = url.JoinPath(gatewayURL, "ui/")

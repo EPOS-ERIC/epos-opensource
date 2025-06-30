@@ -6,15 +6,17 @@ import (
 	"path/filepath"
 
 	"github.com/epos-eu/epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/db"
 )
 
 func Populate(name, ttlDir string) (portalURL, gatewayURL string, err error) {
 	common.PrintStep("Populating environment: %s", name)
-	dir, err := common.GetEnvDir(name, platform)
+	env, err := db.GetDockerByName(name)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to get environment directory: %w", err)
+		return "", "", fmt.Errorf("error getting docker environment from db called '%s': %w", name, err)
 	}
-	common.PrintDone("Environment found in dir: %s", dir)
+	gatewayURL = env.ApiUrl
+	portalURL = env.GuiUrl
 
 	ttlDir, err = filepath.Abs(ttlDir)
 	if err != nil {
@@ -40,11 +42,6 @@ func Populate(name, ttlDir string) (portalURL, gatewayURL string, err error) {
 			common.PrintDone("Metadata server stopped successfully")
 		}
 	}(name)
-
-	portalURL, gatewayURL, err = buildEnvURLs(dir)
-	if err != nil {
-		return "", "", fmt.Errorf("error building env urls for environment '%s': %w", dir, err)
-	}
 
 	err = metadataServer.PostFiles(gatewayURL)
 	if err != nil {

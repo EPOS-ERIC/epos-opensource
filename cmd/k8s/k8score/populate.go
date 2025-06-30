@@ -12,17 +12,12 @@ import (
 func Populate(name, ttlDir string) (portalURL, gatewayURL string, err error) {
 	common.PrintStep("Populating environment: %s", name)
 
-	dir, err := common.GetEnvDir(name, platform)
+	env, err := db.GetKubernetesByName(name)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to get environment directory: %w", err)
+		return "", "", fmt.Errorf("error getting kubernetes environment from db called '%s': %w", name, err)
 	}
-	common.PrintDone("Environment found in dir: %s", dir)
-
-	kubeEnv, err := db.GetKubernetesByName(name)
-	if err != nil || kubeEnv == nil {
-		return "", "", fmt.Errorf("failed to get kubernetes context for environment %s: %w", name, err)
-	}
-	context := kubeEnv.Context
+	portalURL = env.GuiUrl
+	gatewayURL = env.ApiUrl
 
 	ttlDir, err = filepath.Abs(ttlDir)
 	if err != nil {
@@ -49,18 +44,13 @@ func Populate(name, ttlDir string) (portalURL, gatewayURL string, err error) {
 		}
 	}(name)
 
-	portalURL, gatewayURL, err = buildEnvURLs(dir, context)
-	if err != nil {
-		return "", "", fmt.Errorf("error building env urls for environment '%s': %w", dir, err)
-	}
-
 	common.PrintStep("Starting port-forward to ingestor-service pod")
 	port, err := common.FreePort()
 	if err != nil {
 		return "", "", fmt.Errorf("error getting free port: %w", err)
 	}
 	// start a port forward locally to the ingestor service and use that to do the populate posts
-	err = ForwardAndRun(name, "ingestor-service", port, 8080, context, func(host string, port int) error {
+	err = ForwardAndRun(name, "ingestor-service", port, 8080, env.Context, func(host string, port int) error {
 		common.PrintDone("Port forward started successfully")
 		url := fmt.Sprintf("http://%s:%d/api/ingestor-service/v1/", host, port)
 		err = metadataServer.PostFiles(url)
