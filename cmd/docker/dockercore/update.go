@@ -18,11 +18,11 @@ import (
 // deploy the updated compose
 // if everything goes right, delete the tmp dir and finish
 // else restore the tmp dir, deploy the old restored env and give an error in output
-func Update(envFile, composeFile, path, name string, force, pullImages bool) (portalURL, gatewayURL string, err error) {
+func Update(envFile, composeFile, name string, force, pullImages bool) (portalURL, gatewayURL string, err error) {
 	common.PrintStep("Updating environment: %s", name)
 
 	// Find the old env, if it does not exist give an error
-	dir, err := common.GetEnvDir(path, name, platform)
+	dir, err := common.GetEnvDir(name, platform)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get environment directory: %w", err)
 	}
@@ -72,7 +72,7 @@ func Update(envFile, composeFile, path, name string, force, pullImages bool) (po
 
 	common.PrintStep("Creating new environment directory")
 
-	dir, err = NewEnvDir(envFile, composeFile, path, name)
+	dir, err = NewEnvDir(envFile, composeFile, dir, name)
 	if err != nil {
 		return handleFailure("failed to prepare environment directory: %w", err)
 	}

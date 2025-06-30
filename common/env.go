@@ -59,18 +59,22 @@ func DeleteEnvDir(path string) error {
 }
 
 // BuildEnvPath constructs the environment directory path
-func BuildEnvPath(customPath, name, prefix string) string {
+func BuildEnvPath(customPath, name, prefix string) (string, error) {
 	var basePath string
 	if customPath != "" {
-		basePath = customPath
+		var err error
+		basePath, err = filepath.Abs(customPath)
+		if err != nil {
+			return "", fmt.Errorf("error finding absolute path for path %s: %w", customPath, err)
+		}
 	} else {
 		basePath = path.Join(configdir.GetConfigPath(), prefix)
 	}
-	return path.Join(basePath, name)
+	return path.Join(basePath, name), nil
 }
 
 // GetEnvDir validates that the full directory path exists and returns it
-func GetEnvDir(customPath, name, platform string) (string, error) {
+func GetEnvDir(name, platform string) (string, error) {
 	env, dbErr := db.GetEnv(name, platform)
 	if dbErr != nil {
 		return "", fmt.Errorf("failed to check environment in db: %w", dbErr)

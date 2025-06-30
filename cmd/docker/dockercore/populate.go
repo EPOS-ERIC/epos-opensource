@@ -8,9 +8,9 @@ import (
 	"github.com/epos-eu/epos-opensource/common"
 )
 
-func Populate(path, name, ttlDir string) (portalURL, gatewayURL string, err error) {
+func Populate(name, ttlDir string) (portalURL, gatewayURL string, err error) {
 	common.PrintStep("Populating environment: %s", name)
-	dir, err := common.GetEnvDir(path, name, platform)
+	dir, err := common.GetEnvDir(name, platform)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get environment directory: %w", err)
 	}

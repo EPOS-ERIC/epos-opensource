@@ -8,10 +8,10 @@ import (
 	"github.com/epos-eu/epos-opensource/db"
 )
 
-func Delete(customPath, name string) error {
+func Delete(name string) error {
 	common.PrintStep("Deleting environment: %s", name)
 
-	dir, err := common.GetEnvDir(customPath, name, platform)
+	dir, err := common.GetEnvDir(name, platform)
 	if err != nil {
 		return fmt.Errorf("failed to resolve environment directory: %w", err)
 	}

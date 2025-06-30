@@ -60,7 +60,10 @@ func init() {
 // Uses custom files if provided, otherwise uses embedded defaults.
 // Expands environment variables in all manifest files.
 func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name string) (string, error) {
-	envPath := common.BuildEnvPath(customPath, name, platform)
+	envPath, err := common.BuildEnvPath(customPath, name, platform)
+	if err != nil {
+		return "", err
+	}
 
 	if _, err := os.Stat(envPath); err == nil {
 		return "", fmt.Errorf("directory %s already exists", envPath)

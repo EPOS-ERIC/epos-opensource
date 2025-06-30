@@ -47,7 +47,7 @@ func TestGetEnvDir(t *testing.T) {
 				defer func() { _ = db.DeleteEnv(tc.envName, testPlatform) }()
 			}
 
-			dir, err := GetEnvDir("", tc.envName, testPlatform)
+			dir, err := GetEnvDir(tc.envName, testPlatform)
 			if tc.expectErr {
 				if err == nil {
 					t.Errorf("expected error, got nil")
