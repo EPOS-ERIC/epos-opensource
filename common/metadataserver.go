@@ -85,6 +85,7 @@ func (ms *MetadataServer) Addr() string { return ms.addr }
 //     at the first fatal directory walk error but continues on HTTP
 //     errors.
 func (ms *MetadataServer) PostFiles(gatewayURL string) error {
+	gatewayURL = strings.Trim(gatewayURL, "/ui")
 	postURL, err := url.Parse(gatewayURL)
 	if err != nil {
 		return fmt.Errorf("error parsing url '%s': %w", gatewayURL, err)
