@@ -277,6 +277,7 @@ func deployManifests(dir, namespace string, createNamespace bool, context string
 		"converter-service",
 		"converter-routine",
 		"backoffice-service",
+		"email-sender-service",
 	}
 	common.PrintStep("Deploying services")
 	if err := applyParallel(dir, services, true, context); err != nil {
