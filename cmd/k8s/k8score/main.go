@@ -387,7 +387,7 @@ func buildEnvURLs(dir, context, protocol string) (portalURL, gatewayURL, backoff
 		return "", "", "", fmt.Errorf("error building dataportal url: %w", err)
 	}
 
-	backofficeURL, err = url.JoinPath(portalURL, "backoffice")
+	backofficeURL, err = url.JoinPath(fmt.Sprintf("%s://%s", protocol, host), name, "/backoffice/home")
 	if err != nil {
 		return "", "", "", fmt.Errorf("error building dataportal url: %w", err)
 	}

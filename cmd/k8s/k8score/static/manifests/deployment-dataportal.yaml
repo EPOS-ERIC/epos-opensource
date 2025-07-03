@@ -25,7 +25,10 @@ spec:
                 name: epos-secret
           env:
             - name: BASE_URL
-              value: /${NAMESPACE}/dataportal/
+              valueFrom:
+                configMapKeyRef:
+                  name: epos-env
+                  key: DATAPORTAL_DEPLOY_PATH
             - name: API_HOST
               value: http://gateway:5000/api
           readinessProbe:

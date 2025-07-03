@@ -69,9 +69,5 @@ func Deploy(envFile, composeFile, path, name, context, protocol string) (portalU
 	if err != nil {
 		return handleFailure("failed to build gateway URL: %w", err)
 	}
-	backofficeURL, err = url.JoinPath(backofficeURL, "home")
-	if err != nil {
-		return handleFailure("failed to build backoffice URL: %w", err)
-	}
 	return portalURL, gatewayURL, backofficeURL, err
 }

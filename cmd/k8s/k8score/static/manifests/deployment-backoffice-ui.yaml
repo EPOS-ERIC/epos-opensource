@@ -25,7 +25,10 @@ spec:
                 name: epos-secret
           env:
             - name: BASE_URL
-              value: /${NAMESPACE}/dataportal/backoffice/
+              valueFrom:
+                configMapKeyRef:
+                  name: epos-env
+                  key: BACKOFFICE_DEPLOY_PATH
             - name: API_HOST
               value: http://gateway:5000/api
           readinessProbe:
