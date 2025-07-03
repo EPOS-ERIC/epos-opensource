@@ -89,7 +89,9 @@ func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name, cont
 		return "", fmt.Errorf("failed to get .env file content: %w", err)
 	}
 
-	if err := common.CreateFileWithContent(path.Join(envPath, ".env"), envContent); err != nil {
+	os.Setenv("NAMESPACE", name)
+	expandedEnv := os.ExpandEnv(string(envContent))
+	if err := common.CreateFileWithContent(path.Join(envPath, ".env"), expandedEnv); err != nil {
 		return "", fmt.Errorf("failed to create .env file: %w", err)
 	}
 
@@ -246,7 +248,7 @@ func waitDeployments(dir, namespace string, names []string, context string) erro
 		g.Go(func() error {
 			return runKubectl(dir, false, context,
 				"rollout", "status", fmt.Sprintf("deployment/%s", n),
-				"--timeout", (2 * time.Minute).String(),
+				"--timeout", (10 * time.Minute).String(),
 				"-n", namespace)
 		})
 	}

@@ -5,13 +5,13 @@ metadata:
   namespace: ${NAMESPACE}
   name: dataportal
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /${NAMESPACE}/dataportal/
+    nginx.ingress.kubernetes.io/rewrite-target: ${DATAPORTAL_DEPLOY_PATH}
 spec:
   ingressClassName: ${INGRESS_CLASS}
   rules:
     - http:
         paths:
-          - path: /${NAMESPACE}/dataportal/
+          - path: ${DATAPORTAL_DEPLOY_PATH}
             pathType: Prefix
             backend:
               service:
@@ -26,13 +26,13 @@ metadata:
   namespace: ${NAMESPACE}
   name: gateway
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /${NAMESPACE}/api/v1/
+    nginx.ingress.kubernetes.io/rewrite-target: ${API_DEPLOY_PATH}
 spec:
   ingressClassName: ${INGRESS_CLASS}
   rules:
     - http:
         paths:
-          - path: /${NAMESPACE}/api/v1/
+          - path: ${API_DEPLOY_PATH}
             pathType: Prefix
             backend:
               service:
@@ -47,13 +47,13 @@ metadata:
   namespace: ${NAMESPACE}
   name: backoffice-ui
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /${NAMESPACE}/dataportal/backoffice/
+    nginx.ingress.kubernetes.io/rewrite-target: ${BACKOFFICE_DEPLOY_PATH}
 spec:
   ingressClassName: ${INGRESS_CLASS}
   rules:
     - http:
         paths:
-          - path: /${NAMESPACE}/dataportal/backoffice/
+          - path: ${BACKOFFICE_DEPLOY_PATH}
             pathType: Prefix
             backend:
               service:
