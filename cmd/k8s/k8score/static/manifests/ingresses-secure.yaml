@@ -6,6 +6,7 @@ metadata:
   name: dataportal
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: ${DATAPORTAL_DEPLOY_PATH}
+    cert-manager.io/cluster-issuer: ${TLS_SECRET_NAME}
 spec:
   ingressClassName: ${INGRESS_CLASS}
   rules:
@@ -31,7 +32,8 @@ metadata:
   namespace: ${NAMESPACE}
   name: gateway
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: ${API_DEPLOY_PATH} 
+    nginx.ingress.kubernetes.io/rewrite-target: ${API_DEPLOY_PATH}
+    cert-manager.io/cluster-issuer: ${TLS_SECRET_NAME}
 spec:
   ingressClassName: ${INGRESS_CLASS}
   rules:
@@ -58,6 +60,7 @@ metadata:
   name: backoffice-ui
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: ${BACKOFFICE_DEPLOY_PATH}
+    cert-manager.io/cluster-issuer: ${TLS_SECRET_NAME}
 spec:
   ingressClassName: ${INGRESS_CLASS}
   rules:
