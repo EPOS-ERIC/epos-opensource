@@ -17,7 +17,7 @@ type ontology struct {
 // PopulateOntologies populates an environment deployed in a `dir` with the base ontologies for the ingestor
 func PopulateOntologies(baseURL string) error {
 	httpClient := &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: 1 * time.Minute,
 	}
 
 	apiURL, err := url.Parse(baseURL)

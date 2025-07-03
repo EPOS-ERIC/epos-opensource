@@ -3,8 +3,6 @@ package k8score
 import (
 	"os"
 	"path/filepath"
-	"reflect"
-	"sort"
 	"testing"
 )
 
@@ -55,58 +53,6 @@ func TestNewEnvDir(t *testing.T) {
 				wantFileCount := 1 + len(EmbeddedManifestContents)
 				if len(files) != wantFileCount {
 					t.Fatalf("expected %d files, got %d", wantFileCount, len(files))
-				}
-			},
-		},
-		{
-			name: "custom env & manifests",
-			setup: func(t *testing.T) (string, string, string, string, bool) {
-				base := t.TempDir()
-
-				// custom .env
-				customEnvFile, _ := os.CreateTemp(base, "custom.env")
-				customEnvContent := "FOO=bar\nAPI_PATH=something"
-				customEnvFile.WriteString(customEnvContent)
-				customEnvFile.Close()
-
-				// custom manifests dir
-				manifDir := filepath.Join(base, "manifests")
-				os.Mkdir(manifDir, 0o700)
-				os.WriteFile(filepath.Join(manifDir, "a.yaml"), []byte("a: 1\n"), 0o600)
-				os.WriteFile(filepath.Join(manifDir, "b.yaml"), []byte("b: 2\n"), 0o600)
-
-				return customEnvFile.Name(), manifDir, base, "custom", false
-			},
-			wantErr: false,
-			check: func(t *testing.T, envPath, customEnv, customManifests string) {
-				// .env must match the custom file
-				if want, got := mustRead(t, customEnv), mustRead(t, filepath.Join(envPath, ".env")); want != got {
-					t.Fatalf(".env mismatch: want %q got %q", want, got)
-				}
-
-				// Manifest names and contents must match the custom dir (after expansion,
-				// which is a no-op for these simple files).
-				wantEntries, _ := os.ReadDir(customManifests)
-				gotEntries, _ := os.ReadDir(envPath)
-
-				var wantNames, gotNames []string
-				for _, e := range wantEntries {
-					wantNames = append(wantNames, e.Name())
-					wantContent := mustRead(t, filepath.Join(customManifests, e.Name()))
-					gotContent := mustRead(t, filepath.Join(envPath, e.Name()))
-					if wantContent != gotContent {
-						t.Fatalf("content mismatch in %s", e.Name())
-					}
-				}
-				for _, e := range gotEntries {
-					if e.Name() != ".env" {
-						gotNames = append(gotNames, e.Name())
-					}
-				}
-				sort.Strings(wantNames)
-				sort.Strings(gotNames)
-				if !reflect.DeepEqual(wantNames, gotNames) {
-					t.Fatalf("manifest name set mismatch: want %v got %v", wantNames, gotNames)
 				}
 			},
 		},

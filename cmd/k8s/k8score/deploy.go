@@ -54,6 +54,10 @@ func Deploy(envFile, composeFile, path, name, context, protocol string) (portalU
 		return handleFailure("error building env urls for environment '%s': %w", fmt.Errorf("%s: %w", dir, err))
 	}
 
+	common.PrintInfo("Generated URL for data portal: %s", portalURL)
+	common.PrintInfo("Generated URL for gateway: %s", gatewayURL)
+	common.PrintInfo("Generated URL for backoffice: %s", backofficeURL)
+
 	if err := common.PopulateOntologies(gatewayURL); err != nil {
 		common.PrintError("error initializing the ontologies in the environment: %v", err)
 		return handleFailure("error initializing the ontologies: %w", err)

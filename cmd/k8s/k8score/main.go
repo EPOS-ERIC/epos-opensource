@@ -365,29 +365,36 @@ func buildEnvURLs(dir, context, protocol string) (portalURL, gatewayURL, backoff
 	if err != nil {
 		return "", "", "", fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
 	}
-	apiPath, ok := env["API_PATH"]
-	if !ok {
-		return "", "", "", fmt.Errorf("environment variable API_PATH is not set")
-	}
 
-	name := path.Base(dir)
+	apiDeployPath, ok := env["API_DEPLOY_PATH"]
+	if !ok {
+		return "", "", "", fmt.Errorf("environment variable API_DEPLOY_PATH is not set")
+	}
+	dataportalDeployPath, ok := env["DATAPORTAL_DEPLOY_PATH"]
+	if !ok {
+		return "", "", "", fmt.Errorf("environment variable DATAPORTAL_DEPLOY_PATH is not set")
+	}
+	backofficeDeployPath, ok := env["BACKOFFICE_DEPLOY_PATH"]
+	if !ok {
+		return "", "", "", fmt.Errorf("environment variable BACKOFFICE_DEPLOY_PATH is not set")
+	}
 
 	host, err := getAPIHost(dir, context)
 	if err != nil {
 		return "", "", "", fmt.Errorf("error getting api host: %w", err)
 	}
 
-	gatewayURL, err = url.JoinPath(fmt.Sprintf("%s://%s", protocol, host), name, apiPath)
+	gatewayURL, err = url.JoinPath(fmt.Sprintf("%s://%s", protocol, host), apiDeployPath)
 	if err != nil {
 		return "", "", "", fmt.Errorf("error building gateway url: %w", err)
 	}
 
-	portalURL, err = url.JoinPath(fmt.Sprintf("%s://%s", protocol, host), name, "/dataportal/")
+	portalURL, err = url.JoinPath(fmt.Sprintf("%s://%s", protocol, host), dataportalDeployPath)
 	if err != nil {
 		return "", "", "", fmt.Errorf("error building dataportal url: %w", err)
 	}
 
-	backofficeURL, err = url.JoinPath(fmt.Sprintf("%s://%s", protocol, host), name, "/backoffice/home")
+	backofficeURL, err = url.JoinPath(fmt.Sprintf("%s://%s", protocol, host), backofficeDeployPath)
 	if err != nil {
 		return "", "", "", fmt.Errorf("error building dataportal url: %w", err)
 	}
