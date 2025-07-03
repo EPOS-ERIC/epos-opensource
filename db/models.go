@@ -5,16 +5,19 @@
 package db
 
 type Docker struct {
-	Name      string
-	Directory string
-	ApiUrl    string
-	GuiUrl    string
+	Name          string
+	Directory     string
+	ApiUrl        string
+	GuiUrl        string
+	BackofficeUrl string
 }
 
 type Kubernetes struct {
-	Name      string
-	Directory string
-	Context   string
-	ApiUrl    string
-	GuiUrl    string
+	Name          string
+	Directory     string
+	Context       string
+	ApiUrl        string
+	GuiUrl        string
+	BackofficeUrl string
+	Protocol      string
 }

@@ -53,17 +53,19 @@ func Get() (*Queries, error) {
 }
 
 // InsertKubernetes adds a new kubernetes entry to the database.
-func InsertKubernetes(name, dir, contextStr, apiURL, guiURL string) error {
+func InsertKubernetes(name, dir, contextStr, apiURL, guiURL, backofficeURL, protocol string) error {
 	q, err := Get()
 	if err != nil {
 		return fmt.Errorf("error getting db connection: %w", err)
 	}
 	_, err = q.InsertKubernetes(context.Background(), InsertKubernetesParams{
-		Name:      name,
-		Directory: dir,
-		Context:   contextStr,
-		ApiUrl:    apiURL,
-		GuiUrl:    guiURL,
+		Name:          name,
+		Directory:     dir,
+		Context:       contextStr,
+		ApiUrl:        apiURL,
+		GuiUrl:        guiURL,
+		Protocol:      protocol,
+		BackofficeUrl: backofficeURL,
 	})
 	if err != nil {
 		return fmt.Errorf("error inserting kubernetes %s (dir: %s) in db: %w", name, dir, err)
@@ -114,16 +116,17 @@ func GetAllKubernetes() ([]Kubernetes, error) {
 }
 
 // InsertDocker adds a new docker entry to the database.
-func InsertDocker(name, dir, apiURL, guiURL string) error {
+func InsertDocker(name, dir, apiURL, guiURL, backofficeURL string) error {
 	q, err := Get()
 	if err != nil {
 		return fmt.Errorf("error getting db connection: %w", err)
 	}
 	_, err = q.InsertDocker(context.Background(), InsertDockerParams{
-		Name:      name,
-		Directory: dir,
-		ApiUrl:    apiURL,
-		GuiUrl:    guiURL,
+		Name:          name,
+		Directory:     dir,
+		ApiUrl:        apiURL,
+		GuiUrl:        guiURL,
+		BackofficeUrl: backofficeURL,
 	})
 	if err != nil {
 		return fmt.Errorf("error inserting docker %s (dir: %s) in db: %w", name, dir, err)

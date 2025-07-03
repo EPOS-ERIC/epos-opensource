@@ -9,23 +9,3 @@ spec:
   ports:
     - name: dataportal
       port: 80
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  namespace: ${NAMESPACE}
-  name: dataportal
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /${NAMESPACE}/dataportal/
-spec:
-  ingressClassName: ${INGRESS_CLASS}
-  rules:
-    - http:
-        paths:
-          - path: /${NAMESPACE}/dataportal/
-            pathType: Prefix
-            backend:
-              service:
-                name: dataportal
-                port:
-                  number: 80

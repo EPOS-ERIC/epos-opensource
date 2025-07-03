@@ -60,7 +60,7 @@ func PrintDone(format string, a ...any) {
 }
 
 // PrintUrls prints the urls for the dataportal and the api gateway for a specific environment in the `dir` directory
-func PrintUrls(portalURL, gatewayURL, title string) {
+func PrintUrls(portalURL, gatewayURL, backofficeURL, title string) {
 	t := table.NewWriter()
 	t.SetTitle(title)
 	t.Style().Title.Align = text.AlignCenter
@@ -85,6 +85,8 @@ func PrintUrls(portalURL, gatewayURL, title string) {
 	t.AppendRow(table.Row{"EPOS Data Portal", portalURL})
 	t.AppendSeparator()
 	t.AppendRow(table.Row{"EPOS API Gateway", gatewayURL})
+	t.AppendSeparator()
+	t.AppendRow(table.Row{"EPOS Backoffice", backofficeURL})
 	rowIndex := -1
 	highlight := text.Colors{text.FgGreen, text.Bold}
 	t.SetRowPainter(func(row table.Row) text.Colors {

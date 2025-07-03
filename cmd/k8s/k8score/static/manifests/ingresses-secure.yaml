@@ -1,0 +1,77 @@
+# dataportal
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: ${NAMESPACE}
+  name: dataportal
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /${NAMESPACE}/dataportal/
+spec:
+  ingressClassName: ${INGRESS_CLASS}
+  rules:
+    - host: ${HOST_NAME}
+      http:
+        paths:
+          - path: /${NAMESPACE}/dataportal/
+            pathType: Prefix
+            backend:
+              service:
+                name: dataportal
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - ${HOST_NAME}
+      secretName: ${TLS_SECRET_NAME}
+---
+# gateway
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: ${NAMESPACE}
+  name: gateway
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /${NAMESPACE}/api/v1/
+spec:
+  ingressClassName: ${INGRESS_CLASS}
+  rules:
+    - host: ${HOST_NAME}
+      http:
+        paths:
+          - path: /${NAMESPACE}/api/v1/
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway
+                port:
+                  number: 5000
+  tls:
+    - hosts:
+        - ${HOST_NAME}
+      secretName: ${TLS_SECRET_NAME}
+---
+# backoffice gui
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: ${NAMESPACE}
+  name: backoffice-ui
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /${NAMESPACE}/backoffice/
+spec:
+  ingressClassName: ${INGRESS_CLASS}
+  rules:
+    - host: ${HOST_NAME}
+      http:
+        paths:
+          - path: /${NAMESPACE}/backoffice/
+            pathType: Prefix
+            backend:
+              service:
+                name: backoffice-ui
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - ${HOST_NAME}
+      secretName: ${TLS_SECRET_NAME}

@@ -20,12 +20,12 @@ var PopulateCmd = &cobra.Command{
 		name := args[0]
 		ttlDir := args[1]
 
-		portalURL, gatewayURL, err := dockercore.Populate(name, ttlDir)
+		portalURL, gatewayURL, backofficeURL, err := dockercore.Populate(name, ttlDir)
 		if err != nil {
 			common.PrintError("%v", err)
 			return
 		}
 
-		common.PrintUrls(portalURL, gatewayURL, fmt.Sprintf("epos-opensource docker populate %s", name))
+		common.PrintUrls(portalURL, gatewayURL, backofficeURL, fmt.Sprintf("epos-opensource docker populate %s", name))
 	},
 }

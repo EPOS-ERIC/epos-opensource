@@ -7,9 +7,17 @@ FROM
 
 -- name: InsertKubernetes :one
 INSERT INTO
-    kubernetes (name, directory, context, api_url, gui_url)
+    kubernetes (
+        name,
+        directory,
+        context,
+        api_url,
+        gui_url,
+        backoffice_url,
+        protocol
+    )
 VALUES
-    (?, ?, ?, ?, ?)
+    (?, ?, ?, ?, ?, ?, ?)
 RETURNING
     *;
 
@@ -36,9 +44,15 @@ FROM
 
 -- name: InsertDocker :one
 INSERT INTO
-    docker (name, directory, api_url, gui_url)
+    docker (
+        name,
+        directory,
+        api_url,
+        gui_url,
+        backoffice_url
+    )
 VALUES
-    (?, ?, ?, ?)
+    (?, ?, ?, ?, ?)
 RETURNING
     *;
 

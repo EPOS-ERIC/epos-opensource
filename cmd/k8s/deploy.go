@@ -18,12 +18,17 @@ var DeployCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		portalURL, gatewayURL, err := k8score.Deploy(envFile, manifestsDir, path, name, context)
+		protocol := "http"
+		if secure {
+			protocol = "https"
+		}
+
+		portalURL, gatewayURL, backofficeURL, err := k8score.Deploy(envFile, manifestsDir, path, name, context, protocol)
 		if err != nil {
 			common.PrintError("%v", err)
 			return
 		}
-		common.PrintUrls(portalURL, gatewayURL, fmt.Sprintf("epos-opensource kubernetes deploy %s", name))
+		common.PrintUrls(portalURL, gatewayURL, backofficeURL, fmt.Sprintf("epos-opensource kubernetes deploy %s", name))
 	},
 }
 
@@ -32,4 +37,5 @@ func init() {
 	DeployCmd.Flags().StringVarP(&path, "path", "p", "", "Location for the environment files")
 	DeployCmd.Flags().StringVarP(&manifestsDir, "manifests-dir", "m", "", "Path to the directory containing the manifests files")
 	DeployCmd.Flags().StringVarP(&context, "context", "c", "", "kubectl context used for the environment deployment. Uses current if not set")
+	DeployCmd.Flags().BoolVarP(&secure, "secure", "s", false, "Use https as the protocol. If not set uses http by default")
 }

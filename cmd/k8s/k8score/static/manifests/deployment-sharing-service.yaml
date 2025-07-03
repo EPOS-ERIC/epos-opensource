@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sharing-service
+  namespace: ${NAMESPACE}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sharing-service
+  template:
+    metadata:
+      labels:
+        app: sharing-service
+    spec:
+      containers:
+        - name: sharing-service
+          image: ${SHARING_SERVICE_IMAGE}
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: epos-env
+            - secretRef:
+                name: epos-secret
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - curl --fail --silent http://localhost:8080/api/sharing-service/v1/actuator/health | grep UP || exit 1
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - curl --fail --silent http://localhost:8080/api/sharing-service/v1/actuator/health | grep UP || exit 1
+
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5

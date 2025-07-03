@@ -49,17 +49,17 @@ func PrintInfraList(rows [][]any, headers []string, title string) {
 func PrintDockerList(dockers []db.Docker, title string) {
 	rows := make([][]any, len(dockers))
 	for i, d := range dockers {
-		rows[i] = []any{d.Name, d.Directory, d.ApiUrl, d.GuiUrl}
+		rows[i] = []any{d.Name, d.Directory, d.GuiUrl, d.BackofficeUrl, d.ApiUrl}
 	}
-	headers := []string{"Name", "Directory", "API URL", "GUI URL"}
+	headers := []string{"Name", "Directory", "GUI URL", "Backoffice URL", "API URL"}
 	PrintInfraList(rows, headers, title)
 }
 
 func PrintKubernetesList(kubes []db.Kubernetes, title string) {
 	rows := make([][]any, len(kubes))
 	for i, k := range kubes {
-		rows[i] = []any{k.Name, k.Directory, k.Context, k.ApiUrl, k.GuiUrl}
+		rows[i] = []any{k.Name, k.Directory, k.Context, k.GuiUrl, k.BackofficeUrl, k.ApiUrl}
 	}
-	headers := []string{"Name", "Directory", "Context", "API URL", "GUI URL"}
+	headers := []string{"Name", "Directory", "Context", "GUI URL", "Backoffice URL", "API URL"}
 	PrintInfraList(rows, headers, title)
 }

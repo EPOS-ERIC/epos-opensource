@@ -80,38 +80,40 @@ func NewEnvDir(customEnvFilePath, customComposeFilePath, customPath, name string
 	return envPath, nil
 }
 
-func buildEnvURLs(dir string) (portalURL, gatewayURL string, err error) {
+func buildEnvURLs(dir string) (portalURL, gatewayURL, backofficeURL string, err error) {
 	env, err := godotenv.Read(filepath.Join(dir, ".env"))
 	if err != nil {
-		return "", "", fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
+		return "", "", "", fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
 	}
 
 	dataportalPort, ok := env["DATAPORTAL_PORT"]
 	if !ok {
-		return "", "", fmt.Errorf("environment variable DATAPORTAL_PORT is not set")
+		return "", "", "", fmt.Errorf("environment variable DATAPORTAL_PORT is not set")
 	}
 
 	gatewayPort, ok := env["GATEWAY_PORT"]
 	if !ok {
-		return "", "", fmt.Errorf("environment variable GATEWAY_PORT is not set")
+		return "", "", "", fmt.Errorf("environment variable GATEWAY_PORT is not set")
+	}
+
+	backofficePort, ok := env["BACKOFFICE_PORT"]
+	if !ok {
+		return "", "", "", fmt.Errorf("environment variable BACKOFFICE_PORT is not set")
 	}
 
 	apiPath, ok := env["API_PATH"]
 	if !ok {
-		return "", "", fmt.Errorf("environment variable API_PATH is not set")
+		return "", "", "", fmt.Errorf("environment variable API_PATH is not set")
 	}
 
-	localIP, err := common.GetLocalIP()
+	portalURL = fmt.Sprintf("http://localhost:%s", dataportalPort)
+
+	gatewayURL, err = url.JoinPath(fmt.Sprintf("http://localhost:%s", gatewayPort), apiPath)
 	if err != nil {
-		return "", "", fmt.Errorf("error getting local IP address: %w", err)
+		return "", "", "", fmt.Errorf("error building gateway URL: %w", err)
 	}
 
-	portalURL = fmt.Sprintf("http://%s:%s", localIP, dataportalPort)
+	backofficeURL = fmt.Sprintf("http://localhost:%s", backofficePort)
 
-	gatewayURL, err = url.JoinPath(fmt.Sprintf("http://%s:%s", localIP, gatewayPort), apiPath)
-	if err != nil {
-		return "", "", fmt.Errorf("error building gateway url: %w", err)
-	}
-
-	return portalURL, gatewayURL, nil
+	return portalURL, gatewayURL, backofficeURL, nil
 }

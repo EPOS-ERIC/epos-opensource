@@ -84,7 +84,7 @@ func (ms *MetadataServer) Addr() string { return ms.addr }
 //     fails—the function returns a non‑nil error.  The ingestion stops
 //     at the first fatal directory walk error but continues on HTTP
 //     errors.
-func (ms *MetadataServer) PostFiles(gatewayURL string) error {
+func (ms *MetadataServer) PostFiles(gatewayURL, protocol string) error {
 	gatewayURL = strings.Trim(gatewayURL, "/ui")
 	postURL, err := url.Parse(gatewayURL)
 	if err != nil {
@@ -122,7 +122,7 @@ func (ms *MetadataServer) PostFiles(gatewayURL string) error {
 		q.Set("model", "EPOS-DCAT-AP-V1")
 		q.Set("mapping", "EDM-TO-DCAT-AP")
 
-		fileURL, err := url.JoinPath("http://", ms.Addr(), relPath)
+		fileURL, err := url.JoinPath(protocol+"://", ms.Addr(), relPath)
 		if err != nil {
 			PrintError("Error while building URL for file '%s': %v", d.Name(), err)
 			ingestionError = true

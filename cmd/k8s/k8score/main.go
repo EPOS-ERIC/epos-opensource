@@ -59,7 +59,7 @@ func init() {
 // NewEnvDir creates an environment directory with .env and manifest files.
 // Uses custom files if provided, otherwise uses embedded defaults.
 // Expands environment variables in all manifest files.
-func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name, context string) (string, error) {
+func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name, context, protocol string) (string, error) {
 	envPath, err := common.BuildEnvPath(customPath, name, platform)
 	if err != nil {
 		return "", err
@@ -103,7 +103,7 @@ func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name, cont
 		}
 	}
 
-	if err := loadEnvAndExpandManifests(envPath, name, context); err != nil {
+	if err := loadEnvAndExpandManifests(envPath, name, context, protocol); err != nil {
 		return "", fmt.Errorf("failed to process environment variables: %w", err)
 	}
 
@@ -148,14 +148,38 @@ func copyEmbeddedManifests(envPath string) error {
 	return nil
 }
 
-func loadEnvAndExpandManifests(envPath, name, context string) error {
+// getAPIHost returns the public host for the environment.
+// If HOST_NAME is set in the .env file, it is returned.
+// Otherwise, it attempts to get the ingress controller IP/hostname, and if that fails, falls back to the local IP.
+func getAPIHost(dir, context string) (string, error) {
+	env, err := godotenv.Read(filepath.Join(dir, ".env"))
+	if err != nil {
+		return "", fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
+	}
+
+	if hostName := env["HOST_NAME"]; hostName != "" {
+		return hostName, nil
+	}
+
+	ip, err := getIngressControllerIP(context)
+	if err != nil {
+		common.PrintWarn("error getting ingress IP, falling back to local IP: %v", err)
+		ip, err = common.GetLocalIP()
+		if err != nil {
+			return "", fmt.Errorf("error getting IP address: %w", err)
+		}
+	}
+	return ip, nil
+}
+
+func loadEnvAndExpandManifests(envPath, name, context, protocol string) error {
 	envFilePath := path.Join(envPath, ".env")
 	if err := godotenv.Load(envFilePath); err != nil {
 		return fmt.Errorf("failed to load environment file %q: %w", envFilePath, err)
 	}
 
 	os.Setenv("NAMESPACE", name)
-	_, apiURL, err := buildEnvURLs(envPath, context)
+	_, apiURL, _, err := buildEnvURLs(envPath, context, protocol)
 	if err != nil {
 		return fmt.Errorf("error building API URL: %w", err)
 	}
@@ -231,7 +255,7 @@ func waitDeployments(dir, namespace string, names []string, context string) erro
 
 // deployManifests deploys all resources to the namespace in stages:
 // 1. Create namespace, 2. Setup environment, 3. Deploy infra, 4. Deploy services, 5. Deploy gateway/portal.
-func deployManifests(dir, namespace string, createNamespace bool, context string) error {
+func deployManifests(dir, namespace string, createNamespace bool, context, protocol string) error {
 	if createNamespace {
 		common.PrintStep("Creating namespace %s", namespace)
 		if err := runKubectl(dir, true, context, "get", "namespace", namespace); err != nil {
@@ -256,7 +280,25 @@ func deployManifests(dir, namespace string, createNamespace bool, context string
 		}
 	}
 
-	infra := []string{"rabbitmq", "metadata-database"}
+	var ingresses string
+	switch protocol {
+	case "https":
+		ingresses = "ingresses-secure.yaml"
+	case "http":
+		ingresses = "ingresses-insecure.yaml"
+	default:
+		return fmt.Errorf("unknown protocol %s", protocol)
+	}
+
+	common.PrintStep("Deploying ingresses")
+	if err := runKubectl(dir, false, context, "apply", "-f", ingresses); err != nil {
+		return fmt.Errorf("failed to apply %s: %w", ingresses, err)
+	}
+
+	infra := []string{
+		"rabbitmq",
+		"metadata-database",
+	}
 	common.PrintStep("Deploying infrastructure components")
 	if err := applyParallel(dir, infra, true, context); err != nil {
 		return fmt.Errorf("failed to deploy infrastructure components: %w", err)
@@ -278,6 +320,7 @@ func deployManifests(dir, namespace string, createNamespace bool, context string
 		"converter-routine",
 		"backoffice-service",
 		"email-sender-service",
+		"sharing-service",
 	}
 	common.PrintStep("Deploying services")
 	if err := applyParallel(dir, services, true, context); err != nil {
@@ -289,7 +332,11 @@ func deployManifests(dir, namespace string, createNamespace bool, context string
 		return fmt.Errorf("services deployment failed: %w", err)
 	}
 
-	finals := []string{"gateway", "dataportal"}
+	finals := []string{
+		"gateway",
+		"dataportal",
+		"backoffice-ui",
+	}
 	common.PrintStep("Deploying gateway and dataportal")
 	if err := applyParallel(dir, finals, true, context); err != nil {
 		return fmt.Errorf("failed to deploy gateway and dataportal: %w", err)
@@ -311,85 +358,87 @@ func deleteNamespace(name, context string) error {
 
 // buildEnvURLs returns the base urls for the dataportal and the gateway.
 // It tries to get the ip of the ingress of the cluster, and if there is an error it returns the localIP
-func buildEnvURLs(dir, context string) (portalURL, gatewayURL string, err error) {
+func buildEnvURLs(dir, context, protocol string) (portalURL, gatewayURL, backofficeURL string, err error) {
 	env, err := godotenv.Read(filepath.Join(dir, ".env"))
 	if err != nil {
-		return "", "", fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
+		return "", "", "", fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
 	}
 	apiPath, ok := env["API_PATH"]
 	if !ok {
-		return "", "", fmt.Errorf("environment variable API_PATH is not set")
+		return "", "", "", fmt.Errorf("environment variable API_PATH is not set")
 	}
 
 	name := path.Base(dir)
 
-	ip, err := getIngressIP(name, context)
+	host, err := getAPIHost(dir, context)
 	if err != nil {
-		common.PrintWarn("error getting ingress IP, falling back to local IP: %v", err)
-		ip, err = common.GetLocalIP()
-		if err != nil {
-			return "", "", fmt.Errorf("error getting IP address: %w", err)
-		}
+		return "", "", "", fmt.Errorf("error getting api host: %w", err)
 	}
 
-	gatewayURL, err = url.JoinPath(fmt.Sprintf("http://%s", ip), name, apiPath)
+	gatewayURL, err = url.JoinPath(fmt.Sprintf("%s://%s", protocol, host), name, apiPath)
 	if err != nil {
-		return "", "", fmt.Errorf("error building gateway url: %w", err)
+		return "", "", "", fmt.Errorf("error building gateway url: %w", err)
 	}
 
-	portalURL, err = url.JoinPath(fmt.Sprintf("http://%s", ip), name, "/dataportal/")
+	portalURL, err = url.JoinPath(fmt.Sprintf("%s://%s", protocol, host), name, "/dataportal/")
 	if err != nil {
-		return "", "", fmt.Errorf("error building dataportal url: %w", err)
+		return "", "", "", fmt.Errorf("error building dataportal url: %w", err)
 	}
 
-	return portalURL, gatewayURL, nil
+	backofficeURL, err = url.JoinPath(portalURL, "backoffice")
+	if err != nil {
+		return "", "", "", fmt.Errorf("error building dataportal url: %w", err)
+	}
+
+	return portalURL, gatewayURL, backofficeURL, nil
 }
 
-// getIngressIP returns the ingress IP or hostname for the given namespace, using the provided context.
-func getIngressIP(namespace, context string) (string, error) {
+// getIngressControllerIP returns the ingress controller IP or hostname for the context
+func getIngressControllerIP(context string) (string, error) {
+	if context == "" {
+		return "", fmt.Errorf("context must be provided and cannot be empty")
+	}
 	const (
 		maxWait  = 30 * time.Second
 		interval = 2 * time.Second
 	)
+	fields := [][2]string{
+		{"hostname", "{.status.loadBalancer.ingress[0].hostname}"},
+		{"ip", "{.status.loadBalancer.ingress[0].ip}"},
+	}
+
 	common.PrintStep("Waiting for ingress IP/hostname to be assigned...")
 	start := time.Now()
-	for {
-		// Try to get the IP first
-		args := []string{"get", "ingress", "gateway", "-n", namespace, "-o", `jsonpath={.status.loadBalancer.ingress[0].ip}`}
-		if context != "" {
-			args = append(args, "--context", context)
-		}
-		cmd := exec.Command("kubectl", args...)
-		out, err := common.RunCommand(cmd, true)
-		if err != nil {
-			return "", fmt.Errorf("error getting ingress ip: %w", err)
-		}
-		ip := strings.TrimSpace(out)
-		if ip != "" {
-			common.PrintDone("Ingress assigned IP: %s", ip)
-			return ip, nil
-		}
+	var lastErr error
 
-		// If IP is empty, try hostname
-		args = []string{"get", "ingress", "gateway", "-n", namespace, "-o", `jsonpath={.status.loadBalancer.ingress[0].hostname}`}
-		if context != "" {
-			args = append(args, "--context", context)
-		}
-		cmd = exec.Command("kubectl", args...)
-		out, err = common.RunCommand(cmd, true)
-		if err != nil {
-			return "", fmt.Errorf("error getting ingress hostname: %w", err)
-		}
-		hostname := strings.TrimSpace(out)
-		if hostname != "" {
-			common.PrintDone("Ingress assigned hostname: %s", hostname)
-			return hostname, nil
-		}
-
-		if time.Since(start) > maxWait {
-			break
+	for time.Since(start) < maxWait {
+		for _, field := range fields {
+			desc := field[0]
+			jsonpath := field[1]
+			args := []string{"get", "service", "ingress-nginx-controller", "-n", "ingress-nginx", "-o", "jsonpath=" + jsonpath, "--context", context}
+			cmd := exec.Command("kubectl", args...)
+			out, err := common.RunCommand(cmd, true)
+			if err != nil {
+				lastErr = fmt.Errorf("error getting ingress %s: %w", desc, err)
+				continue
+			}
+			value := strings.TrimSpace(out)
+			if value != "" {
+				if desc == "hostname" && value == "localhost" {
+					localIP, err := common.GetLocalIP()
+					if err != nil {
+						return "", fmt.Errorf("error getting local IP: %w", err)
+					}
+					value = localIP
+				}
+				common.PrintDone("Ingress assigned %s: %s", desc, value)
+				return value, nil
+			}
 		}
 		time.Sleep(interval)
+	}
+	if lastErr != nil {
+		return "", fmt.Errorf("error waiting for ingress to be ready, last error: %w", lastErr)
 	}
 	return "", fmt.Errorf("error getting ingress IP: both ip and hostname are empty after waiting %s", maxWait)
 }

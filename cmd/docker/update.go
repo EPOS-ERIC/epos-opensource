@@ -19,13 +19,13 @@ var UpdateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		portalURL, gatewayURL, err := dockercore.Update(envFile, composeFile, name, force, pullImages)
+		portalURL, gatewayURL, backofficeURL, err := dockercore.Update(envFile, composeFile, name, force, pullImages)
 		if err != nil {
 			common.PrintError("%v", err)
 			return
 		}
 
-		common.PrintUrls(portalURL, gatewayURL, fmt.Sprintf("epos-opensource docker update %s", name))
+		common.PrintUrls(portalURL, gatewayURL, backofficeURL, fmt.Sprintf("epos-opensource docker update %s", name))
 	},
 }
 

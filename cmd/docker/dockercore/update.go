@@ -19,23 +19,24 @@ import (
 // deploy the updated compose
 // if everything goes right, delete the tmp dir and finish
 // else restore the tmp dir, deploy the old restored env and give an error in output
-func Update(envFile, composeFile, name string, force, pullImages bool) (portalURL, gatewayURL string, err error) {
+func Update(envFile, composeFile, name string, force, pullImages bool) (portalURL, gatewayURL, backofficeURL string, err error) {
 	common.PrintStep("Updating environment: %s", name)
 
 	env, err := db.GetDockerByName(name)
 	if err != nil {
-		return "", "", fmt.Errorf("error getting docker environment from db called '%s': %w", name, err)
+		return "", "", "", fmt.Errorf("error getting docker environment from db called '%s': %w", name, err)
 	}
 	gatewayURL = env.ApiUrl
 	portalURL = env.GuiUrl
+	backofficeURL = env.BackofficeUrl
 
 	// If it exists, create a copy of it in a tmp dir
 	tmpDir, err := common.CreateTmpCopy(env.Directory)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to create backup copy: %w", err)
+		return "", "", "", fmt.Errorf("failed to create backup copy: %w", err)
 	}
 
-	handleFailure := func(msg string, mainErr error) (string, string, error) {
+	handleFailure := func(msg string, mainErr error) (string, string, string, error) {
 		common.PrintStep("Restoring environment from backup")
 		if err := common.RemoveEnvDir(env.Directory); err != nil {
 			common.PrintError("Failed to remove corrupted directory: %v", err)
@@ -50,7 +51,7 @@ func Update(envFile, composeFile, name string, force, pullImages bool) (portalUR
 		if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
 			common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
 		}
-		return "", "", fmt.Errorf(msg, mainErr)
+		return "", "", "", fmt.Errorf(msg, mainErr)
 	}
 
 	common.PrintStep("Updating stack")
@@ -99,5 +100,5 @@ func Update(envFile, composeFile, name string, force, pullImages bool) (portalUR
 	}
 
 	gatewayURL, err = url.JoinPath(gatewayURL, "ui/")
-	return portalURL, gatewayURL, err
+	return portalURL, gatewayURL, backofficeURL, err
 }

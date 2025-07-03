@@ -10,12 +10,12 @@ import (
 	"github.com/epos-eu/epos-opensource/db"
 )
 
-func Deploy(envFile, composeFile, path, name, context string) (portalURL, gatewayURL string, err error) {
+func Deploy(envFile, composeFile, path, name, context, protocol string) (portalURL, gatewayURL, backofficeURL string, err error) {
 	if context == "" {
 		cmd := exec.Command("kubectl", "config", "current-context")
 		out, err := common.RunCommand(cmd, true)
 		if err != nil {
-			return "", "", fmt.Errorf("failed to get current kubectl context: %w", err)
+			return "", "", "", fmt.Errorf("failed to get current kubectl context: %w", err)
 		}
 		context = string(out)
 		context = strings.TrimSpace(context)
@@ -25,30 +25,30 @@ func Deploy(envFile, composeFile, path, name, context string) (portalURL, gatewa
 
 	common.PrintStep("Creating environment: %s", name)
 
-	dir, err := NewEnvDir(envFile, composeFile, path, name, context)
+	dir, err := NewEnvDir(envFile, composeFile, path, name, context, protocol)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to prepare environment directory: %w", err)
+		return "", "", "", fmt.Errorf("failed to prepare environment directory: %w", err)
 	}
 
 	common.PrintDone("Environment created in directory: %s", dir)
 
-	handleFailure := func(msg string, mainErr error) (string, string, error) {
+	handleFailure := func(msg string, mainErr error) (string, string, string, error) {
 		if err := deleteNamespace(name, context); err != nil {
 			common.PrintWarn("error deleting namespace %s, %v", name, err)
 		}
 		if err := common.RemoveEnvDir(dir); err != nil {
-			return "", "", fmt.Errorf("error deleting environment %s: %w", dir, err)
+			return "", "", "", fmt.Errorf("error deleting environment %s: %w", dir, err)
 		}
 		common.PrintError("stack deployment failed")
-		return "", "", fmt.Errorf(msg, mainErr)
+		return "", "", "", fmt.Errorf(msg, mainErr)
 	}
 
-	if err := deployManifests(dir, name, true, context); err != nil {
+	if err := deployManifests(dir, name, true, context, protocol); err != nil {
 		common.PrintError("Deploy failed: %v", err)
 		return handleFailure("deploy failed: %w", err)
 	}
 
-	portalURL, gatewayURL, err = buildEnvURLs(dir, context)
+	portalURL, gatewayURL, backofficeURL, err = buildEnvURLs(dir, context, protocol)
 	if err != nil {
 		common.PrintError("error building env urls for the environment: %v", err)
 		return handleFailure("error building env urls for environment '%s': %w", fmt.Errorf("%s: %w", dir, err))
@@ -59,7 +59,7 @@ func Deploy(envFile, composeFile, path, name, context string) (portalURL, gatewa
 		return handleFailure("error initializing the ontologies: %w", err)
 	}
 
-	err = db.InsertKubernetes(name, dir, context, gatewayURL, portalURL)
+	err = db.InsertKubernetes(name, dir, context, gatewayURL, portalURL, backofficeURL, protocol)
 	if err != nil {
 		common.PrintError("failed to insert kubernetes in db: %v", err)
 		return handleFailure("failed to insert kubernetes %s (dir: %s) in db: %w", fmt.Errorf("%s, %s, %w", name, dir, err))
@@ -69,5 +69,9 @@ func Deploy(envFile, composeFile, path, name, context string) (portalURL, gatewa
 	if err != nil {
 		return handleFailure("failed to build gateway URL: %w", err)
 	}
-	return portalURL, gatewayURL, err
+	backofficeURL, err = url.JoinPath(backofficeURL, "home")
+	if err != nil {
+		return handleFailure("failed to build backoffice URL: %w", err)
+	}
+	return portalURL, gatewayURL, backofficeURL, err
 }

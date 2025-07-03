@@ -5,4 +5,5 @@ var (
 	path         string
 	manifestsDir string
 	context      string
+	secure       bool
 )

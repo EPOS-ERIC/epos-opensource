@@ -19,22 +19,23 @@ import (
 // deploy the updated manifests
 // if everything goes right, delete the tmp dir and finish
 // else restore the tmp dir, deploy the old restored env and give an error in output
-func Update(envFile, composeFile, name string, force bool) (portalURL, gatewayURL string, err error) {
+func Update(envFile, composeFile, name string, force bool) (portalURL, gatewayURL, backofficeURL string, err error) {
 	common.PrintStep("Updating environment: %s", name)
 
 	env, err := db.GetKubernetesByName(name)
 	if err != nil {
-		return "", "", fmt.Errorf("error getting kubernetes environment from db called '%s': %w", name, err)
+		return "", "", "", fmt.Errorf("error getting kubernetes environment from db called '%s': %w", name, err)
 	}
 	portalURL = env.GuiUrl
 	gatewayURL = env.ApiUrl
+	backofficeURL = env.BackofficeUrl
 
 	common.PrintInfo("Environment directory: %s", env.Directory)
 
 	// If it exists, create a copy of it in a tmp dir
 	tmpDir, err := common.CreateTmpCopy(env.Directory)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to create backup copy: %w", err)
+		return "", "", "", fmt.Errorf("failed to create backup copy: %w", err)
 	}
 
 	// Cleanup function to restore from tmp if needed
@@ -46,7 +47,7 @@ func Update(envFile, composeFile, name string, force bool) (portalURL, gatewayUR
 		if err := common.RestoreTmpDir(tmpDir, env.Directory); err != nil {
 			return fmt.Errorf("failed to restore from backup: %w", err)
 		}
-		if err := deployManifests(env.Directory, name, true, env.Context); err != nil {
+		if err := deployManifests(env.Directory, name, true, env.Context, env.Protocol); err != nil {
 			return fmt.Errorf("failed to deploy restored environment: %w", err)
 		}
 		return nil
@@ -63,7 +64,7 @@ func Update(envFile, composeFile, name string, force bool) (portalURL, gatewayUR
 			if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
 				common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
 			}
-			return "", "", fmt.Errorf("kubernetes namespace deletion failed: %w", err)
+			return "", "", "", fmt.Errorf("kubernetes namespace deletion failed: %w", err)
 		}
 		common.PrintDone("Stopped environment: %s", name)
 	}
@@ -78,12 +79,12 @@ func Update(envFile, composeFile, name string, force bool) (portalURL, gatewayUR
 		if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
 			common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
 		}
-		return "", "", fmt.Errorf("failed to remove directory %s: %w", env.Directory, err)
+		return "", "", "", fmt.Errorf("failed to remove directory %s: %w", env.Directory, err)
 	}
 
 	common.PrintStep("Creating new environment directory")
 
-	dir, err := NewEnvDir(envFile, composeFile, env.Directory, name, env.Context)
+	dir, err := NewEnvDir(envFile, composeFile, env.Directory, name, env.Context, env.Protocol)
 	if err != nil {
 		if restoreErr := restoreFromTmp(); restoreErr != nil {
 			common.PrintError("Restore failed: %v", restoreErr)
@@ -91,13 +92,13 @@ func Update(envFile, composeFile, name string, force bool) (portalURL, gatewayUR
 		if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
 			common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
 		}
-		return "", "", fmt.Errorf("failed to prepare environment directory: %w", err)
+		return "", "", "", fmt.Errorf("failed to prepare environment directory: %w", err)
 	}
 
 	common.PrintDone("Updated environment created in directory: %s", dir)
 
 	// Deploy the updated manifests
-	if err := deployManifests(dir, name, force, env.Context); err != nil {
+	if err := deployManifests(dir, name, force, env.Context, env.Protocol); err != nil {
 		common.PrintError("Deploy failed: %v", err)
 		if restoreErr := restoreFromTmp(); restoreErr != nil {
 			common.PrintError("Restore failed: %v", restoreErr)
@@ -105,7 +106,7 @@ func Update(envFile, composeFile, name string, force bool) (portalURL, gatewayUR
 		if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
 			common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
 		}
-		return "", "", err
+		return "", "", "", err
 	}
 
 	// If everything goes right, delete the tmp dir and finish
@@ -115,5 +116,5 @@ func Update(envFile, composeFile, name string, force bool) (portalURL, gatewayUR
 	}
 
 	gatewayURL, err = url.JoinPath(gatewayURL, "ui/")
-	return portalURL, gatewayURL, err
+	return portalURL, gatewayURL, backofficeURL, err
 }
