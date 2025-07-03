@@ -24,7 +24,7 @@ A command-line tool for deploying the EPOS Platform locally using Docker Compose
 > ALWAYS REVIEW SCRIPTS BEFORE EXECUTING ON YOUR SYSTEM!
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/epos-eu/epos-opensource/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/epos-eu/epos-opensource/main/install.sh | sh
 ```
 
 ### Using Go
