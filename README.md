@@ -24,10 +24,10 @@ epos-opensource --version
 epos-opensource docker deploy myenv
 ```
 
-**Deploy on Kubernetes:**
+**Populate it with your own data:**
 
 ```bash
-epos-opensource kubernetes deploy myenv
+epos-opensource docker populate myenv /path/to/ttl/files
 ```
 
 ---
