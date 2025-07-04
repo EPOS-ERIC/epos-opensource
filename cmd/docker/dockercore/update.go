@@ -4,7 +4,6 @@ package dockercore
 import (
 	_ "embed"
 	"fmt"
-	"net/url"
 
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
@@ -19,46 +18,43 @@ import (
 // deploy the updated compose
 // if everything goes right, delete the tmp dir and finish
 // else restore the tmp dir, deploy the old restored env and give an error in output
-func Update(envFile, composeFile, name string, force, pullImages bool) (portalURL, gatewayURL, backofficeURL string, err error) {
+func Update(envFile, composeFile, name string, force, pullImages bool) (*db.Docker, error) {
 	common.PrintStep("Updating environment: %s", name)
 
-	env, err := db.GetDockerByName(name)
+	docker, err := db.GetDockerByName(name)
 	if err != nil {
-		return "", "", "", fmt.Errorf("error getting docker environment from db called '%s': %w", name, err)
+		return nil, fmt.Errorf("error getting docker environment from db called '%s': %w", name, err)
 	}
-	gatewayURL = env.ApiUrl
-	portalURL = env.GuiUrl
-	backofficeURL = env.BackofficeUrl
 
 	// If it exists, create a copy of it in a tmp dir
-	tmpDir, err := common.CreateTmpCopy(env.Directory)
+	tmpDir, err := common.CreateTmpCopy(docker.Directory)
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed to create backup copy: %w", err)
+		return nil, fmt.Errorf("failed to create backup copy: %w", err)
 	}
 
-	handleFailure := func(msg string, mainErr error) (string, string, string, error) {
+	handleFailure := func(msg string, mainErr error) (*db.Docker, error) {
 		common.PrintStep("Restoring environment from backup")
-		if err := common.RemoveEnvDir(env.Directory); err != nil {
+		if err := common.RemoveEnvDir(docker.Directory); err != nil {
 			common.PrintError("Failed to remove corrupted directory: %v", err)
 		}
-		if err := common.RestoreTmpDir(tmpDir, env.Directory); err != nil {
+		if err := common.RestoreTmpDir(tmpDir, docker.Directory); err != nil {
 			common.PrintError("Failed to restore from backup: %v", err)
 		} else {
-			if err := deployStack(env.Directory, name); err != nil {
+			if err := deployStack(docker.Directory, name); err != nil {
 				common.PrintError("Failed to deploy restored environment: %v", err)
 			}
 		}
 		if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
 			common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
 		}
-		return "", "", "", fmt.Errorf(msg, mainErr)
+		return nil, fmt.Errorf(msg, mainErr)
 	}
 
 	common.PrintStep("Updating stack")
 
 	// If force is set do a docker compose down on the original env
 	if force {
-		if err := downStack(env.Directory, true); err != nil {
+		if err := downStack(docker.Directory, true); err != nil {
 			return handleFailure("docker compose down failed: %w", err)
 		}
 		common.PrintDone("Stopped environment: %s", name)
@@ -67,13 +63,13 @@ func Update(envFile, composeFile, name string, force, pullImages bool) (portalUR
 	common.PrintStep("Removing old environment directory")
 
 	// Remove the contents of the env dir and create the updated env file and docker-compose
-	if err := common.RemoveEnvDir(env.Directory); err != nil {
-		return handleFailure("failed to remove directory %s: %w", fmt.Errorf("%s: %w", env.Directory, err))
+	if err := common.RemoveEnvDir(docker.Directory); err != nil {
+		return handleFailure("failed to remove directory %s: %w", fmt.Errorf("%s: %w", docker.Directory, err))
 	}
 
 	common.PrintStep("Creating new environment directory")
 
-	dir, err := NewEnvDir(envFile, composeFile, env.Directory, name)
+	dir, err := NewEnvDir(envFile, composeFile, docker.Directory, name)
 	if err != nil {
 		return handleFailure("failed to prepare environment directory: %w", err)
 	}
@@ -99,6 +95,5 @@ func Update(envFile, composeFile, name string, force, pullImages bool) (portalUR
 		common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
 	}
 
-	gatewayURL, err = url.JoinPath(gatewayURL, "ui/")
-	return portalURL, gatewayURL, backofficeURL, err
+	return docker, nil
 }

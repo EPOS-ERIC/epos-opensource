@@ -53,12 +53,12 @@ func Get() (*Queries, error) {
 }
 
 // InsertKubernetes adds a new kubernetes entry to the database.
-func InsertKubernetes(name, dir, contextStr, apiURL, guiURL, backofficeURL, protocol string) error {
+func InsertKubernetes(name, dir, contextStr, apiURL, guiURL, backofficeURL, protocol string) (*Kubernetes, error) {
 	q, err := Get()
 	if err != nil {
-		return fmt.Errorf("error getting db connection: %w", err)
+		return nil, fmt.Errorf("error getting db connection: %w", err)
 	}
-	_, err = q.InsertKubernetes(context.Background(), InsertKubernetesParams{
+	k, err := q.InsertKubernetes(context.Background(), InsertKubernetesParams{
 		Name:          name,
 		Directory:     dir,
 		Context:       contextStr,
@@ -68,9 +68,9 @@ func InsertKubernetes(name, dir, contextStr, apiURL, guiURL, backofficeURL, prot
 		BackofficeUrl: backofficeURL,
 	})
 	if err != nil {
-		return fmt.Errorf("error inserting kubernetes %s (dir: %s) in db: %w", name, dir, err)
+		return nil, fmt.Errorf("error inserting kubernetes %s (dir: %s) in db: %w", name, dir, err)
 	}
-	return nil
+	return &k, nil
 }
 
 // DeleteKubernetes removes a kubernetes entry from the database for the given name.
@@ -116,12 +116,12 @@ func GetAllKubernetes() ([]Kubernetes, error) {
 }
 
 // InsertDocker adds a new docker entry to the database.
-func InsertDocker(name, dir, apiURL, guiURL, backofficeURL string) error {
+func InsertDocker(name, dir, apiURL, guiURL, backofficeURL string) (*Docker, error) {
 	q, err := Get()
 	if err != nil {
-		return fmt.Errorf("error getting db connection: %w", err)
+		return nil, fmt.Errorf("error getting db connection: %w", err)
 	}
-	_, err = q.InsertDocker(context.Background(), InsertDockerParams{
+	d, err := q.InsertDocker(context.Background(), InsertDockerParams{
 		Name:          name,
 		Directory:     dir,
 		ApiUrl:        apiURL,
@@ -129,9 +129,9 @@ func InsertDocker(name, dir, apiURL, guiURL, backofficeURL string) error {
 		BackofficeUrl: backofficeURL,
 	})
 	if err != nil {
-		return fmt.Errorf("error inserting docker %s (dir: %s) in db: %w", name, dir, err)
+		return nil, fmt.Errorf("error inserting docker %s (dir: %s) in db: %w", name, dir, err)
 	}
-	return nil
+	return &d, nil
 }
 
 // DeleteDocker removes a docker entry from the database for the given name.
@@ -148,19 +148,19 @@ func DeleteDocker(name string) error {
 }
 
 // GetDockerByName retrieves a single docker entry by name from the database.
-func GetDockerByName(name string) (docker Docker, err error) {
+func GetDockerByName(name string) (*Docker, error) {
 	q, err := Get()
 	if err != nil {
-		return docker, fmt.Errorf("error getting db connection: %w", err)
+		return nil, fmt.Errorf("error getting db connection: %w", err)
 	}
-	docker, err = q.GetDockerByName(context.Background(), name)
+	docker, err := q.GetDockerByName(context.Background(), name)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return docker, nil
+			return nil, nil
 		}
-		return docker, fmt.Errorf("error getting docker %s: %w", name, err)
+		return nil, fmt.Errorf("error getting docker %s: %w", name, err)
 	}
-	return docker, nil
+	return &docker, nil
 }
 
 // GetAllDocker retrieves all docker entries from the database.

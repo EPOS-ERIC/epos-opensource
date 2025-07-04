@@ -17,12 +17,12 @@ var DeployCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		portalURL, gatewayURL, backofficeURL, err := dockercore.Deploy(envFile, composeFile, path, name, pullImages)
+		docker, err := dockercore.Deploy(envFile, composeFile, path, name, pullImages)
 		if err != nil {
 			common.PrintError("%v", err)
 			return
 		}
-		common.PrintUrls(portalURL, gatewayURL, backofficeURL, fmt.Sprintf("epos-opensource docker deploy %s", name))
+		common.PrintUrls(docker.GuiUrl, docker.ApiUrl, docker.BackofficeUrl, fmt.Sprintf("epos-opensource docker deploy %s", name))
 	},
 }
 
