@@ -1,3 +1,42 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: certificate-tls-dp
+  namespace: ${NAMESPACE}
+spec:
+  secretName: ${NAMESPACE}-tls-dp
+  dnsNames:
+    - ${HOST_NAME}
+  issuerRef:
+    name: ${TLS_SECRET_NAME}
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: certificate-tls-api
+  namespace: ${NAMESPACE}
+spec:
+  secretName: ${NAMESPACE}-tls-api
+  dnsNames:
+    - ${HOST_NAME}
+  issuerRef:
+    name: ${TLS_SECRET_NAME}
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: certificate-tls-bo
+  namespace: ${NAMESPACE}
+spec:
+  secretName: ${NAMESPACE}-tls-bo
+  dnsNames:
+    - ${HOST_NAME}
+  issuerRef:
+    name: ${TLS_SECRET_NAME}
+    kind: ClusterIssuer
+---
 # dataportal
 apiVersion: networking.k8s.io/v1
 kind: Ingress
