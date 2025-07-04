@@ -19,13 +19,13 @@ var UpdateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		portalURL, gatewayURL, backofficeURL, err := k8score.Update(envFile, manifestsDir, name, force)
+		k, err := k8score.Update(envFile, manifestsDir, name, force)
 		if err != nil {
 			common.PrintError("%v", err)
 			return
 		}
 
-		common.PrintUrls(portalURL, gatewayURL, backofficeURL, fmt.Sprintf("epos-opensource docker update %s", name))
+		common.PrintUrls(k.GuiUrl, k.ApiUrl, k.BackofficeUrl, fmt.Sprintf("epos-opensource docker update %s", name))
 	},
 }
 

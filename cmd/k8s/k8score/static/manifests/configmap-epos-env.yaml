@@ -36,8 +36,9 @@ data:
   DATAPORTAL_PORT: "${DATAPORTAL_PORT}"
   GATEWAY_PORT: "${GATEWAY_PORT}"
   POSTGRESQL_CONNECTION_STRING: "jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?user=${POSTGRES_USER}&password=${POSTGRES_PASSWORD}"
-  APICONTEXT: ""
+  APICONTEXT: "" # this needs to be empty because we use the api host as the full url. It needs to be empty and not unset because java makes it null otherwise
   APIHOST: "${API_HOST}"
   PERSISTENCE_NAME_SHARING: "${PERSISTENCE_NAME_SHARING}"
   BACKOFFICE_DEPLOY_PATH: "${BACKOFFICE_DEPLOY_PATH}"
   DATAPORTAL_DEPLOY_PATH: "${DATAPORTAL_DEPLOY_PATH}"
+  API_DEPLOY_PATH: "${API_DEPLOY_PATH}"

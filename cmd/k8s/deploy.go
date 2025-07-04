@@ -23,12 +23,12 @@ var DeployCmd = &cobra.Command{
 			protocol = "https"
 		}
 
-		portalURL, gatewayURL, backofficeURL, err := k8score.Deploy(envFile, manifestsDir, path, name, context, protocol)
+		k, err := k8score.Deploy(envFile, manifestsDir, path, name, context, protocol)
 		if err != nil {
 			common.PrintError("%v", err)
 			return
 		}
-		common.PrintUrls(portalURL, gatewayURL, backofficeURL, fmt.Sprintf("epos-opensource kubernetes deploy %s", name))
+		common.PrintUrls(k.GuiUrl, k.ApiUrl, k.BackofficeUrl, fmt.Sprintf("epos-opensource kubernetes deploy %s", name))
 	},
 }
 

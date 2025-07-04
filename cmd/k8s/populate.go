@@ -18,12 +18,12 @@ var PopulateCmd = &cobra.Command{
 		name := args[0]
 		ttlDir := args[1]
 
-		portalURL, gatewayURL, backofficeURL, err := k8score.Populate(name, ttlDir)
+		k, err := k8score.Populate(name, ttlDir)
 		if err != nil {
 			common.PrintError("%v", err)
 			return
 		}
 
-		common.PrintUrls(portalURL, gatewayURL, backofficeURL, fmt.Sprintf("epos-opensource kubernetes deploy %s", name))
+		common.PrintUrls(k.GuiUrl, k.ApiUrl, k.BackofficeUrl, fmt.Sprintf("epos-opensource kubernetes deploy %s", name))
 	},
 }

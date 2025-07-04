@@ -388,6 +388,8 @@ func buildEnvURLs(dir, context, protocol string) (portalURL, gatewayURL, backoff
 	if err != nil {
 		return "", "", "", fmt.Errorf("error building gateway url: %w", err)
 	}
+	// NOTE: this is needed because the java services expect the api url to not have any trailing slashes. Last check 4.7.25
+	gatewayURL = strings.Trim(gatewayURL, "/")
 
 	portalURL, err = url.JoinPath(fmt.Sprintf("%s://%s", protocol, host), dataportalDeployPath)
 	if err != nil {

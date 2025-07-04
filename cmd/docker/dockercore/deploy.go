@@ -3,7 +3,6 @@ package dockercore
 import (
 	_ "embed"
 	"fmt"
-	"net/url"
 
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
@@ -72,24 +71,6 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) (*db.Docke
 		}
 		common.PrintError("stack deployment failed")
 		return nil, err
-	}
-
-	gatewayURL, err = url.JoinPath(gatewayURL, "ui/")
-	if err != nil {
-		cleanup()
-		if cleanupErr != nil {
-			return nil, cleanupErr
-		}
-		return nil, fmt.Errorf("failed to build gateway URL: %w", err)
-	}
-
-	backofficeURL, err = url.JoinPath(backofficeURL, "home")
-	if err != nil {
-		cleanup()
-		if cleanupErr != nil {
-			return nil, cleanupErr
-		}
-		return nil, fmt.Errorf("failed to build backofficeURL URL: %w", err)
 	}
 
 	docker, err := db.InsertDocker(name, dir, gatewayURL, portalURL, backofficeURL)

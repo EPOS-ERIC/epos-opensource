@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/epos-eu/epos-opensource/db"
 	"github.com/jedib0t/go-pretty/v6/table"
@@ -49,7 +50,15 @@ func PrintInfraList(rows [][]any, headers []string, title string) {
 func PrintDockerList(dockers []db.Docker, title string) {
 	rows := make([][]any, len(dockers))
 	for i, d := range dockers {
-		rows[i] = []any{d.Name, d.Directory, d.GuiUrl, d.BackofficeUrl, d.ApiUrl}
+		gatewayURL, err := url.JoinPath(d.ApiUrl, "ui")
+		if err != nil {
+			panic("error building gateway url") // TODO
+		}
+		backofficeURL, err := url.JoinPath(d.BackofficeUrl, "home")
+		if err != nil {
+			panic("error building backoffice url") // TODO
+		}
+		rows[i] = []any{d.Name, d.Directory, d.GuiUrl, backofficeURL, gatewayURL}
 	}
 	headers := []string{"Name", "Directory", "GUI URL", "Backoffice URL", "API URL"}
 	PrintInfraList(rows, headers, title)
@@ -58,7 +67,15 @@ func PrintDockerList(dockers []db.Docker, title string) {
 func PrintKubernetesList(kubes []db.Kubernetes, title string) {
 	rows := make([][]any, len(kubes))
 	for i, k := range kubes {
-		rows[i] = []any{k.Name, k.Directory, k.Context, k.GuiUrl, k.BackofficeUrl, k.ApiUrl}
+		gatewayURL, err := url.JoinPath(k.ApiUrl, "ui")
+		if err != nil {
+			panic("error building gateway url") // TODO
+		}
+		backofficeURL, err := url.JoinPath(k.BackofficeUrl, "home")
+		if err != nil {
+			panic("error building backoffice url") // TODO
+		}
+		rows[i] = []any{k.Name, k.Directory, k.Context, k.GuiUrl, backofficeURL, gatewayURL}
 	}
 	headers := []string{"Name", "Directory", "Context", "GUI URL", "Backoffice URL", "API URL"}
 	PrintInfraList(rows, headers, title)

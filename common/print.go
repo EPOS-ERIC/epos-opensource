@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
@@ -61,6 +62,16 @@ func PrintDone(format string, a ...any) {
 
 // PrintUrls prints the urls for the dataportal and the api gateway for a specific environment in the `dir` directory
 func PrintUrls(portalURL, gatewayURL, backofficeURL, title string) {
+	var err error
+	gatewayURL, err = url.JoinPath(gatewayURL, "ui")
+	if err != nil {
+		panic("error building gateway url") // TODO
+	}
+	backofficeURL, err = url.JoinPath(backofficeURL, "home")
+	if err != nil {
+		panic("error building backoffice url") // TODO
+	}
+
 	t := table.NewWriter()
 	t.SetTitle(title)
 	t.Style().Title.Align = text.AlignCenter
