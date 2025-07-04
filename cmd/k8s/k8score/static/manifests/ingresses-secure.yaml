@@ -23,7 +23,7 @@ spec:
   tls:
     - hosts:
         - ${HOST_NAME}
-      secretName: ${TLS_SECRET_NAME}
+      secretName: ${NAMESPACE}-tls-dp
 ---
 # gateway
 apiVersion: networking.k8s.io/v1
@@ -50,7 +50,7 @@ spec:
   tls:
     - hosts:
         - ${HOST_NAME}
-      secretName: ${TLS_SECRET_NAME}
+      secretName: ${NAMESPACE}-tls-api
 ---
 # backoffice gui
 apiVersion: networking.k8s.io/v1
@@ -77,4 +77,4 @@ spec:
   tls:
     - hosts:
         - ${HOST_NAME}
-      secretName: ${TLS_SECRET_NAME}
+      secretName: ${NAMESPACE}-tls-bo
