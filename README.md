@@ -2,6 +2,8 @@
 
 A command-line tool for deploying the EPOS Platform locally using Docker Compose or Kubernetes.
 
+![Image](https://github.com/user-attachments/assets/adb46bfd-b5b1-47d8-9c56-4aa7cfb24479)
+
 ---
 
 ## 🚀 Quick Start
