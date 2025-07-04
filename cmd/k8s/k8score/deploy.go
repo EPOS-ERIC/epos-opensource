@@ -60,7 +60,8 @@ func Deploy(envFile, composeFile, path, name, context, protocol string) (portalU
 
 	if err := common.PopulateOntologies(gatewayURL); err != nil {
 		common.PrintError("error initializing the ontologies in the environment: %v", err)
-		return handleFailure("error initializing the ontologies: %w", err)
+		// TODO re-enable this
+		// return handleFailure("error initializing the ontologies: %w", err)
 	}
 
 	err = db.InsertKubernetes(name, dir, context, gatewayURL, portalURL, backofficeURL, protocol)
