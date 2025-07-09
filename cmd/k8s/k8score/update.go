@@ -108,6 +108,20 @@ func Update(envFile, composeFile, name string, force bool) (*db.Kubernetes, erro
 		return nil, err
 	}
 
+	// only repopulate the ontologies if the database has been cleaned
+	if force {
+		if err := common.PopulateOntologies(kube.ApiUrl); err != nil {
+			common.PrintError("error initializing the ontologies in the environment: %v", err)
+			if restoreErr := restoreFromTmp(); restoreErr != nil {
+				common.PrintError("Restore failed: %v", restoreErr)
+			}
+			if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
+				common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
+			}
+			return nil, fmt.Errorf("error initializing the ontologies in the environment: %w", err)
+		}
+	}
+
 	// If everything goes right, delete the tmp dir and finish
 	if err := common.RemoveTmpDir(tmpDir); err != nil {
 		common.PrintWarn("Failed to cleanup tmp dir: %v", err)

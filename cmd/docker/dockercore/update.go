@@ -93,6 +93,14 @@ func Update(envFile, composeFile, name string, force, pullImages bool) (*db.Dock
 		return handleFailure("deploy failed: %w", err)
 	}
 
+	// only repopulate the ontologies if the database has been cleaned
+	if force {
+		if err := common.PopulateOntologies(docker.ApiUrl); err != nil {
+			common.PrintError("error initializing the ontologies in the environment: %v", err)
+			return handleFailure("error initializing the ontologies in the environment: %w", err)
+		}
+	}
+
 	// If everything goes right, delete the tmp dir and finish
 	if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
 		common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
