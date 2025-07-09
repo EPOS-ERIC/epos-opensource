@@ -4,6 +4,7 @@ package k8score
 import (
 	_ "embed"
 	"fmt"
+	"path/filepath"
 
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
@@ -80,7 +81,9 @@ func Update(envFile, composeFile, name string, force bool) (*db.Kubernetes, erro
 
 	common.PrintStep("Creating new environment directory")
 
-	dir, err := NewEnvDir(envFile, composeFile, kube.Directory, name, kube.Context, kube.Protocol)
+	// create the directory in the parent
+	path := filepath.Dir(kube.Directory)
+	dir, err := NewEnvDir(envFile, composeFile, path, name, kube.Context, kube.Protocol)
 	if err != nil {
 		if restoreErr := restoreFromTmp(); restoreErr != nil {
 			common.PrintError("Restore failed: %v", restoreErr)

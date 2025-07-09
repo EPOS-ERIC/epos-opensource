@@ -4,6 +4,7 @@ package dockercore
 import (
 	_ "embed"
 	"fmt"
+	"path/filepath"
 
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
@@ -69,7 +70,9 @@ func Update(envFile, composeFile, name string, force, pullImages bool) (*db.Dock
 
 	common.PrintStep("Creating new environment directory")
 
-	dir, err := NewEnvDir(envFile, composeFile, docker.Directory, name)
+	// create the directory in the parent
+	path := filepath.Dir(docker.Directory)
+	dir, err := NewEnvDir(envFile, composeFile, path, name)
 	if err != nil {
 		return handleFailure("failed to prepare environment directory: %w", err)
 	}
