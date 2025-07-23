@@ -11,7 +11,7 @@ A command-line tool for deploying the EPOS Platform locally using Docker Compose
 **Install the CLI (Linux/macOS/WSL):**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/epos-eu/epos-opensource/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/epos-eu/epos-opensource/main/install.sh | bash
 ```
 
 **Check installation:**
