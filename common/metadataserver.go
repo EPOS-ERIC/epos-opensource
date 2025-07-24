@@ -171,6 +171,6 @@ func (ms *MetadataServer) PostFiles(gatewayURL, protocol string) error {
 		return fmt.Errorf("failed to ingest metadata in directory %s", ms.dir)
 	}
 
-	PrintDone("Ingestion of *.ttl files finished successfully")
+	PrintDone("Ingestion of *.ttl files from dir '%s' finished successfully", ms.dir)
 	return nil
 }
