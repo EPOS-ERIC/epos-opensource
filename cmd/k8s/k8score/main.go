@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/epos-eu/epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/display"
 
 	"github.com/joho/godotenv"
 	"golang.org/x/sync/errgroup"
@@ -79,7 +80,7 @@ func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name, cont
 	defer func() {
 		if !ok {
 			if removeErr := os.RemoveAll(envPath); removeErr != nil {
-				common.PrintError("Failed to cleanup directory '%s' after error: %v. You may need to remove it manually.", envPath, removeErr)
+				display.Error("Failed to cleanup directory '%s' after error: %v. You may need to remove it manually.", envPath, removeErr)
 			}
 		}
 	}()
@@ -165,7 +166,7 @@ func getAPIHost(dir, context string) (string, error) {
 
 	ip, err := getIngressControllerIP(context)
 	if err != nil {
-		common.PrintWarn("error getting ingress IP, falling back to local IP: %v", err)
+		display.Warn("error getting ingress IP, falling back to local IP: %v", err)
 		ip, err = common.GetLocalIP()
 		if err != nil {
 			return "", fmt.Errorf("error getting IP address: %w", err)
@@ -259,7 +260,7 @@ func waitDeployments(dir, namespace string, names []string, context string) erro
 // 1. Create namespace, 2. Setup environment, 3. Deploy infra, 4. Deploy services, 5. Deploy gateway/portal.
 func deployManifests(dir, namespace string, createNamespace bool, context, protocol string) error {
 	if createNamespace {
-		common.PrintStep("Creating namespace %s", namespace)
+		display.Step("Creating namespace %s", namespace)
 		if err := runKubectl(dir, true, context, "get", "namespace", namespace); err != nil {
 			if err := runKubectl(dir, false, context, "create", "namespace", namespace); err != nil {
 				return fmt.Errorf("failed to create namespace %s: %w", namespace, err)
@@ -269,7 +270,7 @@ func deployManifests(dir, namespace string, createNamespace bool, context, proto
 		}
 	}
 
-	common.PrintStep("Setting up the environment")
+	display.Step("Setting up the environment")
 	setup := []string{
 		"configmap-epos-env.yaml",
 		"secret-epos-secret.yaml",
@@ -292,7 +293,7 @@ func deployManifests(dir, namespace string, createNamespace bool, context, proto
 		return fmt.Errorf("unknown protocol %s", protocol)
 	}
 
-	common.PrintStep("Deploying ingresses")
+	display.Step("Deploying ingresses")
 	if err := runKubectl(dir, false, context, "apply", "-f", ingresses); err != nil {
 		return fmt.Errorf("failed to apply %s: %w", ingresses, err)
 	}
@@ -301,7 +302,7 @@ func deployManifests(dir, namespace string, createNamespace bool, context, proto
 		"rabbitmq",
 		"metadata-database",
 	}
-	common.PrintStep("Deploying infrastructure components")
+	display.Step("Deploying infrastructure components")
 	if err := applyParallel(dir, infra, true, context); err != nil {
 		return fmt.Errorf("failed to deploy infrastructure components: %w", err)
 	}
@@ -309,7 +310,7 @@ func deployManifests(dir, namespace string, createNamespace bool, context, proto
 		return fmt.Errorf("failed to apply RabbitMQ management service: %w", err)
 	}
 
-	common.PrintStep("Waiting for infrastructure to be ready")
+	display.Step("Waiting for infrastructure to be ready")
 	if err := waitDeployments(dir, namespace, infra, context); err != nil {
 		return fmt.Errorf("infrastructure deployment failed: %w", err)
 	}
@@ -324,12 +325,12 @@ func deployManifests(dir, namespace string, createNamespace bool, context, proto
 		"email-sender-service",
 		"sharing-service",
 	}
-	common.PrintStep("Deploying services")
+	display.Step("Deploying services")
 	if err := applyParallel(dir, services, true, context); err != nil {
 		return fmt.Errorf("failed to deploy services: %w", err)
 	}
 
-	common.PrintStep("Waiting for services to be ready")
+	display.Step("Waiting for services to be ready")
 	if err := waitDeployments(dir, namespace, services, context); err != nil {
 		return fmt.Errorf("services deployment failed: %w", err)
 	}
@@ -339,7 +340,7 @@ func deployManifests(dir, namespace string, createNamespace bool, context, proto
 		"dataportal",
 		"backoffice-ui",
 	}
-	common.PrintStep("Deploying gateway and dataportal")
+	display.Step("Deploying gateway and dataportal")
 	if err := applyParallel(dir, finals, true, context); err != nil {
 		return fmt.Errorf("failed to deploy gateway and dataportal: %w", err)
 	}
@@ -418,7 +419,7 @@ func getIngressControllerIP(context string) (string, error) {
 		{"ip", "{.status.loadBalancer.ingress[0].ip}"},
 	}
 
-	common.PrintStep("Waiting for ingress IP/hostname to be assigned...")
+	display.Step("Waiting for ingress IP/hostname to be assigned...")
 	start := time.Now()
 	var lastErr error
 
@@ -442,7 +443,7 @@ func getIngressControllerIP(context string) (string, error) {
 					}
 					value = localIP
 				}
-				common.PrintDone("Ingress assigned %s: %s", desc, value)
+				display.Done("Ingress assigned %s: %s", desc, value)
 				return value, nil
 			}
 		}

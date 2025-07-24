@@ -2,6 +2,7 @@ package dockercore
 
 import (
 	"github.com/epos-eu/epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/display"
 )
 
 func Export(path string) error {
@@ -9,14 +10,14 @@ func Export(path string) error {
 	if err != nil {
 		return err
 	}
-	common.PrintDone("Exported %s", ".env")
+	display.Done("Exported %s", ".env")
 
 	err = common.Export(path, "docker-compose.yaml", []byte(ComposeFile))
 	if err != nil {
 		return err
 	}
-	common.PrintDone("Exported %s", "docker-compose.yaml")
+	display.Done("Exported %s", "docker-compose.yaml")
 
-	common.PrintDone("Successfully exported default environment files in %s", path)
+	display.Done("Successfully exported default environment files in %s", path)
 	return nil
 }

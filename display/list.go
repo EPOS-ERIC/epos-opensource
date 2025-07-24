@@ -1,4 +1,4 @@
-package common
+package display
 
 import (
 	"fmt"
@@ -9,9 +9,9 @@ import (
 	"github.com/jedib0t/go-pretty/v6/text"
 )
 
-func PrintInfraList(rows [][]any, headers []string, title string) {
+func InfraList(rows [][]any, headers []string, title string) {
 	if len(rows) == 0 {
-		PrintInfo("No installed environments found")
+		Info("No installed environments found")
 		return
 	}
 	t := table.NewWriter()
@@ -47,7 +47,7 @@ func PrintInfraList(rows [][]any, headers []string, title string) {
 	fmt.Println(t.Render())
 }
 
-func PrintDockerList(dockers []db.Docker, title string) {
+func DockerList(dockers []db.Docker, title string) {
 	rows := make([][]any, len(dockers))
 	for i, d := range dockers {
 		gatewayURL, err := url.JoinPath(d.ApiUrl, "ui")
@@ -61,10 +61,10 @@ func PrintDockerList(dockers []db.Docker, title string) {
 		rows[i] = []any{d.Name, d.Directory, d.GuiUrl, backofficeURL, gatewayURL}
 	}
 	headers := []string{"Name", "Directory", "GUI URL", "Backoffice URL", "API URL"}
-	PrintInfraList(rows, headers, title)
+	InfraList(rows, headers, title)
 }
 
-func PrintKubernetesList(kubes []db.Kubernetes, title string) {
+func KubernetesList(kubes []db.Kubernetes, title string) {
 	rows := make([][]any, len(kubes))
 	for i, k := range kubes {
 		gatewayURL, err := url.JoinPath(k.ApiUrl, "ui")
@@ -78,5 +78,5 @@ func PrintKubernetesList(kubes []db.Kubernetes, title string) {
 		rows[i] = []any{k.Name, k.Directory, k.Context, k.GuiUrl, backofficeURL, gatewayURL}
 	}
 	headers := []string{"Name", "Directory", "Context", "GUI URL", "Backoffice URL", "API URL"}
-	PrintInfraList(rows, headers, title)
+	InfraList(rows, headers, title)
 }

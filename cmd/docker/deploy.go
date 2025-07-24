@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
-	"github.com/epos-eu/epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/display"
 
 	"github.com/spf13/cobra"
 )
@@ -19,10 +19,10 @@ var DeployCmd = &cobra.Command{
 
 		docker, err := dockercore.Deploy(envFile, composeFile, path, name, pullImages)
 		if err != nil {
-			common.PrintError("%v", err)
+			display.Error("%v", err)
 			return
 		}
-		common.PrintUrls(docker.GuiUrl, docker.ApiUrl, docker.BackofficeUrl, fmt.Sprintf("epos-opensource docker deploy %s", name))
+		display.Urls(docker.GuiUrl, docker.ApiUrl, docker.BackofficeUrl, fmt.Sprintf("epos-opensource docker deploy %s", name))
 	},
 }
 

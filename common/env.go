@@ -1,4 +1,4 @@
-// Package common contains common functions used throughout the cli commands. Functions like Prints, CreateFileWithContent and GetEnvDir
+// Package common contains common functions used throughout the cli commands. Functions like display.s, CreateFileWithContent and GetEnvDir
 package common
 
 import (
@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/epos-eu/epos-opensource/common/configdir"
+	"github.com/epos-eu/epos-opensource/display"
 )
 
 func init() {
@@ -16,7 +17,7 @@ func init() {
 	if _, err := os.Stat(configdir.GetConfigPath()); os.IsNotExist(err) {
 		err = os.MkdirAll(configdir.GetConfigPath(), 0777)
 		if err != nil {
-			PrintError("failed to create config directory %s: %v", configdir.GetConfigPath(), err)
+			display.Error("failed to create config directory %s: %v", configdir.GetConfigPath(), err)
 			os.Exit(1)
 		}
 	}
@@ -74,17 +75,17 @@ func BuildEnvPath(customPath, name, prefix string) (string, error) {
 
 // RemoveEnvDir deletes the environment directory with logs
 func RemoveEnvDir(dir string) error {
-	PrintStep("Deleting environment directory: %s", dir)
+	display.Step("Deleting environment directory: %s", dir)
 	if err := DeleteEnvDir(dir); err != nil {
 		return err
 	}
-	PrintDone("Deleted environment directory: %s", dir)
+	display.Done("Deleted environment directory: %s", dir)
 	return nil
 }
 
 // CreateTmpCopy creates a backup copy of the environment directory in a temporary location
 func CreateTmpCopy(dir string) (string, error) {
-	PrintStep("Creating backup copy of environment")
+	display.Step("Creating backup copy of environment")
 
 	tmpDir, err := os.MkdirTemp("", "env-backup-*")
 	if err != nil {
@@ -96,13 +97,13 @@ func CreateTmpCopy(dir string) (string, error) {
 		return "", fmt.Errorf("failed to copy environment to backup: %w", err)
 	}
 
-	PrintDone("Backup created at: %s", tmpDir)
+	display.Done("Backup created at: %s", tmpDir)
 	return tmpDir, nil
 }
 
 // RestoreTmpDir restores the environment from temporary backup to target directory
 func RestoreTmpDir(tmpDir, targetDir string) error {
-	PrintStep("Restoring environment from backup")
+	display.Step("Restoring environment from backup")
 
 	if err := os.MkdirAll(targetDir, 0777); err != nil {
 		return fmt.Errorf("failed to create target directory: %w", err)
@@ -112,7 +113,7 @@ func RestoreTmpDir(tmpDir, targetDir string) error {
 		return fmt.Errorf("failed to restore from backup: %w", err)
 	}
 
-	PrintDone("Environment restored from backup")
+	display.Done("Environment restored from backup")
 	return nil
 }
 
@@ -179,12 +180,12 @@ func CopyFile(src, dst string) error {
 
 // RemoveTmpDir removes the temporary backup directory with logs
 func RemoveTmpDir(tmpDir string) error {
-	PrintStep("Cleaning up backup directory: %s", tmpDir)
+	display.Step("Cleaning up backup directory: %s", tmpDir)
 
 	if err := os.RemoveAll(tmpDir); err != nil {
 		return fmt.Errorf("failed to cleanup backup directory: %w", err)
 	}
 
-	PrintDone("Backup directory cleaned up: %s", tmpDir)
+	display.Done("Backup directory cleaned up: %s", tmpDir)
 	return nil
 }

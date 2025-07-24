@@ -1,8 +1,8 @@
 package docker
 
 import (
-	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
+	"github.com/epos-eu/epos-opensource/display"
 
 	"github.com/spf13/cobra"
 )
@@ -16,6 +16,6 @@ var ListCmd = &cobra.Command{
 			return
 		}
 
-		common.PrintDockerList(dockerEnvs, "installed docker environments")
+		display.DockerList(dockerEnvs, "installed docker environments")
 	},
 }

@@ -2,7 +2,7 @@ package k8s
 
 import (
 	"github.com/epos-eu/epos-opensource/cmd/k8s/k8score"
-	"github.com/epos-eu/epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/display"
 
 	"github.com/spf13/cobra"
 )
@@ -17,7 +17,7 @@ var DeleteCmd = &cobra.Command{
 
 		err := k8score.Delete(name)
 		if err != nil {
-			common.PrintError("%v", err)
+			display.Error("%v", err)
 			return
 		}
 	},

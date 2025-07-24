@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
-	"github.com/epos-eu/epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/display"
 
 	"github.com/spf13/cobra"
 )
@@ -22,9 +22,9 @@ Multiple directories can be provided and will be processed in order.`,
 		ttlDirs := args[1:]
 		d, err := dockercore.Populate(name, ttlDirs)
 		if err != nil {
-			common.PrintError("%v", err)
+			display.Error("%v", err)
 			return
 		}
-		common.PrintUrls(d.GuiUrl, d.ApiUrl, d.BackofficeUrl, fmt.Sprintf("epos-opensource docker populate %s", name))
+		display.Urls(d.GuiUrl, d.ApiUrl, d.BackofficeUrl, fmt.Sprintf("epos-opensource docker populate %s", name))
 	},
 }

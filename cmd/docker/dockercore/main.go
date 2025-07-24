@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/epos-eu/epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/display"
 
 	"github.com/joho/godotenv"
 )
@@ -49,7 +50,7 @@ func NewEnvDir(customEnvFilePath, customComposeFilePath, customPath, name string
 	defer func() {
 		if !success {
 			if removeErr := os.RemoveAll(envPath); removeErr != nil {
-				common.PrintError("Failed to cleanup directory '%s' after error: %v. You may need to remove it manually.", envPath, removeErr)
+				display.Error("Failed to cleanup directory '%s' after error: %v. You may need to remove it manually.", envPath, removeErr)
 			}
 		}
 	}()

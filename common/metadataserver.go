@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/epos-eu/epos-opensource/display"
 )
 
 type MetadataServer struct {
@@ -92,13 +94,13 @@ func (ms *MetadataServer) PostFiles(gatewayURL, protocol string) error {
 	}
 	postURL = postURL.JoinPath("/populate")
 
-	PrintDone("Deployed metadata server with mounted dir: %s", ms.dir)
-	PrintStep("Starting the ingestion of the '*.ttl' files")
+	display.Done("Deployed metadata server with mounted dir: %s", ms.dir)
+	display.Step("Starting the ingestion of the '*.ttl' files")
 
 	ingestionError := false
 	err = filepath.WalkDir(ms.dir, func(path string, d fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
-			PrintError("Error while walking directory: %v", walkErr)
+			display.Error("Error while walking directory: %v", walkErr)
 			ingestionError = true
 			return nil
 		}
@@ -107,10 +109,10 @@ func (ms *MetadataServer) PostFiles(gatewayURL, protocol string) error {
 			return nil
 		}
 
-		PrintStep("Ingesting file: %s", d.Name())
+		display.Step("Ingesting file: %s", d.Name())
 		relPath, err := filepath.Rel(ms.dir, path)
 		if err != nil {
-			PrintError("Error getting relative path: %v", err)
+			display.Error("Error getting relative path: %v", err)
 			ingestionError = true
 			return nil
 		}
@@ -124,7 +126,7 @@ func (ms *MetadataServer) PostFiles(gatewayURL, protocol string) error {
 
 		fileURL, err := url.JoinPath(protocol+"://", ms.Addr(), relPath)
 		if err != nil {
-			PrintError("Error while building URL for file '%s': %v", d.Name(), err)
+			display.Error("Error while building URL for file '%s': %v", d.Name(), err)
 			ingestionError = true
 			return nil
 		}
@@ -134,7 +136,7 @@ func (ms *MetadataServer) PostFiles(gatewayURL, protocol string) error {
 
 		r, err := http.NewRequest("POST", postURL.String(), nil)
 		if err != nil {
-			PrintError("Error building request for file '%s': %v", d.Name(), err)
+			display.Error("Error building request for file '%s': %v", d.Name(), err)
 			ingestionError = true
 			return nil
 		}
@@ -142,7 +144,7 @@ func (ms *MetadataServer) PostFiles(gatewayURL, protocol string) error {
 		r.Header.Add("accept", "*/*")
 		res, err := http.DefaultClient.Do(r)
 		if err != nil {
-			PrintError("Error ingesting file '%s' in database: %v", d.Name(), err)
+			display.Error("Error ingesting file '%s' in database: %v", d.Name(), err)
 			ingestionError = true
 			return nil
 		}
@@ -150,13 +152,13 @@ func (ms *MetadataServer) PostFiles(gatewayURL, protocol string) error {
 
 		body, err := io.ReadAll(res.Body)
 		if err != nil {
-			PrintError("Error reading response body for file '%s': %v", d.Name(), err)
+			display.Error("Error reading response body for file '%s': %v", d.Name(), err)
 			ingestionError = true
 			return nil
 		}
 
 		if res.StatusCode != http.StatusOK {
-			PrintError("Error ingesting file '%s' in database: received status code %d. Body of response: %s", d.Name(), res.StatusCode, string(body))
+			display.Error("Error ingesting file '%s' in database: received status code %d. Body of response: %s", d.Name(), res.StatusCode, string(body))
 			ingestionError = true
 			return nil
 		}
@@ -171,6 +173,6 @@ func (ms *MetadataServer) PostFiles(gatewayURL, protocol string) error {
 		return fmt.Errorf("failed to ingest metadata in directory %s", ms.dir)
 	}
 
-	PrintDone("Ingestion of *.ttl files from dir '%s' finished successfully", ms.dir)
+	display.Done("Ingestion of *.ttl files from dir '%s' finished successfully", ms.dir)
 	return nil
 }

@@ -6,24 +6,25 @@ import (
 
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
+	"github.com/epos-eu/epos-opensource/display"
 )
 
 func Deploy(envFile, composeFile, path, name string, pullImages bool) (*db.Docker, error) {
-	common.PrintStep("Creating environment: %s", name)
+	display.Step("Creating environment: %s", name)
 
 	dir, err := NewEnvDir(envFile, composeFile, path, name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare environment directory: %w", err)
 	}
 
-	common.PrintDone("Environment created in directory: %s", dir)
+	display.Done("Environment created in directory: %s", dir)
 
 	var stackDeployed bool
 	var cleanupErr error
 	cleanup := func() {
 		if stackDeployed {
 			if derr := downStack(dir, false); derr != nil {
-				common.PrintWarn("docker compose down failed, there may be dangling resources: %v", derr)
+				display.Warn("docker compose down failed, there may be dangling resources: %v", derr)
 			}
 		}
 		if rerr := common.RemoveEnvDir(dir); rerr != nil {
@@ -33,7 +34,7 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) (*db.Docke
 
 	if pullImages {
 		if err := pullEnvImages(dir, name); err != nil {
-			common.PrintError("Pulling images failed: %v", err)
+			display.Error("Pulling images failed: %v", err)
 			cleanup()
 			if cleanupErr != nil {
 				return nil, cleanupErr
@@ -43,13 +44,13 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) (*db.Docke
 	}
 
 	if err := deployStack(dir, name); err != nil {
-		common.PrintError("Deploy failed: %v", err)
+		display.Error("Deploy failed: %v", err)
 		stackDeployed = true
 		cleanup()
 		if cleanupErr != nil {
 			return nil, cleanupErr
 		}
-		common.PrintError("stack deployment failed")
+		display.Error("stack deployment failed")
 		return nil, err
 	}
 	stackDeployed = true
@@ -64,12 +65,12 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) (*db.Docke
 	}
 
 	if err := common.PopulateOntologies(gatewayURL); err != nil {
-		common.PrintError("error initializing the ontologies in the environment: %v", err)
+		display.Error("error initializing the ontologies in the environment: %v", err)
 		cleanup()
 		if cleanupErr != nil {
 			return nil, cleanupErr
 		}
-		common.PrintError("stack deployment failed")
+		display.Error("stack deployment failed")
 		return nil, err
 	}
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
+	"github.com/epos-eu/epos-opensource/display"
 )
 
 // Update logic:
@@ -20,14 +21,14 @@ import (
 // if everything goes right, delete the tmp dir and finish
 // else restore the tmp dir, deploy the old restored env and give an error in output
 func Update(envFile, composeFile, name string, force bool) (*db.Kubernetes, error) {
-	common.PrintStep("Updating environment: %s", name)
+	display.Step("Updating environment: %s", name)
 
 	kube, err := db.GetKubernetesByName(name)
 	if err != nil {
 		return nil, fmt.Errorf("error getting kubernetes environment from db called '%s': %w", name, err)
 	}
 
-	common.PrintInfo("Environment directory: %s", kube.Directory)
+	display.Info("Environment directory: %s", kube.Directory)
 
 	// If it exists, create a copy of it in a tmp dir
 	tmpDir, err := common.CreateTmpCopy(kube.Directory)
@@ -37,9 +38,9 @@ func Update(envFile, composeFile, name string, force bool) (*db.Kubernetes, erro
 
 	// Cleanup function to restore from tmp if needed
 	restoreFromTmp := func() error {
-		common.PrintStep("Restoring environment from backup")
+		display.Step("Restoring environment from backup")
 		if err := common.RemoveEnvDir(kube.Directory); err != nil {
-			common.PrintError("Failed to remove corrupted directory: %v", err)
+			display.Error("Failed to remove corrupted directory: %v", err)
 		}
 		if err := common.RestoreTmpDir(tmpDir, kube.Directory); err != nil {
 			return fmt.Errorf("failed to restore from backup: %w", err)
@@ -50,60 +51,60 @@ func Update(envFile, composeFile, name string, force bool) (*db.Kubernetes, erro
 		return nil
 	}
 
-	common.PrintStep("Updating stack")
+	display.Step("Updating stack")
 
 	// If force is set delete the original env
 	if force {
 		if err := deleteNamespace(name, kube.Context); err != nil {
 			if restoreErr := restoreFromTmp(); restoreErr != nil {
-				common.PrintError("Restore failed: %v", restoreErr)
+				display.Error("Restore failed: %v", restoreErr)
 			}
 			if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
-				common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
+				display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
 			}
 			return nil, fmt.Errorf("kubernetes namespace deletion failed: %w", err)
 		}
-		common.PrintDone("Stopped environment: %s", name)
+		display.Done("Stopped environment: %s", name)
 	}
 
-	common.PrintStep("Removing old environment directory")
+	display.Step("Removing old environment directory")
 
 	// Remove the contents of the env dir and create the updated env file and manifests
 	if err := common.RemoveEnvDir(kube.Directory); err != nil {
 		if restoreErr := restoreFromTmp(); restoreErr != nil {
-			common.PrintError("Restore failed: %v", restoreErr)
+			display.Error("Restore failed: %v", restoreErr)
 		}
 		if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
-			common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
+			display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
 		}
 		return nil, fmt.Errorf("failed to remove directory %s: %w", kube.Directory, err)
 	}
 
-	common.PrintStep("Creating new environment directory")
+	display.Step("Creating new environment directory")
 
 	// create the directory in the parent
 	path := filepath.Dir(kube.Directory)
 	dir, err := NewEnvDir(envFile, composeFile, path, name, kube.Context, kube.Protocol)
 	if err != nil {
 		if restoreErr := restoreFromTmp(); restoreErr != nil {
-			common.PrintError("Restore failed: %v", restoreErr)
+			display.Error("Restore failed: %v", restoreErr)
 		}
 		if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
-			common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
+			display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
 		}
 		return nil, fmt.Errorf("failed to prepare environment directory: %w", err)
 	}
 
-	common.PrintDone("Updated environment created in directory: %s", dir)
+	display.Done("Updated environment created in directory: %s", dir)
 
 	// Deploy the updated manifests
 	if err := deployManifests(dir, name, force, kube.Context, kube.Protocol); err != nil {
-		common.PrintError("Deploy failed: %v", err)
+		display.Error("Deploy failed: %v", err)
 		if restoreErr := restoreFromTmp(); restoreErr != nil {
-			common.PrintError("Restore failed: %v", restoreErr)
+			display.Error("Restore failed: %v", restoreErr)
 		}
 		if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
-			common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
+			display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
 		}
 		return nil, err
 	}
@@ -111,12 +112,12 @@ func Update(envFile, composeFile, name string, force bool) (*db.Kubernetes, erro
 	// only repopulate the ontologies if the database has been cleaned
 	if force {
 		if err := common.PopulateOntologies(kube.ApiUrl); err != nil {
-			common.PrintError("error initializing the ontologies in the environment: %v", err)
+			display.Error("error initializing the ontologies in the environment: %v", err)
 			if restoreErr := restoreFromTmp(); restoreErr != nil {
-				common.PrintError("Restore failed: %v", restoreErr)
+				display.Error("Restore failed: %v", restoreErr)
 			}
 			if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
-				common.PrintError("Failed to cleanup tmp dir: %v", cleanupErr)
+				display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
 			}
 			return nil, fmt.Errorf("error initializing the ontologies in the environment: %w", err)
 		}
@@ -124,7 +125,7 @@ func Update(envFile, composeFile, name string, force bool) (*db.Kubernetes, erro
 
 	// If everything goes right, delete the tmp dir and finish
 	if err := common.RemoveTmpDir(tmpDir); err != nil {
-		common.PrintWarn("Failed to cleanup tmp dir: %v", err)
+		display.Warn("Failed to cleanup tmp dir: %v", err)
 		// Don't return error as the main operation succeeded
 	}
 

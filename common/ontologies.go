@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/epos-eu/epos-opensource/display"
 )
 
 type ontology struct {
@@ -44,7 +46,7 @@ func PopulateOntologies(baseURL string) error {
 		},
 	}
 
-	PrintStep("Populating the environment with base ontologies")
+	display.Step("Populating the environment with base ontologies")
 
 	for i, ont := range ontologies {
 		reqURL := *apiURL
@@ -55,7 +57,7 @@ func PopulateOntologies(baseURL string) error {
 		q.Set("securityCode", "changeme") // TODO: remove this from the ingestor
 		reqURL.RawQuery = q.Encode()
 
-		PrintStep("  [%d/3] Loading %s ontology...", i+1, ont.name)
+		display.Step("  [%d/3] Loading %s ontology...", i+1, ont.name)
 
 		req, err := http.NewRequest("POST", reqURL.String(), nil)
 		if err != nil {
@@ -73,7 +75,7 @@ func PopulateOntologies(baseURL string) error {
 			return fmt.Errorf("ontology request for %s failed with status %d: %s", ont.name, resp.StatusCode, string(body))
 		}
 	}
-	PrintDone("All ontologies loaded successfully")
+	display.Done("All ontologies loaded successfully")
 
 	return nil
 }

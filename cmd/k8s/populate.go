@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/epos-eu/epos-opensource/cmd/k8s/k8score"
-	"github.com/epos-eu/epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/display"
 
 	"github.com/spf13/cobra"
 )
@@ -23,10 +23,10 @@ NOTE: to execute the population it will try to use port-forwarding to the cluste
 
 		k, err := k8score.Populate(name, ttlDirs)
 		if err != nil {
-			common.PrintError("%v", err)
+			display.Error("%v", err)
 			return
 		}
 
-		common.PrintUrls(k.GuiUrl, k.ApiUrl, k.BackofficeUrl, fmt.Sprintf("epos-opensource kubernetes deploy %s", name))
+		display.Urls(k.GuiUrl, k.ApiUrl, k.BackofficeUrl, fmt.Sprintf("epos-opensource kubernetes deploy %s", name))
 	},
 }

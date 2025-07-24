@@ -1,8 +1,8 @@
 package k8s
 
 import (
-	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
+	"github.com/epos-eu/epos-opensource/display"
 
 	"github.com/spf13/cobra"
 )
@@ -16,6 +16,6 @@ var ListCmd = &cobra.Command{
 			return
 		}
 
-		common.PrintKubernetesList(kubeEnvs, "installed kubernetes environments")
+		display.KubernetesList(kubeEnvs, "installed kubernetes environments")
 	},
 }

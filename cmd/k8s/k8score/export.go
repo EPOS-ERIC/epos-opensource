@@ -1,6 +1,9 @@
 package k8score
 
-import "github.com/epos-eu/epos-opensource/common"
+import (
+	"github.com/epos-eu/epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/display"
+)
 
 func Export(path string) error {
 	err := common.Export(path, ".env", []byte(EnvFile))
@@ -13,9 +16,9 @@ func Export(path string) error {
 		if err != nil {
 			return err
 		}
-		common.PrintDone("Exported %s", name)
+		display.Done("Exported %s", name)
 	}
 
-	common.PrintDone("Successfully exported default environment files in %s", path)
+	display.Done("Successfully exported default environment files in %s", path)
 	return nil
 }

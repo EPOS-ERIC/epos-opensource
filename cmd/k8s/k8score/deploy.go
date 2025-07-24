@@ -7,6 +7,7 @@ import (
 
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
+	"github.com/epos-eu/epos-opensource/display"
 )
 
 func Deploy(envFile, composeFile, path, name, context, protocol string) (*db.Kubernetes, error) {
@@ -20,50 +21,50 @@ func Deploy(envFile, composeFile, path, name, context, protocol string) (*db.Kub
 		context = strings.TrimSpace(context)
 	}
 
-	common.PrintInfo("Using kubectl context: %s", context)
-	common.PrintStep("Creating environment: %s", name)
+	display.Info("Using kubectl context: %s", context)
+	display.Step("Creating environment: %s", name)
 
 	dir, err := NewEnvDir(envFile, composeFile, path, name, context, protocol)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare environment directory: %w", err)
 	}
 
-	common.PrintDone("Environment created in directory: %s", dir)
+	display.Done("Environment created in directory: %s", dir)
 
 	handleFailure := func(msg string, mainErr error) (*db.Kubernetes, error) {
 		if err := deleteNamespace(name, context); err != nil {
-			common.PrintWarn("error deleting namespace %s, %v", name, err)
+			display.Warn("error deleting namespace %s, %v", name, err)
 		}
 		if err := common.RemoveEnvDir(dir); err != nil {
 			return nil, fmt.Errorf("error deleting environment %s: %w", dir, err)
 		}
-		common.PrintError("stack deployment failed")
+		display.Error("stack deployment failed")
 		return nil, fmt.Errorf(msg, mainErr)
 	}
 
 	if err := deployManifests(dir, name, true, context, protocol); err != nil {
-		common.PrintError("Deploy failed: %v", err)
+		display.Error("Deploy failed: %v", err)
 		return handleFailure("deploy failed: %w", err)
 	}
 
 	portalURL, gatewayURL, backofficeURL, err := buildEnvURLs(dir, context, protocol)
 	if err != nil {
-		common.PrintError("error building env urls for the environment: %v", err)
+		display.Error("error building env urls for the environment: %v", err)
 		return handleFailure("error building env urls for environment '%s': %w", fmt.Errorf("%s: %w", dir, err))
 	}
 
-	common.PrintInfo("Generated URL for data portal: %s", portalURL)
-	common.PrintInfo("Generated URL for gateway: %s", gatewayURL)
-	common.PrintInfo("Generated URL for backoffice: %s", backofficeURL)
+	display.Info("Generated URL for data portal: %s", portalURL)
+	display.Info("Generated URL for gateway: %s", gatewayURL)
+	display.Info("Generated URL for backoffice: %s", backofficeURL)
 
 	if err := common.PopulateOntologies(gatewayURL); err != nil {
-		common.PrintError("error initializing the ontologies in the environment: %v", err)
+		display.Error("error initializing the ontologies in the environment: %v", err)
 		return handleFailure("error initializing the ontologies: %w", err)
 	}
 
 	kube, err := db.InsertKubernetes(name, dir, context, gatewayURL, portalURL, backofficeURL, protocol)
 	if err != nil {
-		common.PrintError("failed to insert kubernetes in db: %v", err)
+		display.Error("failed to insert kubernetes in db: %v", err)
 		return handleFailure("failed to insert kubernetes %s (dir: %s) in db: %w", fmt.Errorf("%s, %s, %w", name, dir, err))
 	}
 

@@ -1,4 +1,12 @@
-package common
+// Package display provides simple, colorful console output functions for CLI applications.
+//
+// Example usage:
+//
+//	display.Error("Failed to connect: %v", err)
+//	display.Info("Starting process...")
+//	display.Step("Processing file %s", filename)
+//	display.Done("All tasks completed successfully")
+package display
 
 import (
 	"fmt"
@@ -9,16 +17,14 @@ import (
 )
 
 const (
-	colorReset  = "\033[0m"
-	colorRed    = "\033[31m"
-	colorGreen  = "\033[32m"
-	colorYellow = "\033[33m"
-	colorBlue   = "\033[34m"
-	colorPurple = "\033[35m"
-	colorCyan   = "\033[36m"
-	colorWhite  = "\033[37m"
-	copyright   = "Copyright (C) 2023  EPOS ERIC"
-	logo        = `
+	reset     = "\033[0m"
+	red       = "\033[31m"
+	green     = "\033[32m"
+	yellow    = "\033[33m"
+	blue      = "\033[34m"
+	cyan      = "\033[36m"
+	copyright = "Copyright (C) 2023  EPOS ERIC"
+	logo      = `
                                                  *************                              
 &&&&&&&&&&&&&&&&&& *&&&&&&&%&&&%               *****************               &&&&&&/      
 &&&&&&&&&&&&&&&&&& *&&&&&&&&&&&&&&&&&       **  **********  *******       &&&&&&&&&&&&&&&&& 
@@ -35,47 +41,43 @@ const (
 `
 )
 
-func PrintError(format string, a ...any) {
+// print formats and prints a message with color, icon and label
+func print(color, icon, label, format string, a ...any) {
 	message := fmt.Sprintf(format, a...)
-	fmt.Printf("%s[ERROR]\t%s%s\n", colorRed, message, colorReset)
+	fmt.Printf("%s%s [%s]  %s%s\n", color, icon, label, message, reset)
 }
 
-func PrintWarn(format string, a ...any) {
-	message := fmt.Sprintf(format, a...)
-	fmt.Printf("%s[WARNING]\t%s%s\n", colorYellow, message, colorReset)
+func Error(format string, a ...any) {
+	print(red, " ", "ERROR", format, a...)
 }
 
-func PrintInfo(format string, a ...any) {
-	message := fmt.Sprintf(format, a...)
-	fmt.Printf("%s[INFO]\t%s%s\n", colorBlue, message, colorReset)
+func Warn(format string, a ...any) {
+	print(yellow, "  ", "WARN", format, a...)
 }
 
-func PrintStep(format string, a ...any) {
-	message := fmt.Sprintf(format, a...)
-	fmt.Printf("%s[STEP]\t%s%s\n", colorCyan, message, colorReset)
+func Info(format string, a ...any) {
+	print(blue, "  ", "INFO", format, a...)
 }
 
-func PrintDone(format string, a ...any) {
-	message := fmt.Sprintf(format, a...)
-	fmt.Printf("%s[DONE]\t%s%s\n", colorGreen, message, colorReset)
+func Step(format string, a ...any) {
+	print(cyan, " ", "STEP", format, a...)
 }
 
-// PrintUrls prints the urls for the dataportal and the api gateway for a specific environment in the `dir` directory
-func PrintUrls(portalURL, gatewayURL, backofficeURL, title string) {
-	var err error
-	gatewayURL, err = url.JoinPath(gatewayURL, "ui")
-	if err != nil {
-		panic("error building gateway url") // TODO
-	}
-	backofficeURL, err = url.JoinPath(backofficeURL, "home")
-	if err != nil {
-		panic("error building backoffice url") // TODO
-	}
+func Done(format string, a ...any) {
+	print(green, " ", "DONE", format, a...)
+}
+
+// Urls prints the URLs for the data portal, API gateway, and backoffice for a specific environment
+func Urls(portalURL, gatewayURL, backofficeURL, title string) {
+	gatewayURL, _ = url.JoinPath(gatewayURL, "ui")
+	backofficeURL, _ = url.JoinPath(backofficeURL, "home")
 
 	t := table.NewWriter()
 	t.SetTitle(title)
-	t.Style().Title.Align = text.AlignCenter
 	t.SetStyle(table.StyleRounded)
+
+	// Style configuration
+	t.Style().Title.Align = text.AlignCenter
 	t.Style().Title.Colors = text.Colors{text.FgYellow, text.Bold}
 	t.Style().Color.Border = text.Colors{text.FgGreen}
 	t.Style().Color.Footer = text.Colors{text.FgGreen}
@@ -85,30 +87,28 @@ func PrintUrls(portalURL, gatewayURL, backofficeURL, title string) {
 		{Number: 2, Colors: text.Colors{text.FgHiCyan}},
 	})
 
-	rowMerge := table.RowConfig{
-		AutoMerge:      true,
-		AutoMergeAlign: text.AlignLeft,
-	}
-	// HACK: using a row with two logo columns so that they can be merged into one column
-	t.AppendRow(table.Row{logo, logo}, rowMerge)
+	// Merge config for logo and footer
+	merge := table.RowConfig{AutoMerge: true, AutoMergeAlign: text.AlignLeft}
 
+	// Add content
+	t.AppendRow(table.Row{logo, logo}, merge)
 	t.AppendSeparator()
 	t.AppendRow(table.Row{"EPOS Data Portal", portalURL})
 	t.AppendSeparator()
 	t.AppendRow(table.Row{"EPOS API Gateway", gatewayURL})
 	t.AppendSeparator()
 	t.AppendRow(table.Row{"EPOS Backoffice", backofficeURL})
+	t.AppendFooter(table.Row{copyright, copyright}, merge)
+
+	// Highlight first row (logo)
 	rowIndex := -1
-	highlight := text.Colors{text.FgGreen, text.Bold}
 	t.SetRowPainter(func(row table.Row) text.Colors {
 		rowIndex++
 		if rowIndex == 0 {
-			return highlight
+			return text.Colors{text.FgGreen, text.Bold}
 		}
 		return nil
 	})
-
-	t.AppendFooter(table.Row{copyright, copyright}, rowMerge)
 
 	fmt.Println(t.Render())
 }

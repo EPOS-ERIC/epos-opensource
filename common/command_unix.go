@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+
+	"github.com/epos-eu/epos-opensource/display"
 )
 
 func RunCommand(cmd *exec.Cmd, interceptOut bool) (string, error) {
@@ -39,7 +41,7 @@ func RunCommand(cmd *exec.Cmd, interceptOut bool) (string, error) {
 	if !interceptOut {
 		scanner := bufio.NewScanner(stderrPipe)
 		for scanner.Scan() {
-			PrintError("%s", scanner.Text())
+			display.Error("%s", scanner.Text())
 		}
 	}
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/epos-eu/epos-opensource/cmd/k8s/k8score"
-	"github.com/epos-eu/epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/display"
 
 	"github.com/spf13/cobra"
 )
@@ -21,11 +21,11 @@ var UpdateCmd = &cobra.Command{
 
 		k, err := k8score.Update(envFile, manifestsDir, name, force)
 		if err != nil {
-			common.PrintError("%v", err)
+			display.Error("%v", err)
 			return
 		}
 
-		common.PrintUrls(k.GuiUrl, k.ApiUrl, k.BackofficeUrl, fmt.Sprintf("epos-opensource docker update %s", name))
+		display.Urls(k.GuiUrl, k.ApiUrl, k.BackofficeUrl, fmt.Sprintf("epos-opensource docker update %s", name))
 	},
 }
 
