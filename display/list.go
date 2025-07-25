@@ -22,9 +22,10 @@ func InfraList(rows [][]any, headers []string, title string) {
 	t.Style().Color.Border = text.Colors{text.FgGreen}
 	t.Style().Color.Footer = text.Colors{text.FgGreen}
 	t.Style().Color.Separator = text.Colors{text.FgGreen}
+	t.Style().Color.Header = text.Colors{text.FgCyan}
 	colConfigs := make([]table.ColumnConfig, len(headers))
 	for i := range headers {
-		colConfigs[i] = table.ColumnConfig{Number: i + 1, Colors: text.Colors{text.FgHiCyan}, AlignHeader: text.AlignCenter}
+		colConfigs[i] = table.ColumnConfig{Number: i + 1, AlignHeader: text.AlignCenter}
 	}
 	t.SetColumnConfigs(colConfigs)
 	headerAny := make([]any, len(headers))

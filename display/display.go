@@ -44,7 +44,7 @@ const (
 // print formats and prints a message with color, icon and label
 func print(color, icon, label, format string, a ...any) {
 	message := fmt.Sprintf(format, a...)
-	fmt.Printf("%s%s [%s]  %s%s\n", color, icon, label, message, reset)
+	fmt.Printf("%s%s [%s]  %s%s\n", color, icon, label, reset, message)
 }
 
 func Error(format string, a ...any) {
@@ -84,7 +84,6 @@ func Urls(portalURL, gatewayURL, backofficeURL, title string) {
 	t.Style().Color.Separator = text.Colors{text.FgGreen}
 	t.SetColumnConfigs([]table.ColumnConfig{
 		{Number: 1, Colors: text.Colors{text.FgYellow, text.Bold}},
-		{Number: 2, Colors: text.Colors{text.FgHiCyan}},
 	})
 
 	// Merge config for logo and footer
