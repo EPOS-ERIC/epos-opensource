@@ -1,3 +1,4 @@
+// Package docker contains the internal functions used by the docker cmd to manage environments
 package docker
 
 import (

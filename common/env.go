@@ -14,10 +14,10 @@ import (
 
 func init() {
 	// Create the directory if it doesn't exist
-	if _, err := os.Stat(configdir.GetConfigPath()); os.IsNotExist(err) {
-		err = os.MkdirAll(configdir.GetConfigPath(), 0777)
+	if _, err := os.Stat(configdir.GetPath()); os.IsNotExist(err) {
+		err = os.MkdirAll(configdir.GetPath(), 0777)
 		if err != nil {
-			display.Error("failed to create config directory %s: %v", configdir.GetConfigPath(), err)
+			display.Error("failed to create config directory %s: %v", configdir.GetPath(), err)
 			os.Exit(1)
 		}
 	}
@@ -68,7 +68,7 @@ func BuildEnvPath(customPath, name, prefix string) (string, error) {
 			return "", fmt.Errorf("error finding absolute path for path %s: %w", customPath, err)
 		}
 	} else {
-		basePath = path.Join(configdir.GetConfigPath(), prefix)
+		basePath = path.Join(configdir.GetPath(), prefix)
 	}
 	return path.Join(basePath, name), nil
 }

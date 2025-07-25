@@ -1,3 +1,6 @@
+// Package db manages the SQLite database for epos-opensource.
+// It embeds the SQL schema, ensures the database file is created under the configured data directory,
+// and provides functions to open the connection and perform CRUD operations on Kubernetes and Docker entries.
 package db
 
 import (
@@ -21,7 +24,7 @@ const dbName = "db.db"
 
 // Get opens a new connection to the database, creating the database file and schema if they do not exist.
 func Get() (*Queries, error) {
-	dbDir := configdir.GetConfigPath()
+	dbDir := configdir.GetPath()
 	dbFile := path.Join(dbDir, dbName)
 
 	err := os.MkdirAll(dbDir, 0755)

@@ -1,3 +1,10 @@
+// Package configdir provides the platform-specific application data directory path for epos-opensource.
+// It determines the correct storage location based on the runtime OS:
+//   - macOS: $HOME/Library/Application Support/epos-opensource
+//   - Windows: %LOCALAPPDATA%/epos-opensource (falls back to %APPDATA%)
+//   - Linux & others: ${XDG_DATA_HOME:-$HOME/.local/share}/epos-opensource
+//
+// GetDataPath returns the resolved directory path for storing application data.
 package configdir
 
 import (
@@ -6,28 +13,42 @@ import (
 	"runtime"
 )
 
-var configPath string
+var dataPath string
 
 func init() {
 	switch runtime.GOOS {
 	case "darwin":
-		home, err := os.UserHomeDir()
-		if err != nil {
-			panic("failed to get user home directory on macOS: " + err.Error())
-		}
-		configPath = path.Join(home, "Library", "Application Support", "epos-opensource")
+		home := must(os.UserHomeDir())
+		dataPath = path.Join(home, "Library", "Application Support", "epos-opensource")
 	case "windows":
-		configPath = path.Join(os.Getenv("APPDATA"), "epos-opensource")
-	default: // linux and others
-		home, err := os.UserHomeDir()
-		if err != nil {
-			panic("failed to get user home directory on Linux: " + err.Error())
+		local := os.Getenv("LOCALAPPDATA")
+		if local == "" {
+			// fallback
+			roaming := os.Getenv("APPDATA")
+			if roaming == "" {
+				panic("neither LOCALAPPDATA nor APPDATA is set")
+			}
+			local = roaming
 		}
-		configPath = path.Join(home, ".epos-opensource")
+		dataPath = path.Join(local, "epos-opensource")
+	default:
+		home := must(os.UserHomeDir())
+		dataDir := os.Getenv("XDG_DATA_HOME")
+		if dataDir == "" {
+			dataDir = path.Join(home, ".local", "share")
+		}
+		dataPath = path.Join(dataDir, "epos-opensource")
 	}
 }
 
-// GetConfigPath returns the platform-specific configuration directory path
-func GetConfigPath() string {
-	return configPath
+// GetPath returns the platform-specific application‑data directory path
+func GetPath() string {
+	return dataPath
+}
+
+func must(dir string, err error) string {
+	if err != nil {
+		panic(err)
+	}
+	return dir
 }
