@@ -81,40 +81,25 @@ func NewEnvDir(customEnvFilePath, customComposeFilePath, customPath, name string
 	return envPath, nil
 }
 
-func buildEnvURLs(dir string) (portalURL, gatewayURL, backofficeURL string, err error) {
+func buildEnvURLs(dir string, ports *DeploymentPorts) (urls Urls, err error) {
 	env, err := godotenv.Read(filepath.Join(dir, ".env"))
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
-	}
-
-	dataportalPort, ok := env["DATAPORTAL_PORT"]
-	if !ok {
-		return "", "", "", fmt.Errorf("environment variable DATAPORTAL_PORT is not set")
-	}
-
-	gatewayPort, ok := env["GATEWAY_PORT"]
-	if !ok {
-		return "", "", "", fmt.Errorf("environment variable GATEWAY_PORT is not set")
-	}
-
-	backofficePort, ok := env["BACKOFFICE_PORT"]
-	if !ok {
-		return "", "", "", fmt.Errorf("environment variable BACKOFFICE_PORT is not set")
+		return urls, fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
 	}
 
 	apiPath, ok := env["API_PATH"]
 	if !ok {
-		return "", "", "", fmt.Errorf("environment variable API_PATH is not set")
+		return urls, fmt.Errorf("environment variable API_PATH is not set")
 	}
 
-	portalURL = fmt.Sprintf("http://localhost:%s", dataportalPort)
+	urls.guiURL = fmt.Sprintf("http://localhost:%d", ports.GUI)
 
-	gatewayURL, err = url.JoinPath(fmt.Sprintf("http://localhost:%s", gatewayPort), apiPath)
+	urls.apiURL, err = url.JoinPath(fmt.Sprintf("http://localhost:%d", ports.API), apiPath)
 	if err != nil {
-		return "", "", "", fmt.Errorf("error building gateway URL: %w", err)
+		return urls, fmt.Errorf("error building gateway URL: %w", err)
 	}
 
-	backofficeURL = fmt.Sprintf("http://localhost:%s", backofficePort)
+	urls.backofficeURL = fmt.Sprintf("http://localhost:%d", ports.Backoffice)
 
-	return portalURL, gatewayURL, backofficeURL, nil
+	return urls, nil
 }

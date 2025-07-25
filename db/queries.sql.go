@@ -35,7 +35,7 @@ func (q *Queries) DeleteKubernetes(ctx context.Context, name string) error {
 
 const getAllDocker = `-- name: GetAllDocker :many
 SELECT
-    name, directory, api_url, gui_url, backoffice_url
+    name, directory, api_url, gui_url, backoffice_url, api_port, gui_port, backoffice_port
 FROM
     docker
 `
@@ -56,6 +56,9 @@ func (q *Queries) GetAllDocker(ctx context.Context) ([]Docker, error) {
 			&i.ApiUrl,
 			&i.GuiUrl,
 			&i.BackofficeUrl,
+			&i.ApiPort,
+			&i.GuiPort,
+			&i.BackofficePort,
 		); err != nil {
 			return nil, err
 		}
@@ -111,7 +114,7 @@ func (q *Queries) GetAllKubernetes(ctx context.Context) ([]Kubernetes, error) {
 
 const getDockerByName = `-- name: GetDockerByName :one
 SELECT
-    name, directory, api_url, gui_url, backoffice_url
+    name, directory, api_url, gui_url, backoffice_url, api_port, gui_port, backoffice_port
 FROM
     docker
 WHERE
@@ -127,6 +130,9 @@ func (q *Queries) GetDockerByName(ctx context.Context, name string) (Docker, err
 		&i.ApiUrl,
 		&i.GuiUrl,
 		&i.BackofficeUrl,
+		&i.ApiPort,
+		&i.GuiPort,
+		&i.BackofficePort,
 	)
 	return i, err
 }
@@ -162,20 +168,26 @@ INSERT INTO
         directory,
         api_url,
         gui_url,
-        backoffice_url
+        backoffice_url,
+        gui_port,
+        api_port,
+        backoffice_port
     )
 VALUES
-    (?, ?, ?, ?, ?)
+    (?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING
-    name, directory, api_url, gui_url, backoffice_url
+    name, directory, api_url, gui_url, backoffice_url, api_port, gui_port, backoffice_port
 `
 
 type InsertDockerParams struct {
-	Name          string
-	Directory     string
-	ApiUrl        string
-	GuiUrl        string
-	BackofficeUrl string
+	Name           string
+	Directory      string
+	ApiUrl         string
+	GuiUrl         string
+	BackofficeUrl  string
+	GuiPort        int64
+	ApiPort        int64
+	BackofficePort int64
 }
 
 func (q *Queries) InsertDocker(ctx context.Context, arg InsertDockerParams) (Docker, error) {
@@ -185,6 +197,9 @@ func (q *Queries) InsertDocker(ctx context.Context, arg InsertDockerParams) (Doc
 		arg.ApiUrl,
 		arg.GuiUrl,
 		arg.BackofficeUrl,
+		arg.GuiPort,
+		arg.ApiPort,
+		arg.BackofficePort,
 	)
 	var i Docker
 	err := row.Scan(
@@ -193,6 +208,9 @@ func (q *Queries) InsertDocker(ctx context.Context, arg InsertDockerParams) (Doc
 		&i.ApiUrl,
 		&i.GuiUrl,
 		&i.BackofficeUrl,
+		&i.ApiPort,
+		&i.GuiPort,
+		&i.BackofficePort,
 	)
 	return i, err
 }
@@ -243,6 +261,59 @@ func (q *Queries) InsertKubernetes(ctx context.Context, arg InsertKubernetesPara
 		&i.GuiUrl,
 		&i.BackofficeUrl,
 		&i.Protocol,
+	)
+	return i, err
+}
+
+const updateDocker = `-- name: UpdateDocker :one
+UPDATE
+    docker
+SET
+    directory = ?,
+    api_url = ?,
+    gui_url = ?,
+    backoffice_url = ?,
+    api_port = ?,
+    gui_port = ?,
+    backoffice_port = ?
+WHERE
+    name = ?
+RETURNING
+    name, directory, api_url, gui_url, backoffice_url, api_port, gui_port, backoffice_port
+`
+
+type UpdateDockerParams struct {
+	Directory      string
+	ApiUrl         string
+	GuiUrl         string
+	BackofficeUrl  string
+	ApiPort        int64
+	GuiPort        int64
+	BackofficePort int64
+	Name           string
+}
+
+func (q *Queries) UpdateDocker(ctx context.Context, arg UpdateDockerParams) (Docker, error) {
+	row := q.db.QueryRowContext(ctx, updateDocker,
+		arg.Directory,
+		arg.ApiUrl,
+		arg.GuiUrl,
+		arg.BackofficeUrl,
+		arg.ApiPort,
+		arg.GuiPort,
+		arg.BackofficePort,
+		arg.Name,
+	)
+	var i Docker
+	err := row.Scan(
+		&i.Name,
+		&i.Directory,
+		&i.ApiUrl,
+		&i.GuiUrl,
+		&i.BackofficeUrl,
+		&i.ApiPort,
+		&i.GuiPort,
+		&i.BackofficePort,
 	)
 	return i, err
 }

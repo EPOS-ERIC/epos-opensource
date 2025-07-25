@@ -15,5 +15,8 @@ CREATE TABLE IF NOT EXISTS docker (
     directory TEXT NOT NULL UNIQUE,
     api_url TEXT NOT NULL,
     gui_url TEXT NOT NULL,
-    backoffice_url TEXT NOT NULL
+    backoffice_url TEXT NOT NULL,
+    api_port INTEGER NOT NULL,
+    gui_port INTEGER NOT NULL,
+    backoffice_port INTEGER NOT NULL
 );

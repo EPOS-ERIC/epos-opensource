@@ -12,16 +12,25 @@ import (
 var DeployCmd = &cobra.Command{
 	Use:   "deploy [env-name]",
 	Short: "Create a new environment using Docker Compose",
-	Long:  "Deploys a new Docker Compose environment with the specified name.",
+	Long:  "Deploy a new Docker Compose environment with the specified name.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		docker, err := dockercore.Deploy(envFile, composeFile, path, name, pullImages)
+		opts := dockercore.DeployOpts{
+			EnvFile:     envFile,
+			ComposeFile: composeFile,
+			Path:        path,
+			Name:        name,
+			PullImages:  pullImages,
+		}
+
+		docker, err := opts.Deploy()
 		if err != nil {
 			display.Error("%v", err)
 			return
 		}
+
 		display.Urls(docker.GuiUrl, docker.ApiUrl, docker.BackofficeUrl, fmt.Sprintf("epos-opensource docker deploy %s", name))
 	},
 }

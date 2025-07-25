@@ -42,29 +42,29 @@ const (
 )
 
 // print formats and prints a message with color, icon and label
-func print(color, icon, label, format string, a ...any) {
+func print(color, label, format string, a ...any) {
 	message := fmt.Sprintf(format, a...)
-	fmt.Printf("%s%s [%s]  %s%s\n", color, icon, label, reset, message)
+	fmt.Printf("%s[%s]  %s%s\n", color, label, reset, message)
 }
 
 func Error(format string, a ...any) {
-	print(red, " ", "ERROR", format, a...)
+	print(red, "ERROR", format, a...)
 }
 
 func Warn(format string, a ...any) {
-	print(yellow, "  ", "WARN", format, a...)
+	print(yellow, "WARN", format, a...)
 }
 
 func Info(format string, a ...any) {
-	print(blue, "  ", "INFO", format, a...)
+	print(blue, "INFO", format, a...)
 }
 
 func Step(format string, a ...any) {
-	print(cyan, " ", "STEP", format, a...)
+	print(cyan, "STEP", format, a...)
 }
 
 func Done(format string, a ...any) {
-	print(green, " ", "DONE", format, a...)
+	print(green, "DONE", format, a...)
 }
 
 // Urls prints the URLs for the data portal, API gateway, and backoffice for a specific environment

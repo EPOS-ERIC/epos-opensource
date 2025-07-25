@@ -119,20 +119,20 @@ func GetAllKubernetes() ([]Kubernetes, error) {
 }
 
 // InsertDocker adds a new docker entry to the database.
-func InsertDocker(name, dir, apiURL, guiURL, backofficeURL string) (*Docker, error) {
+func InsertDocker(docker Docker) (*Docker, error) {
 	q, err := Get()
 	if err != nil {
 		return nil, fmt.Errorf("error getting db connection: %w", err)
 	}
 	d, err := q.InsertDocker(context.Background(), InsertDockerParams{
-		Name:          name,
-		Directory:     dir,
-		ApiUrl:        apiURL,
-		GuiUrl:        guiURL,
-		BackofficeUrl: backofficeURL,
+		Name:          docker.Name,
+		Directory:     docker.Directory,
+		ApiUrl:        docker.ApiUrl,
+		GuiUrl:        docker.GuiUrl,
+		BackofficeUrl: docker.BackofficeUrl,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error inserting docker %s (dir: %s) in db: %w", name, dir, err)
+		return nil, fmt.Errorf("error inserting docker %s (dir: %s) in db: %w", docker.Name, docker.Directory, err)
 	}
 	return &d, nil
 }
@@ -177,4 +177,26 @@ func GetAllDocker() ([]Docker, error) {
 		return nil, fmt.Errorf("error getting all docker: %w", err)
 	}
 	return dockers, nil
+}
+
+func UpdateDocker(docker Docker) (*Docker, error) {
+	q, err := Get()
+	if err != nil {
+		return nil, fmt.Errorf("error getting db connection: %w", err)
+	}
+
+	result, err := q.UpdateDocker(context.Background(), UpdateDockerParams{
+		Directory:      docker.Directory,
+		ApiUrl:         docker.ApiUrl,
+		GuiUrl:         docker.GuiUrl,
+		BackofficeUrl:  docker.BackofficeUrl,
+		ApiPort:        docker.ApiPort,
+		GuiPort:        docker.GuiPort,
+		BackofficePort: docker.BackofficePort,
+		Name:           docker.Name,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error getting all docker: %w", err)
+	}
+	return &result, nil
 }

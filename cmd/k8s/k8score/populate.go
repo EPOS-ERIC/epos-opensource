@@ -44,7 +44,7 @@ func Populate(name string, ttlDirs []string) (*db.Kubernetes, error) {
 		}(name)
 
 		display.Step("Starting port-forward to ingestor-service pod")
-		port, err := common.FreePort()
+		port, err := common.FindFreePort()
 		if err != nil {
 			return nil, fmt.Errorf("error getting free port: %w", err)
 		}

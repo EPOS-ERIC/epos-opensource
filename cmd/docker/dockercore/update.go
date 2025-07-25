@@ -27,6 +27,11 @@ func Update(envFile, composeFile, name string, force, pullImages bool) (*db.Dock
 	if err != nil {
 		return nil, fmt.Errorf("error getting docker environment from db called '%s': %w", name, err)
 	}
+	ports := &DeploymentPorts{
+		GUI:        int(docker.GuiPort),
+		API:        int(docker.ApiPort),
+		Backoffice: int(docker.BackofficePort),
+	}
 
 	// If it exists, create a copy of it in a tmp dir
 	tmpDir, err := common.CreateTmpCopy(docker.Directory)
@@ -42,7 +47,8 @@ func Update(envFile, composeFile, name string, force, pullImages bool) (*db.Dock
 		if err := common.RestoreTmpDir(tmpDir, docker.Directory); err != nil {
 			display.Error("Failed to restore from backup: %v", err)
 		} else {
-			if err := deployStack(docker.Directory, name); err != nil {
+			// we can ignore the resulting urls since they be the same as the original ones
+			if _, err := deployStack(docker.Directory, name, ports); err != nil {
 				display.Error("Failed to deploy restored environment: %v", err)
 			}
 		}
@@ -89,7 +95,8 @@ func Update(envFile, composeFile, name string, force, pullImages bool) (*db.Dock
 	}
 
 	// Deploy the updated compose
-	if err := deployStack(dir, name); err != nil {
+	// we can ignore the urls returned because they will be the same as before
+	if _, err = deployStack(dir, name, ports); err != nil {
 		display.Error("Deploy failed: %v", err)
 		return handleFailure("deploy failed: %w", err)
 	}

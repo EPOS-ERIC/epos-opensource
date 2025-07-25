@@ -3,16 +3,35 @@ package dockercore
 import (
 	_ "embed"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
 	"github.com/epos-eu/epos-opensource/display"
 )
 
-func Deploy(envFile, composeFile, path, name string, pullImages bool) (*db.Docker, error) {
-	display.Step("Creating environment: %s", name)
+type DeployOpts struct {
+	// Optional. path to an env file to use. If not set the default embedded one will be used
+	EnvFile string
+	// Optional. path to a docker-compose.yaml file. If not set the default embedded one will be used
+	ComposeFile string
+	// Optional. path to a custom directory to store the .env and docker-compose.yaml in
+	Path string
+	// Required. name of the environment
+	Name string
+	// Optional. whether to pull the images before deploying or not
+	PullImages bool
+}
 
-	dir, err := NewEnvDir(envFile, composeFile, path, name)
+func (d *DeployOpts) Deploy() (*db.Docker, error) {
+	if err := d.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid options: %w", err)
+	}
+
+	display.Step("Creating environment: %s", d.Name)
+
+	dir, err := NewEnvDir(d.EnvFile, d.ComposeFile, d.Path, d.Name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare environment directory: %w", err)
 	}
@@ -32,8 +51,8 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) (*db.Docke
 		}
 	}
 
-	if pullImages {
-		if err := pullEnvImages(dir, name); err != nil {
+	if d.PullImages {
+		if err := pullEnvImages(dir, d.Name); err != nil {
 			display.Error("Pulling images failed: %v", err)
 			cleanup()
 			if cleanupErr != nil {
@@ -43,7 +62,23 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) (*db.Docke
 		}
 	}
 
-	if err := deployStack(dir, name); err != nil {
+	var ports *DeploymentPorts
+	if d.EnvFile != "" {
+		ports, err = loadPortsFromEnvFile(d.EnvFile)
+		if err != nil {
+			return nil, fmt.Errorf("error loading ports from custom .env file at '%s': %w", d.EnvFile, err)
+		}
+	} else {
+		ports = &DeploymentPorts{
+			GUI:        32000,
+			API:        33000,
+			Backoffice: 34000,
+		}
+		ports.ensureFree()
+	}
+
+	urls, err := deployStack(dir, d.Name, ports)
+	if err != nil {
 		display.Error("Deploy failed: %v", err)
 		stackDeployed = true
 		cleanup()
@@ -55,16 +90,7 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) (*db.Docke
 	}
 	stackDeployed = true
 
-	portalURL, gatewayURL, backofficeURL, err := buildEnvURLs(dir)
-	if err != nil {
-		cleanup()
-		if cleanupErr != nil {
-			return nil, cleanupErr
-		}
-		return nil, fmt.Errorf("error building env urls for environment '%s': %w", dir, err)
-	}
-
-	if err := common.PopulateOntologies(gatewayURL); err != nil {
+	if err := common.PopulateOntologies(urls.apiURL); err != nil {
 		display.Error("error initializing the ontologies in the environment: %v", err)
 		cleanup()
 		if cleanupErr != nil {
@@ -74,13 +100,73 @@ func Deploy(envFile, composeFile, path, name string, pullImages bool) (*db.Docke
 		return nil, err
 	}
 
-	docker, err := db.InsertDocker(name, dir, gatewayURL, portalURL, backofficeURL)
+	docker, err := db.InsertDocker(db.Docker{
+		Name:           d.Name,
+		Directory:      dir,
+		ApiUrl:         urls.apiURL,
+		GuiUrl:         urls.guiURL,
+		BackofficeUrl:  urls.backofficeURL,
+		ApiPort:        int64(ports.GUI),
+		GuiPort:        int64(ports.API),
+		BackofficePort: int64(ports.Backoffice),
+	})
 	if err != nil {
 		cleanup()
 		if cleanupErr != nil {
 			return nil, cleanupErr
 		}
-		return nil, fmt.Errorf("failed to insert docker %s (dir: %s) in db: %w", name, dir, err)
+		return nil, fmt.Errorf("failed to insert docker %s (dir: %s) in db: %w", d.Name, dir, err)
 	}
 	return docker, err
+}
+
+// Validate checks if the DeployOpts are valid for a deployment.
+// It checks:
+// - the name is set
+// - the name is not already used by some other environment
+// - the path directory (if it exists) does not contain a '.env' or 'docker-compose.yaml' file
+func (d *DeployOpts) Validate() error {
+	if err := common.ValidateEnvName(d.Name); err != nil {
+		return fmt.Errorf("invalid name for environment: %w", err)
+	}
+
+	envs, err := db.GetAllDocker()
+	if err != nil {
+		return fmt.Errorf("error getting installed docker environment from db: %w", err)
+	}
+	for _, env := range envs {
+		if env.Name == d.Name {
+			return fmt.Errorf("an environment with the name '%s' already exists", d.Name)
+		}
+	}
+
+	// path validation
+	path, err := filepath.Abs(d.Path)
+	if err != nil {
+		return fmt.Errorf("error getting absolute path for path: %s", d.Path)
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("cannot stat %q: %w", path, err)
+	}
+
+	if !info.IsDir() {
+		return fmt.Errorf("%q exists but is not a directory", path)
+	}
+
+	forbidden := []string{".env", "docker-compose.yaml"}
+	for _, name := range forbidden {
+		p := filepath.Join(path, name)
+		if _, err := os.Stat(p); err == nil {
+			return fmt.Errorf("directory %q already contains %s", path, name)
+		} else if !os.IsNotExist(err) {
+			return fmt.Errorf("error checking for %s: %w", p, err)
+		}
+	}
+
+	return nil
 }
