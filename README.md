@@ -67,7 +67,7 @@ A TTL file is a metadata file in [Turtle format](https://www.w3.org/TR/turtle/),
 ### Easiest: Installation Script
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/epos-eu/epos-opensource/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/epos-eu/epos-opensource/main/install.sh | bash
 ```
 
 _This script works on Linux, macOS, and WSL. It will update the CLI if already installed._
