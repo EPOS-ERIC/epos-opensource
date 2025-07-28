@@ -62,18 +62,17 @@ func (d *DeployOpts) Deploy() (*db.Docker, error) {
 		}
 	}
 
-	var ports *DeploymentPorts
+	ports := &DeploymentPorts{
+		GUI:        32000,
+		API:        33000,
+		Backoffice: 34000,
+	}
 	if d.EnvFile != "" {
 		ports, err = loadPortsFromEnvFile(d.EnvFile)
 		if err != nil {
 			return nil, fmt.Errorf("error loading ports from custom .env file at '%s': %w", d.EnvFile, err)
 		}
 	} else {
-		ports = &DeploymentPorts{
-			GUI:        32000,
-			API:        33000,
-			Backoffice: 34000,
-		}
 		ports.ensureFree()
 	}
 
@@ -106,8 +105,8 @@ func (d *DeployOpts) Deploy() (*db.Docker, error) {
 		ApiUrl:         urls.apiURL,
 		GuiUrl:         urls.guiURL,
 		BackofficeUrl:  urls.backofficeURL,
-		ApiPort:        int64(ports.GUI),
-		GuiPort:        int64(ports.API),
+		ApiPort:        int64(ports.API),
+		GuiPort:        int64(ports.GUI),
 		BackofficePort: int64(ports.Backoffice),
 	})
 	if err != nil {

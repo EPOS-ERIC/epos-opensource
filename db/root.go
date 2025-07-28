@@ -125,11 +125,14 @@ func InsertDocker(docker Docker) (*Docker, error) {
 		return nil, fmt.Errorf("error getting db connection: %w", err)
 	}
 	d, err := q.InsertDocker(context.Background(), InsertDockerParams{
-		Name:          docker.Name,
-		Directory:     docker.Directory,
-		ApiUrl:        docker.ApiUrl,
-		GuiUrl:        docker.GuiUrl,
-		BackofficeUrl: docker.BackofficeUrl,
+		Name:           docker.Name,
+		Directory:      docker.Directory,
+		ApiUrl:         docker.ApiUrl,
+		GuiUrl:         docker.GuiUrl,
+		BackofficeUrl:  docker.BackofficeUrl,
+		GuiPort:        docker.GuiPort,
+		ApiPort:        docker.ApiPort,
+		BackofficePort: docker.BackofficePort,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error inserting docker %s (dir: %s) in db: %w", docker.Name, docker.Directory, err)
