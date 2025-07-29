@@ -40,11 +40,20 @@ type Urls struct {
 
 // deployStack deploys the stack in the specified directory.
 // the deployed stack will use the given ports for the deployment of the services.
-// it is the responsability of the caller to ensure the ports are not used
+// it is the responsibility of the caller to ensure the ports are not used
 func deployStack(dir, name string, ports *DeploymentPorts) (*Urls, error) {
-	os.Setenv("DATAPORTAL_PORT", strconv.Itoa(ports.GUI))
-	os.Setenv("GATEWAY_PORT", strconv.Itoa(ports.API))
-	os.Setenv("BACKOFFICE_PORT", strconv.Itoa(ports.Backoffice))
+	err := os.Setenv("DATAPORTAL_PORT", strconv.Itoa(ports.GUI))
+	if err != nil {
+		return nil, fmt.Errorf("failed to set env var 'DATAPORTAL_PORT': %w", err)
+	}
+	err = os.Setenv("GATEWAY_PORT", strconv.Itoa(ports.API))
+	if err != nil {
+		return nil, fmt.Errorf("failed to set env var 'GATEWAY_PORT': %w", err)
+	}
+	err = os.Setenv("BACKOFFICE_PORT", strconv.Itoa(ports.Backoffice))
+	if err != nil {
+		return nil, fmt.Errorf("failed to set env var 'BACKOFFICE_PORT': %w", err)
+	}
 
 	display.Step("Deploying stack")
 	if _, err := common.RunCommand(composeCommand(dir, name, "up", "-d"), false); err != nil {

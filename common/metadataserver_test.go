@@ -22,7 +22,10 @@ func waitAddrReady(addr string, d time.Duration) error {
 	for {
 		var dialer net.Dialer
 		if conn, err := dialer.DialContext(ctx, "tcp", addr); err == nil {
-			conn.Close()
+			err := conn.Close()
+			if err != nil {
+				return fmt.Errorf("failed to close the connection: %w", err)
+			}
 			return nil // listener is up
 		}
 		if ctx.Err() != nil {
@@ -61,8 +64,7 @@ func TestMetadataServer(t *testing.T) {
 			if tc.makeDir {
 				dir = t.TempDir()
 				// create a sample file the server should serve
-				if err := os.WriteFile(filepath.Join(dir, "greet.txt"),
-					[]byte(tc.wantBody), 0o644); err != nil {
+				if err := os.WriteFile(filepath.Join(dir, "greet.txt"), []byte(tc.wantBody), 0600); err != nil {
 					t.Fatalf("write fixture: %v", err)
 				}
 			}

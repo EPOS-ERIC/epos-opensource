@@ -69,8 +69,14 @@ func PopulateOntologies(baseURL string) error {
 		if err != nil {
 			return fmt.Errorf("error making ontology request for %s: %w", ont.name, err)
 		}
-		body, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("failed to read body: %w", err)
+		}
+		err = resp.Body.Close()
+		if err != nil {
+			return fmt.Errorf("failed to close body: %w", err)
+		}
 		if resp.StatusCode != http.StatusOK {
 			return fmt.Errorf("ontology request for %s failed with status %d: %s", ont.name, resp.StatusCode, string(body))
 		}

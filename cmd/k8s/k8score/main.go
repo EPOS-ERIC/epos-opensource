@@ -72,7 +72,7 @@ func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name, cont
 		return "", fmt.Errorf("failed to check directory %s: %w", envPath, err)
 	}
 
-	if err := os.MkdirAll(envPath, 0777); err != nil {
+	if err := os.MkdirAll(envPath, 0750); err != nil {
 		return "", fmt.Errorf("failed to create env directory %s: %w", envPath, err)
 	}
 
@@ -90,7 +90,10 @@ func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name, cont
 		return "", fmt.Errorf("failed to get .env file content: %w", err)
 	}
 
-	os.Setenv("NAMESPACE", name)
+	err = os.Setenv("NAMESPACE", name)
+	if err != nil {
+		return "", fmt.Errorf("failed to set 'NAMESPACE' environment variable: %w", err)
+	}
 	expandedEnv := os.ExpandEnv(string(envContent))
 	if err := common.CreateFileWithContent(path.Join(envPath, ".env"), expandedEnv); err != nil {
 		return "", fmt.Errorf("failed to create .env file: %w", err)
@@ -181,12 +184,18 @@ func loadEnvAndExpandManifests(envPath, name, context, protocol string) error {
 		return fmt.Errorf("failed to load environment file %q: %w", envFilePath, err)
 	}
 
-	os.Setenv("NAMESPACE", name)
+	err := os.Setenv("NAMESPACE", name)
+	if err != nil {
+		return fmt.Errorf("failed to set 'NAMESPACE' environment variable: %w", err)
+	}
 	_, apiURL, _, err := buildEnvURLs(envPath, context, protocol)
 	if err != nil {
 		return fmt.Errorf("error building API URL: %w", err)
 	}
-	os.Setenv("API_HOST", apiURL)
+	err = os.Setenv("API_HOST", apiURL)
+	if err != nil {
+		return fmt.Errorf("failed to set 'API_HOST' environment variable: %w", err)
+	}
 
 	files, err := os.ReadDir(envPath)
 	if err != nil {

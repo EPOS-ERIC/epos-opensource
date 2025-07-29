@@ -159,9 +159,56 @@ If you get stuck, run with `--help` for more info, or feel free to [open an issu
 
 ---
 
-## Maintenance
+## Development
 
-Referenced container images are updated regularly.
+Follow these steps to set up your local development environment and enable the shared Git hooks.
+
+### Prerequisites
+
+- **Go 1.25+**
+- **Make** (GNU Make)
+- **golangci‑lint**
+
+### Clone & Enter the Repo
+
+```bash
+git clone https://github.com/epos-eu/epos-opensource.git
+cd epos-opensource
+```
+
+### Install the Shared Git Hooks
+
+We include a set of pre‑commit hooks under `.githooks/` that will automatically run your Makefile checks before each commit:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+### Makefile Targets
+
+Our `Makefile` provides common commands for development like:
+
+- **`make build`**
+  Compile the CLI binary.
+
+- **`make test`**
+  Run all tests.
+
+- **`make lint`**
+  Execute linters (using `golangci-lint`).
+
+You can also run them all together:
+
+```bash
+make lint test vet
+```
+
+### Workflow
+
+1. **Edit code** in your favorite editor.
+2. **Run** your chosen `make` targets to verify everything passes.
+3. **Commit:** the pre‑commit hook will automatically invoke `make lint test`.
+4. **Push** your changes when you're ready.
 
 ---
 
@@ -192,3 +239,7 @@ After submitting:
 - Update your branch until it is approved and merged.
 
 Thank you for your contribution!
+
+```
+
+```

@@ -35,7 +35,7 @@ groups to deploy, populate, update, or delete an environment.`,
 	// If no subcommand is provided, show help.
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
-			cmd.Help()
+			_ = cmd.Help()
 		}
 	},
 	Version: getVersion(),

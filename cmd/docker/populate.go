@@ -9,8 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var ttlDirPath string
-
 var PopulateCmd = &cobra.Command{
 	Use:   "populate [env-name] [ttl-directory...]",
 	Short: "Ingest TTL files from one or more directories into an environment",

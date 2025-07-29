@@ -16,10 +16,10 @@ clean:
 generate:
 	go generate ./...
 
-vet:
-	go vet ./...
+lint:
+	golangci-lint run ./...
 
 test:
 	go test ./... -v
 
-.PHONY: build build-release clean vet test
+.PHONY: build build-release clean generate lint test

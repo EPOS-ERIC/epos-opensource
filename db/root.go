@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	_ "embed"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -27,7 +28,7 @@ func Get() (*Queries, error) {
 	dbDir := configdir.GetPath()
 	dbFile := path.Join(dbDir, dbName)
 
-	err := os.MkdirAll(dbDir, 0755)
+	err := os.MkdirAll(dbDir, 0750)
 	if err != nil {
 		return nil, fmt.Errorf("error creating db directory %s: %w", dbDir, err)
 	}
@@ -37,7 +38,10 @@ func Get() (*Queries, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error creating db file %s: %w", dbFile, err)
 		}
-		file.Close()
+		err = file.Close()
+		if err != nil {
+			return nil, fmt.Errorf("failed to close db file: %w", err)
+		}
 	}
 
 	db, err := sql.Open("sqlite", dbFile)
@@ -97,7 +101,7 @@ func GetKubernetesByName(name string) (*Kubernetes, error) {
 	}
 	kube, err := q.GetKubernetesByName(context.Background(), name)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("error getting kubernetes %s: no row found", name)
 		}
 		return nil, fmt.Errorf("error getting kubernetes %s: %w", name, err)
@@ -161,7 +165,7 @@ func GetDockerByName(name string) (*Docker, error) {
 	}
 	docker, err := q.GetDockerByName(context.Background(), name)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("error getting docker %s: no row found", name)
 		}
 		return nil, fmt.Errorf("error getting docker %s: %w", name, err)
@@ -180,26 +184,4 @@ func GetAllDocker() ([]Docker, error) {
 		return nil, fmt.Errorf("error getting all docker: %w", err)
 	}
 	return dockers, nil
-}
-
-func UpdateDocker(docker Docker) (*Docker, error) {
-	q, err := Get()
-	if err != nil {
-		return nil, fmt.Errorf("error getting db connection: %w", err)
-	}
-
-	result, err := q.UpdateDocker(context.Background(), UpdateDockerParams{
-		Directory:      docker.Directory,
-		ApiUrl:         docker.ApiUrl,
-		GuiUrl:         docker.GuiUrl,
-		BackofficeUrl:  docker.BackofficeUrl,
-		ApiPort:        docker.ApiPort,
-		GuiPort:        docker.GuiPort,
-		BackofficePort: docker.BackofficePort,
-		Name:           docker.Name,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error getting all docker: %w", err)
-	}
-	return &result, nil
 }

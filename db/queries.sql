@@ -72,19 +72,3 @@ FROM
     docker
 WHERE
     name = ?;
-
--- name: UpdateDocker :one
-UPDATE
-    docker
-SET
-    directory = ?,
-    api_url = ?,
-    gui_url = ?,
-    backoffice_url = ?,
-    api_port = ?,
-    gui_port = ?,
-    backoffice_port = ?
-WHERE
-    name = ?
-RETURNING
-    *;

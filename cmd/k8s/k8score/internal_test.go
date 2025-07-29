@@ -33,7 +33,7 @@ func TestNewEnvDir(t *testing.T) {
 			wantErr: false,
 			check: func(t *testing.T, envPath, _, _ string) {
 				// .env should equal the embedded envFile
-				os.Setenv("NAMESPACE", "default")
+				_ = os.Setenv("NAMESPACE", "default")
 				expandedEnvFile := os.ExpandEnv(EnvFile)
 				if got := mustRead(t, filepath.Join(envPath, ".env")); got != expandedEnvFile {
 					t.Fatalf(".env content mismatch. got=\n%s, want=\n%s", got, expandedEnvFile)
@@ -83,7 +83,7 @@ func TestNewEnvDir(t *testing.T) {
 			customEnv, customManif, basePath, envName, preCreate := tt.setup(t)
 
 			if preCreate {
-				os.MkdirAll(filepath.Join(basePath, envName), 0o700)
+				_ = os.MkdirAll(filepath.Join(basePath, envName), 0o700)
 			}
 
 			envPath, err := NewEnvDir(customEnv, customManif, basePath, envName, "docker-desktop", "http")
@@ -99,7 +99,7 @@ func TestNewEnvDir(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			t.Cleanup(func() { os.RemoveAll(envPath) })
+			t.Cleanup(func() { _ = os.RemoveAll(envPath) })
 
 			if tt.check != nil {
 				tt.check(t, envPath, customEnv, customManif)

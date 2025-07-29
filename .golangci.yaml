@@ -1,0 +1,26 @@
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - staticcheck
+    - errcheck
+    - gocyclo
+    - gosec
+    - misspell
+    - dupl
+    - goconst
+  exclusions:
+    rules:
+      - linters:
+          - errcheck
+        source: "^\\s*defer\\s+"
+      - linters:
+          - gosec
+        text: "^G204:"
+      - linters:
+          - gosec
+        text: "^G304:"
+      - linters:
+          - gosec
+        text: "^G102:"

@@ -73,7 +73,10 @@ func (d *DeployOpts) Deploy() (*db.Docker, error) {
 			return nil, fmt.Errorf("error loading ports from custom .env file at '%s': %w", d.EnvFile, err)
 		}
 	} else {
-		ports.ensureFree()
+		err := ports.ensureFree()
+		if err != nil {
+			return nil, fmt.Errorf("failed to find free ports: %w", err)
+		}
 	}
 
 	urls, err := deployStack(dir, d.Name, ports)

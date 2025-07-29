@@ -54,7 +54,8 @@ func (ms *MetadataServer) Start() error {
 	ms.addr = net.JoinHostPort(ip, fmt.Sprint(port))
 
 	ms.Srv = &http.Server{
-		Handler: http.FileServer(http.Dir(ms.dir)),
+		ReadHeaderTimeout: 15 * time.Second,
+		Handler:           http.FileServer(http.Dir(ms.dir)),
 	}
 
 	go func() {

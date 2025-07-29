@@ -1,0 +1,12 @@
+# .githooks/pre-commit
+#!/usr/bin/env bash
+
+# fail fast on any error
+set -euo pipefail
+
+echo " Running pre‑commit make targets..."
+
+make lint
+make test
+
+echo "All make targets passed, proceeding with commit."
