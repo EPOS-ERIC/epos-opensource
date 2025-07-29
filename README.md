@@ -52,12 +52,10 @@ A TTL file is a metadata file in [Turtle format](https://www.w3.org/TR/turtle/),
 
 ---
 
-## Requirements
+## Usage Requirements
 
 - **Docker** and **Docker Compose** (for Docker-based setups)
 - **kubectl** and access to a Kubernetes cluster (for Kubernetes-based setups)
-- **Go 1.16 or later** (for installation via `go install`)
-- **Go 1.24.4 or later** (for building from source)
 - **Internet connection** (for downloading images and updates)
 
 ---
@@ -165,7 +163,7 @@ Follow these steps to set up your local development environment and enable the s
 
 ### Prerequisites
 
-- **Go 1.25+**
+- **Go 1.24.4+**
 - **Make** (GNU Make)
 - **golangci‑lint**
 
@@ -196,12 +194,6 @@ Our `Makefile` provides common commands for development like:
 
 - **`make lint`**
   Execute linters (using `golangci-lint`).
-
-You can also run them all together:
-
-```bash
-make lint test vet
-```
 
 ### Workflow
 
