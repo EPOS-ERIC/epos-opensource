@@ -11,6 +11,7 @@ package display
 import (
 	"fmt"
 	"net/url"
+	"os"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
@@ -48,7 +49,8 @@ func print(color, label, format string, a ...any) {
 }
 
 func Error(format string, a ...any) {
-	print(red, "ERROR", format, a...)
+	message := fmt.Sprintf(format, a...)
+	fmt.Fprintf(os.Stderr, "%s[%s]  %s%s\n", red, "ERROR", message, reset)
 }
 
 func Warn(format string, a ...any) {
