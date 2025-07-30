@@ -13,7 +13,7 @@ BINARY="epos-opensource"
 API="https://api.github.com/repos/${REPO}/releases/latest"
 
 # ── Utilities ────────────────────────────────────────────────────────────────
-# Extract first “x.y.z” triplet from arbitrary text
+# Extract first "x.y.z" triplet from arbitrary text
 extract_semver() {
   printf '%s\n' "$1" \
   | sed -n 's/[^0-9]*\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*/\1/p'
@@ -88,7 +88,7 @@ INSTALL_DIR="$(choose_dir)"
 mkdir -p "${INSTALL_DIR}"
 case ":${PATH}:" in
   *":${INSTALL_DIR}:"*) ;;
-  *) echo "ℹ ${INSTALL_DIR} isn’t on your PATH – add it to your shell profile." ;;
+  *) echo "ℹ ${INSTALL_DIR} isn't on your PATH – add it to your shell profile." ;;
 esac
 
 # ── Fetch latest release info ────────────────────────────────────────────────
@@ -111,7 +111,7 @@ fi
 
 LATEST_VER="$(extract_semver "$TAG_RAW")"
 echo "ℹ Latest release: ${LATEST_VER}"
-[ -n "${DL_URL}" ] || { echo "✖ Couldn’t find asset ${ASSET} in latest release."; exit 1; }
+[ -n "${DL_URL}" ] || { echo "✖ Couldn't find asset ${ASSET} in latest release."; exit 1; }
 
 # ── Breaking-change guard ────────────────────────────────────────────────────
 if [ -n "$CURRENT_VER" ] && [ "$(is_breaking_change "$CURRENT_VER" "$LATEST_VER")" -eq 1 ]; then
@@ -120,7 +120,7 @@ if [ -n "$CURRENT_VER" ] && [ "$(is_breaking_change "$CURRENT_VER" "$LATEST_VER"
   echo "    New version  : ${LATEST_VER}"
   echo "    Installing will DELETE all existing epos-opensource environments."
   printf "    Proceed anyway? [y/N]: "
-  read answer
+  read answer </dev/tty
   case "$answer" in
     [Yy]*) : ;;  
     *) echo "Installation cancelled."; exit 0 ;;
