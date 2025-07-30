@@ -118,7 +118,7 @@ if [ -n "$CURRENT_VER" ] && [ "$(is_breaking_change "$CURRENT_VER" "$LATEST_VER"
   echo "⚠️  Breaking change detected:"
   echo "    Your version : ${CURRENT_VER}"
   echo "    New version  : ${LATEST_VER}"
-  echo "    Installing will DELETE all existing epos-opensource environments."
+  echo "    Installing will BREAK all existing epos-opensource environments."
   printf "    Proceed anyway? [y/N]: "
   read answer </dev/tty
   case "$answer" in
