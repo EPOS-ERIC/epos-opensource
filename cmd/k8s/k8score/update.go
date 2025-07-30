@@ -8,6 +8,7 @@ import (
 
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
+	"github.com/epos-eu/epos-opensource/db/sqlc"
 	"github.com/epos-eu/epos-opensource/display"
 )
 
@@ -20,7 +21,7 @@ import (
 // deploy the updated manifests
 // if everything goes right, delete the tmp dir and finish
 // else restore the tmp dir, deploy the old restored env and give an error in output
-func Update(envFile, composeFile, name string, force bool) (*db.Kubernetes, error) {
+func Update(envFile, composeFile, name string, force bool) (*sqlc.Kubernetes, error) {
 	display.Step("Updating environment: %s", name)
 
 	kube, err := db.GetKubernetesByName(name)

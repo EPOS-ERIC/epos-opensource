@@ -6,10 +6,11 @@ import (
 
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
+	"github.com/epos-eu/epos-opensource/db/sqlc"
 	"github.com/epos-eu/epos-opensource/display"
 )
 
-func Populate(name string, ttlDirs []string) (*db.Docker, error) {
+func Populate(name string, ttlDirs []string) (*sqlc.Docker, error) {
 	display.Step("Populating environment %s with %d directories", name, len(ttlDirs))
 
 	docker, err := db.GetDockerByName(name)

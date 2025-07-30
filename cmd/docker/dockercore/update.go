@@ -8,6 +8,7 @@ import (
 
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
+	"github.com/epos-eu/epos-opensource/db/sqlc"
 	"github.com/epos-eu/epos-opensource/display"
 )
 
@@ -20,7 +21,7 @@ import (
 // deploy the updated compose
 // if everything goes right, delete the tmp dir and finish
 // else restore the tmp dir, deploy the old restored env and give an error in output
-func Update(envFile, composeFile, name string, force, pullImages bool) (*db.Docker, error) {
+func Update(envFile, composeFile, name string, force, pullImages bool) (*sqlc.Docker, error) {
 	display.Step("Updating environment: %s", name)
 
 	docker, err := db.GetDockerByName(name)
@@ -39,7 +40,7 @@ func Update(envFile, composeFile, name string, force, pullImages bool) (*db.Dock
 		return nil, fmt.Errorf("failed to create backup copy: %w", err)
 	}
 
-	handleFailure := func(msg string, mainErr error) (*db.Docker, error) {
+	handleFailure := func(msg string, mainErr error) (*sqlc.Docker, error) {
 		display.Step("Restoring environment from backup")
 		if err := common.RemoveEnvDir(docker.Directory); err != nil {
 			display.Error("Failed to remove corrupted directory: %v", err)

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/epos-eu/epos-opensource/db"
+	"github.com/epos-eu/epos-opensource/db/sqlc"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 )
@@ -48,7 +48,7 @@ func InfraList(rows [][]any, headers []string, title string) {
 	fmt.Println(t.Render())
 }
 
-func DockerList(dockers []db.Docker, title string) {
+func DockerList(dockers []sqlc.Docker, title string) {
 	rows := make([][]any, len(dockers))
 	for i, d := range dockers {
 		gatewayURL, err := url.JoinPath(d.ApiUrl, "ui")
@@ -65,7 +65,7 @@ func DockerList(dockers []db.Docker, title string) {
 	InfraList(rows, headers, title)
 }
 
-func KubernetesList(kubes []db.Kubernetes, title string) {
+func KubernetesList(kubes []sqlc.Kubernetes, title string) {
 	rows := make([][]any, len(kubes))
 	for i, k := range kubes {
 		gatewayURL, err := url.JoinPath(k.ApiUrl, "ui")

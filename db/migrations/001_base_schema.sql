@@ -1,6 +1,5 @@
-PRAGMA foreign_keys = ON;
-
-CREATE TABLE IF NOT EXISTS kubernetes (
+-- +goose Up
+CREATE TABLE kubernetes (
     name TEXT NOT NULL PRIMARY KEY,
     directory TEXT NOT NULL UNIQUE,
     context TEXT NOT NULL,
@@ -10,7 +9,7 @@ CREATE TABLE IF NOT EXISTS kubernetes (
     protocol TEXT NOT NULL CHECK (protocol IN ('http', 'https'))
 );
 
-CREATE TABLE IF NOT EXISTS docker (
+CREATE TABLE docker (
     name TEXT NOT NULL PRIMARY KEY,
     directory TEXT NOT NULL UNIQUE,
     api_url TEXT NOT NULL,
@@ -20,3 +19,8 @@ CREATE TABLE IF NOT EXISTS docker (
     gui_port INTEGER NOT NULL,
     backoffice_port INTEGER NOT NULL
 );
+
+-- +goose Down
+DROP TABLE docker;
+
+DROP TABLE kubernetes;

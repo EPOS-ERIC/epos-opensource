@@ -6,10 +6,11 @@ import (
 
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
+	"github.com/epos-eu/epos-opensource/db/sqlc"
 	"github.com/epos-eu/epos-opensource/display"
 )
 
-func Populate(name string, ttlDirs []string) (*db.Kubernetes, error) {
+func Populate(name string, ttlDirs []string) (*sqlc.Kubernetes, error) {
 	display.Step("Populating environment %s with %d directories", name, len(ttlDirs))
 
 	kube, err := db.GetKubernetesByName(name)

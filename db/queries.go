@@ -1,71 +1,21 @@
-// Package db manages the SQLite database for epos-opensource.
-// It embeds the SQL schema, ensures the database file is created under the configured data directory,
-// and provides functions to open the connection and perform CRUD operations on Kubernetes and Docker entries.
 package db
 
 import (
 	"context"
 	"database/sql"
-	_ "embed"
 	"errors"
 	"fmt"
-	"os"
-	"path"
 
-	"github.com/epos-eu/epos-opensource/common/configdir"
-	_ "modernc.org/sqlite"
+	"github.com/epos-eu/epos-opensource/db/sqlc"
 )
 
-//go:generate go tool sqlc generate -f ../sqlc.yaml
-
-//go:embed schema.sql
-var schema string
-
-const dbName = "db.db"
-
-// Get opens a new connection to the database, creating the database file and schema if they do not exist.
-func Get() (*Queries, error) {
-	dbDir := configdir.GetPath()
-	dbFile := path.Join(dbDir, dbName)
-
-	err := os.MkdirAll(dbDir, 0750)
-	if err != nil {
-		return nil, fmt.Errorf("error creating db directory %s: %w", dbDir, err)
-	}
-
-	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
-		file, err := os.Create(dbFile)
-		if err != nil {
-			return nil, fmt.Errorf("error creating db file %s: %w", dbFile, err)
-		}
-		err = file.Close()
-		if err != nil {
-			return nil, fmt.Errorf("failed to close db file: %w", err)
-		}
-	}
-
-	db, err := sql.Open("sqlite", dbFile)
-	if err != nil {
-		return nil, fmt.Errorf("error opening sqlite db %s: %w", dbFile, err)
-	}
-
-	_, err = db.Exec(schema)
-	if err != nil {
-		return nil, fmt.Errorf("error creating db schema: %w", err)
-	}
-
-	queries := New(db)
-
-	return queries, nil
-}
-
 // InsertKubernetes adds a new kubernetes entry to the database.
-func InsertKubernetes(name, dir, contextStr, apiURL, guiURL, backofficeURL, protocol string) (*Kubernetes, error) {
+func InsertKubernetes(name, dir, contextStr, apiURL, guiURL, backofficeURL, protocol string) (*sqlc.Kubernetes, error) {
 	q, err := Get()
 	if err != nil {
 		return nil, fmt.Errorf("error getting db connection: %w", err)
 	}
-	k, err := q.InsertKubernetes(context.Background(), InsertKubernetesParams{
+	k, err := q.InsertKubernetes(context.Background(), sqlc.InsertKubernetesParams{
 		Name:          name,
 		Directory:     dir,
 		Context:       contextStr,
@@ -94,7 +44,7 @@ func DeleteKubernetes(name string) error {
 }
 
 // GetKubernetesByName retrieves a single kubernetes entry by name from the database.
-func GetKubernetesByName(name string) (*Kubernetes, error) {
+func GetKubernetesByName(name string) (*sqlc.Kubernetes, error) {
 	q, err := Get()
 	if err != nil {
 		return nil, fmt.Errorf("error getting db connection: %w", err)
@@ -110,7 +60,7 @@ func GetKubernetesByName(name string) (*Kubernetes, error) {
 }
 
 // GetAllKubernetes retrieves all kubernetes entries from the database.
-func GetAllKubernetes() ([]Kubernetes, error) {
+func GetAllKubernetes() ([]sqlc.Kubernetes, error) {
 	q, err := Get()
 	if err != nil {
 		return nil, fmt.Errorf("error getting db connection: %w", err)
@@ -123,12 +73,12 @@ func GetAllKubernetes() ([]Kubernetes, error) {
 }
 
 // InsertDocker adds a new docker entry to the database.
-func InsertDocker(docker Docker) (*Docker, error) {
+func InsertDocker(docker sqlc.Docker) (*sqlc.Docker, error) {
 	q, err := Get()
 	if err != nil {
 		return nil, fmt.Errorf("error getting db connection: %w", err)
 	}
-	d, err := q.InsertDocker(context.Background(), InsertDockerParams{
+	d, err := q.InsertDocker(context.Background(), sqlc.InsertDockerParams{
 		Name:           docker.Name,
 		Directory:      docker.Directory,
 		ApiUrl:         docker.ApiUrl,
@@ -158,7 +108,7 @@ func DeleteDocker(name string) error {
 }
 
 // GetDockerByName retrieves a single docker entry by name from the database.
-func GetDockerByName(name string) (*Docker, error) {
+func GetDockerByName(name string) (*sqlc.Docker, error) {
 	q, err := Get()
 	if err != nil {
 		return nil, fmt.Errorf("error getting db connection: %w", err)
@@ -174,7 +124,7 @@ func GetDockerByName(name string) (*Docker, error) {
 }
 
 // GetAllDocker retrieves all docker entries from the database.
-func GetAllDocker() ([]Docker, error) {
+func GetAllDocker() ([]sqlc.Docker, error) {
 	q, err := Get()
 	if err != nil {
 		return nil, fmt.Errorf("error getting db connection: %w", err)

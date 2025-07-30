@@ -8,6 +8,7 @@ import (
 
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
+	"github.com/epos-eu/epos-opensource/db/sqlc"
 	"github.com/epos-eu/epos-opensource/display"
 )
 
@@ -24,7 +25,7 @@ type DeployOpts struct {
 	PullImages bool
 }
 
-func (d *DeployOpts) Deploy() (*db.Docker, error) {
+func (d *DeployOpts) Deploy() (*sqlc.Docker, error) {
 	if err := d.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid options: %w", err)
 	}
@@ -102,7 +103,7 @@ func (d *DeployOpts) Deploy() (*db.Docker, error) {
 		return nil, err
 	}
 
-	docker, err := db.InsertDocker(db.Docker{
+	docker, err := db.InsertDocker(sqlc.Docker{
 		Name:           d.Name,
 		Directory:      dir,
 		ApiUrl:         urls.apiURL,

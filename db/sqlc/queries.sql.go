@@ -3,7 +3,7 @@
 //   sqlc v1.29.0
 // source: queries.sql
 
-package db
+package sqlc
 
 import (
 	"context"
@@ -261,59 +261,6 @@ func (q *Queries) InsertKubernetes(ctx context.Context, arg InsertKubernetesPara
 		&i.GuiUrl,
 		&i.BackofficeUrl,
 		&i.Protocol,
-	)
-	return i, err
-}
-
-const updateDocker = `-- name: UpdateDocker :one
-UPDATE
-    docker
-SET
-    directory = ?,
-    api_url = ?,
-    gui_url = ?,
-    backoffice_url = ?,
-    api_port = ?,
-    gui_port = ?,
-    backoffice_port = ?
-WHERE
-    name = ?
-RETURNING
-    name, directory, api_url, gui_url, backoffice_url, api_port, gui_port, backoffice_port
-`
-
-type UpdateDockerParams struct {
-	Directory      string
-	ApiUrl         string
-	GuiUrl         string
-	BackofficeUrl  string
-	ApiPort        int64
-	GuiPort        int64
-	BackofficePort int64
-	Name           string
-}
-
-func (q *Queries) UpdateDocker(ctx context.Context, arg UpdateDockerParams) (Docker, error) {
-	row := q.db.QueryRowContext(ctx, updateDocker,
-		arg.Directory,
-		arg.ApiUrl,
-		arg.GuiUrl,
-		arg.BackofficeUrl,
-		arg.ApiPort,
-		arg.GuiPort,
-		arg.BackofficePort,
-		arg.Name,
-	)
-	var i Docker
-	err := row.Scan(
-		&i.Name,
-		&i.Directory,
-		&i.ApiUrl,
-		&i.GuiUrl,
-		&i.BackofficeUrl,
-		&i.ApiPort,
-		&i.GuiPort,
-		&i.BackofficePort,
 	)
 	return i, err
 }

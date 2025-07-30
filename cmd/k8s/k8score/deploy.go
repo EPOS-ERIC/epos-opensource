@@ -7,10 +7,11 @@ import (
 
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
+	"github.com/epos-eu/epos-opensource/db/sqlc"
 	"github.com/epos-eu/epos-opensource/display"
 )
 
-func Deploy(envFile, composeFile, path, name, context, protocol string) (*db.Kubernetes, error) {
+func Deploy(envFile, composeFile, path, name, context, protocol string) (*sqlc.Kubernetes, error) {
 	if context == "" {
 		cmd := exec.Command("kubectl", "config", "current-context")
 		out, err := common.RunCommand(cmd, true)
@@ -31,7 +32,7 @@ func Deploy(envFile, composeFile, path, name, context, protocol string) (*db.Kub
 
 	display.Done("Environment created in directory: %s", dir)
 
-	handleFailure := func(msg string, mainErr error) (*db.Kubernetes, error) {
+	handleFailure := func(msg string, mainErr error) (*sqlc.Kubernetes, error) {
 		if err := deleteNamespace(name, context); err != nil {
 			display.Warn("error deleting namespace %s, %v", name, err)
 		}
