@@ -8,6 +8,7 @@ import (
 	"github.com/epos-eu/epos-opensource/db"
 	"github.com/epos-eu/epos-opensource/db/sqlc"
 	"github.com/epos-eu/epos-opensource/display"
+	"github.com/epos-eu/epos-opensource/metadataserver"
 )
 
 func Populate(name string, ttlDirs []string) (*sqlc.Kubernetes, error) {
@@ -25,7 +26,7 @@ func Populate(name string, ttlDirs []string) (*sqlc.Kubernetes, error) {
 		}
 
 		display.Step("Starting metadata server for directory %d of %d: %s", i+1, len(ttlDirs), ttlDir)
-		metadataServer, err := common.NewMetadataServer(ttlDir)
+		metadataServer, err := metadataserver.NewMetadataServer(ttlDir)
 		if err != nil {
 			return nil, fmt.Errorf("creating metadata server for dir %q: %w", ttlDir, err)
 		}

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/epos-eu/epos-opensource/command"
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/display"
 	"github.com/joho/godotenv"
@@ -25,7 +26,7 @@ func composeCommand(dir, name string, args ...string) *exec.Cmd {
 // pullEnvImages pulls docker images for the environment with custom messages
 func pullEnvImages(dir, name string) error {
 	display.Step("Pulling images for environment: %s", name)
-	if _, err := common.RunCommand(composeCommand(dir, "", "pull"), false); err != nil {
+	if _, err := command.RunCommand(composeCommand(dir, "", "pull"), false); err != nil {
 		return fmt.Errorf("pull images failed: %w", err)
 	}
 	display.Done("Images pulled for environment: %s", name)
@@ -56,7 +57,7 @@ func deployStack(dir, name string, ports *DeploymentPorts) (*Urls, error) {
 	}
 
 	display.Step("Deploying stack")
-	if _, err := common.RunCommand(composeCommand(dir, name, "up", "-d"), false); err != nil {
+	if _, err := command.RunCommand(composeCommand(dir, name, "up", "-d"), false); err != nil {
 		return nil, fmt.Errorf("deployment of stack failed: %w", err)
 	}
 
@@ -72,10 +73,10 @@ func deployStack(dir, name string, ports *DeploymentPorts) (*Urls, error) {
 // downStack stops the stack running in the given directory
 func downStack(dir string, removeVolumes bool) error {
 	if removeVolumes {
-		_, err := common.RunCommand(composeCommand(dir, "", "down", "-v"), false)
+		_, err := command.RunCommand(composeCommand(dir, "", "down", "-v"), false)
 		return err
 	}
-	_, err := common.RunCommand(composeCommand(dir, "", "down"), false)
+	_, err := command.RunCommand(composeCommand(dir, "", "down"), false)
 	return err
 }
 

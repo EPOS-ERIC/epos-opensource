@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/epos-eu/epos-opensource/command"
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/display"
 
@@ -230,7 +231,7 @@ func runKubectl(dir string, suppressOut bool, context string, args ...string) er
 	}
 	cmd := exec.Command("kubectl", args...)
 	cmd.Dir = dir
-	_, err := common.RunCommand(cmd, suppressOut)
+	_, err := command.RunCommand(cmd, suppressOut)
 	return err
 }
 
@@ -445,7 +446,7 @@ func getIngressControllerIP(context string) (string, error) {
 			jsonpath := field[1]
 			args := []string{"get", "service", "ingress-nginx-controller", "-n", "ingress-nginx", "-o", "jsonpath=" + jsonpath, "--context", context}
 			cmd := exec.Command("kubectl", args...)
-			out, err := common.RunCommand(cmd, true)
+			out, err := command.RunCommand(cmd, true)
 			if err != nil {
 				lastErr = fmt.Errorf("error getting ingress %s: %w", desc, err)
 				continue
@@ -494,7 +495,7 @@ func waitIngresses(kubeContext string, ingressNames []string, namespace string) 
 					"--context", kubeContext,
 				}
 				cmd := exec.Command("kubectl", args...)
-				out, err := common.RunCommand(cmd, true)
+				out, err := command.RunCommand(cmd, true)
 				if err == nil {
 					value := strings.TrimSpace(out)
 					if value != "" && value != "{}" {

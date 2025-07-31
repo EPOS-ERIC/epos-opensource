@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/epos-eu/epos-opensource/command"
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
 	"github.com/epos-eu/epos-opensource/db/sqlc"
@@ -14,7 +15,7 @@ import (
 func Deploy(envFile, composeFile, path, name, context, protocol string) (*sqlc.Kubernetes, error) {
 	if context == "" {
 		cmd := exec.Command("kubectl", "config", "current-context")
-		out, err := common.RunCommand(cmd, true)
+		out, err := command.RunCommand(cmd, true)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get current kubectl context: %w", err)
 		}

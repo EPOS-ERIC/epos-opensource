@@ -1,4 +1,4 @@
-package common
+package metadataserver
 
 import (
 	"context"
@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/display"
 )
 
@@ -44,7 +45,7 @@ func (ms *MetadataServer) Start() error {
 	}
 
 	// Determine the primary non-loopback IPv4 of the host.
-	ip, err := GetLocalIP()
+	ip, err := common.GetLocalIP()
 	if err != nil {
 		_ = ln.Close()
 		return err

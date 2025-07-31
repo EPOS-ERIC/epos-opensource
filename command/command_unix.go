@@ -1,7 +1,7 @@
-//go:build windows
-// +build windows
+//go:build !windows
+// +build !windows
 
-package common
+package command
 
 import (
 	"bufio"
@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"syscall"
 
 	"github.com/epos-eu/epos-opensource/display"
 )
@@ -23,7 +22,6 @@ func RunCommand(cmd *exec.Cmd, interceptOut bool) (string, error) {
 		cmd.Stdout = os.Stdout
 	}
 	cmd.Stdin = os.Stdin
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 
 	cmd.Env = append(cmd.Env, os.Environ()...)
 	cmd.Env = append(cmd.Env, "COMPOSE_STATUS_STDOUT=1")
@@ -67,7 +65,6 @@ func StartCommand(cmd *exec.Cmd) error {
 	if cmd.Stdin == nil {
 		cmd.Stdin = os.Stdin
 	}
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 
 	cmd.Env = append(cmd.Env, os.Environ()...)
 	cmd.Env = append(cmd.Env, "COMPOSE_STATUS_STDOUT=1")

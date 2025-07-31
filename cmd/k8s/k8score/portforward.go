@@ -11,7 +11,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/epos-eu/epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/command"
 )
 
 // ForwardAndRun spins up kubectl port-forward, runs fn, then cleans up.
@@ -33,7 +33,7 @@ func ForwardAndRun(namespace, deployment string, localPort, remotePort int, cont
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
 
-	if err := common.StartCommand(cmd); err != nil {
+	if err := command.StartCommand(cmd); err != nil {
 		return fmt.Errorf("starting kubectl: %w", err)
 	}
 	defer stopProcess(cmd.Process)
