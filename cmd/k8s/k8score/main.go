@@ -1,6 +1,7 @@
 package k8score
 
 import (
+	"context"
 	"embed"
 	"fmt"
 	"io/fs"
@@ -292,21 +293,6 @@ func deployManifests(dir, namespace string, createNamespace bool, context, proto
 		}
 	}
 
-	var ingresses string
-	switch protocol {
-	case "https":
-		ingresses = "ingresses-secure.yaml"
-	case "http":
-		ingresses = "ingresses-insecure.yaml"
-	default:
-		return fmt.Errorf("unknown protocol %s", protocol)
-	}
-
-	display.Step("Deploying ingresses")
-	if err := runKubectl(dir, false, context, "apply", "-f", ingresses); err != nil {
-		return fmt.Errorf("failed to apply %s: %w", ingresses, err)
-	}
-
 	infra := []string{
 		"rabbitmq",
 		"metadata-database",
@@ -319,7 +305,7 @@ func deployManifests(dir, namespace string, createNamespace bool, context, proto
 		return fmt.Errorf("failed to apply RabbitMQ management service: %w", err)
 	}
 
-	display.Step("Waiting for infrastructure to be ready")
+	display.Step("Waiting for infrastructure to be ready...")
 	if err := waitDeployments(dir, namespace, infra, context); err != nil {
 		return fmt.Errorf("infrastructure deployment failed: %w", err)
 	}
@@ -339,22 +325,43 @@ func deployManifests(dir, namespace string, createNamespace bool, context, proto
 		return fmt.Errorf("failed to deploy services: %w", err)
 	}
 
-	display.Step("Waiting for services to be ready")
+	display.Step("Waiting for services to be ready...")
 	if err := waitDeployments(dir, namespace, services, context); err != nil {
 		return fmt.Errorf("services deployment failed: %w", err)
 	}
 
-	finals := []string{
+	topLevel := []string{
 		"gateway",
 		"dataportal",
 		"backoffice-ui",
 	}
-	display.Step("Deploying gateway and dataportal")
-	if err := applyParallel(dir, finals, true, context); err != nil {
+	display.Step("Deploying top-level services")
+	if err := applyParallel(dir, topLevel, true, context); err != nil {
 		return fmt.Errorf("failed to deploy gateway and dataportal: %w", err)
 	}
-	if err := waitDeployments(dir, namespace, finals, context); err != nil {
+
+	display.Step("Waiting for top-level services to be ready...")
+	if err := waitDeployments(dir, namespace, topLevel, context); err != nil {
 		return fmt.Errorf("gateway and dataportal deployment failed: %w", err)
+	}
+
+	// deploy the ingresses *after* the top-level services
+	var ingresses string
+	switch protocol {
+	case "https":
+		ingresses = "ingresses-secure.yaml"
+	case "http":
+		ingresses = "ingresses-insecure.yaml"
+	default:
+		return fmt.Errorf("unknown protocol %s", protocol)
+	}
+
+	display.Step("Deploying ingresses")
+	if err := runKubectl(dir, false, context, "apply", "-f", ingresses); err != nil {
+		return fmt.Errorf("failed to apply %s: %w", ingresses, err)
+	}
+	if err := waitIngresses(context, []string{"gateway", "dataportal", "backoffice-ui"}, namespace); err != nil {
+		return fmt.Errorf("failed to wait for ingresses to be ready: %w", err)
 	}
 
 	return nil
@@ -462,4 +469,54 @@ func getIngressControllerIP(context string) (string, error) {
 		return "", fmt.Errorf("error waiting for ingress to be ready, last error: %w", lastErr)
 	}
 	return "", fmt.Errorf("error getting ingress IP: both ip and hostname are empty after waiting %s", maxWait)
+}
+
+func waitIngresses(kubeContext string, ingressNames []string, namespace string) error {
+	const (
+		maxWait  = 2 * time.Minute
+		interval = 5 * time.Second
+	)
+
+	display.Step("Waiting for ingresses to be ready...")
+
+	var g errgroup.Group
+
+	for _, ingressName := range ingressNames {
+		g.Go(func() error {
+			ctx, cancel := context.WithTimeout(context.Background(), maxWait)
+			defer cancel()
+
+			for {
+				args := []string{
+					"get", "ingress", ingressName,
+					"-n", namespace,
+					"-o", "jsonpath={.status.loadBalancer.ingress[0]}",
+					"--context", kubeContext,
+				}
+				cmd := exec.Command("kubectl", args...)
+				out, err := common.RunCommand(cmd, true)
+				if err == nil {
+					value := strings.TrimSpace(out)
+					if value != "" && value != "{}" {
+						display.Done("Ingress %s is ready", ingressName)
+						return nil
+					}
+				}
+
+				select {
+				case <-ctx.Done():
+					return fmt.Errorf("timeout waiting for ingress %s", ingressName)
+				case <-time.After(interval):
+					continue
+				}
+			}
+		})
+	}
+
+	err := g.Wait()
+	if err != nil {
+		return fmt.Errorf("failed to wait for ingrsesses to be ready: %w", err)
+	}
+	display.Done("All ingresses are ready")
+	return nil
 }
