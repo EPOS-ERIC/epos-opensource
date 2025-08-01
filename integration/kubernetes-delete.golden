@@ -1,0 +1,7 @@
+[STEP]  Deleting environment: kubernetes-delete-test
+[STEP]  Deleting namespace
+namespace "kubernetes-delete-test" deleted
+[DONE]  Deleted namespace kubernetes-delete-test
+[STEP]  Deleting environment directory: /testdir/
+[DONE]  Deleted environment directory: /testdir/
+[DONE]  Deleted environment: kubernetes-delete-test

@@ -1,0 +1,127 @@
+[INFO]  Using kubectl context: docker-desktop
+[STEP]  Creating environment: kubernetes-deploy-test
+[STEP]  Waiting for ingress IP/hostname to be assigned...
+[DONE]  Ingress assigned hostname: 123.456.7.890
+[DONE]  Environment created in directory: /testdir/
+[STEP]  Creating namespace kubernetes-deploy-test
+namespace/kubernetes-deploy-test created
+[STEP]  Setting up the environment
+configmap/epos-env created
+secret/epos-secret created
+persistentvolumeclaim/psqldata created
+persistentvolumeclaim/converter-plugins created
+[STEP]  Deploying infrastructure components
+deployment.apps/rabbitmq created
+deployment.apps/metadata-database created
+service/rabbitmq created
+service/metadata-database created
+service/rabbitmq-management created
+[STEP]  Waiting for infrastructure to be ready...
+Waiting for deployment "rabbitmq" rollout to finish: 0 of 1 updated replicas are available...
+Waiting for deployment "metadata-database" rollout to finish: 0 of 1 updated replicas are available...
+deployment "rabbitmq" successfully rolled out
+deployment "metadata-database" successfully rolled out
+[STEP]  Deploying services
+deployment.apps/external-access-service created
+deployment.apps/ingestor-service created
+deployment.apps/sharing-service created
+deployment.apps/backoffice-service created
+deployment.apps/converter-routine created
+deployment.apps/converter-service created
+deployment.apps/resources-service created
+deployment.apps/email-sender-service created
+service/backoffice-service created
+service/external-access-service created
+service/converter-routine created
+service/sharing-service created
+service/resources-service created
+service/ingestor-service created
+service/converter-service created
+service/email-sender-service created
+[STEP]  Waiting for services to be ready...
+Waiting for deployment spec update to be observed...
+Waiting for deployment spec update to be observed...
+Waiting for deployment "converter-routine" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment spec update to be observed...
+Waiting for deployment "external-access-service" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment spec update to be observed...
+Waiting for deployment "resources-service" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "converter-service" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "backoffice-service" rollout to finish: 0 of 1 updated replicas are available...
+Waiting for deployment "external-access-service" rollout to finish: 0 of 1 updated replicas are available...
+Waiting for deployment "converter-service" rollout to finish: 0 of 1 updated replicas are available...
+Waiting for deployment "resources-service" rollout to finish: 0 of 1 updated replicas are available...
+Waiting for deployment "converter-routine" rollout to finish: 0 of 1 updated replicas are available...
+Waiting for deployment "email-sender-service" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "ingestor-service" rollout to finish: 0 of 1 updated replicas are available...
+Waiting for deployment "sharing-service" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "email-sender-service" rollout to finish: 0 of 1 updated replicas are available...
+Waiting for deployment "sharing-service" rollout to finish: 0 of 1 updated replicas are available...
+deployment "external-access-service" successfully rolled out
+deployment "converter-service" successfully rolled out
+deployment "ingestor-service" successfully rolled out
+deployment "backoffice-service" successfully rolled out
+deployment "converter-routine" successfully rolled out
+deployment "sharing-service" successfully rolled out
+deployment "email-sender-service" successfully rolled out
+deployment "resources-service" successfully rolled out
+[STEP]  Deploying top-level services
+deployment.apps/backoffice-ui created
+deployment.apps/dataportal created
+deployment.apps/gateway created
+service/backoffice-ui created
+service/dataportal created
+service/gateway created
+[STEP]  Waiting for top-level services to be ready...
+Waiting for deployment "gateway" rollout to finish: 0 of 1 updated replicas are available...
+Waiting for deployment "dataportal" rollout to finish: 0 of 1 updated replicas are available...
+Waiting for deployment "backoffice-ui" rollout to finish: 0 of 1 updated replicas are available...
+deployment "gateway" successfully rolled out
+deployment "dataportal" successfully rolled out
+deployment "backoffice-ui" successfully rolled out
+[STEP]  Deploying ingresses
+ingress.networking.k8s.io/dataportal created
+ingress.networking.k8s.io/gateway created
+ingress.networking.k8s.io/backoffice-ui created
+[STEP]  Waiting for ingresses to be ready...
+[DONE]  Ingress dataportal is ready
+[DONE]  Ingress gateway is ready
+[DONE]  Ingress backoffice-ui is ready
+[DONE]  All ingresses are ready
+[STEP]  Waiting for ingress IP/hostname to be assigned...
+[DONE]  Ingress assigned hostname: 123.456.7.890
+[INFO]  Generated URL for data portal: 123.456.7.890/kubernetes-deploy-test/dataportal/
+[INFO]  Generated URL for gateway: 123.456.7.890/kubernetes-deploy-test/api/v1
+[INFO]  Generated URL for backoffice: 123.456.7.890/kubernetes-deploy-test/backoffice/
+[STEP]  Populating the environment with base ontologies
+[STEP]    [1/3] Loading EPOS-DCAT-AP-V1 ontology...
+[STEP]    [2/3] Loading EPOS-DCAT-AP-V3 ontology...
+[STEP]    [3/3] Loading EDM-TO-DCAT-AP ontology...
+[DONE]  All ontologies loaded successfully
+╭────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                    epos-opensource kubernetes deploy kubernetes-deploy-test                    │
+├────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                │
+│                                                  *************                                 │
+│ &&&&&&&&&&&&&&&&&& *&&&&&&&%&&&%               *****************               &&&&&&/         │
+│ &&&&&&&&&&&&&&&&&& *&&&&&&&&&&&&&&&&&       **  **********  *******       &&&&&&&&&&&&&&&&&    │
+│ &&&&&&&&&&&%&&&&&& *&&&&&&&%    &&&&&&&   ,************     *********    &&%&&&&&&&&&&&&&      │
+│ &&&&&&             *&&&&&&        &&&&&( ************   **   ********** &&&&&&#                │
+│ &&&&&&             *&&&&&&(       &&&&& ****** * *****  **  *********** &&&&&&&&#              │
+│ &&&&&&&&&&&&&&&&.  *&&&&&&&&&&&&&&&&&&& *******   *   , *    *********** &&&&&&&&&&&&&&&&      │
+│ &&&%&&&&&&&%&&&&.  *&&&&&&&%&&&&&&&%&   *******                 ,*******    &&&&&&&%&&&&&&&    │
+│ &&&&&&             *&&&&&&               *                   , ********              &&&&&&.   │
+│ &&&&&&             *&&&&&&               .    ******  *,    ******* **    &&         &&&&&&    │
+│ &&&&&&&&&&&&&&&&&& *&&&&&&                 ************** *         *   &&&&&&&&&&&&&&&&&&&    │
+│ &&&&&&&&&&&%&&&&&& *&&&&&&                   ************* ,*******     &&&%&&&&&&&&&&&&       │
+│                                                ****************          &&&&&&&&&&&&          │
+│                                                                                                │
+├──────────────────────────────────┬─────────────────────────────────────────────────────────────┤
+│ EPOS Data Portal                 │ 123.456.7.890/kubernetes-deploy-test/dataportal/     │
+├──────────────────────────────────┼─────────────────────────────────────────────────────────────┤
+│ EPOS API Gateway                 │ 123.456.7.890/kubernetes-deploy-test/api/v1/ui       │
+├──────────────────────────────────┼─────────────────────────────────────────────────────────────┤
+│ EPOS Backoffice                  │ 123.456.7.890/kubernetes-deploy-test/backoffice/home │
+├──────────────────────────────────┴─────────────────────────────────────────────────────────────┤
+│ COPYRIGHT (C) 2023  EPOS ERIC                                                                  │
+╰────────────────────────────────────────────────────────────────────────────────────────────────╯

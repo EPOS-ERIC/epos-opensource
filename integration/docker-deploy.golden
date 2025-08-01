@@ -1,0 +1,147 @@
+[STEP]  Creating environment: docker-deploy-test
+[DONE]  Environment created in directory: /testdir/
+[INFO]  Port 32000 for DATAPORTAL_PORT is already used, using new random free port: 61997
+[INFO]  Port 33000 for GATEWAY_PORT is already used, using new random free port: 61998
+[INFO]  Port 34000 for BACKOFFICE_PORT is already used, using new random free port: 61999
+[STEP]  Deploying stack
+ Network docker-deploy-test_epos_network  Creating
+ Network docker-deploy-test_epos_network  Created
+ Volume "docker-deploy-test_converter"  Creating
+ Volume "docker-deploy-test_converter"  Created
+ Volume "docker-deploy-test_psqldata"  Creating
+ Volume "docker-deploy-test_psqldata"  Created
+ Container docker-deploy-test-metadata-database  Creating
+ Container docker-deploy-test-rabbitmq  Creating
+ Container docker-deploy-test-rabbitmq  Created
+ metadata-database The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested 
+ Container docker-deploy-test-metadata-database  Created
+ Container docker-deploy-test-resources-service  Creating
+ Container docker-deploy-test-sharing-service  Creating
+ Container docker-deploy-test-email-sender-service  Creating
+ Container docker-deploy-test-converter-service  Creating
+ Container docker-deploy-test-converter-routine  Creating
+ Container docker-deploy-test-backoffice-service  Creating
+ Container docker-deploy-test-ingestor-service  Creating
+ Container docker-deploy-test-external-access-service  Creating
+ external-access-service The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested 
+ sharing-service The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested 
+ Container docker-deploy-test-external-access-service  Created
+ Container docker-deploy-test-sharing-service  Created
+ converter-service The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested 
+ backoffice-service The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested 
+ Container docker-deploy-test-converter-service  Created
+ Container docker-deploy-test-backoffice-service  Created
+ ingestor-service The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested 
+ Container docker-deploy-test-ingestor-service  Created
+ resources-service The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested 
+ email-sender-service The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested 
+ converter-routine The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested 
+ Container docker-deploy-test-resources-service  Created
+ Container docker-deploy-test-email-sender-service  Created
+ Container docker-deploy-test-converter-routine  Created
+ Container docker-deploy-test-gateway  Creating
+ gateway The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested 
+ Container docker-deploy-test-gateway  Created
+ Container docker-deploy-test-data-portal  Creating
+ Container docker-deploy-test-backoffice-ui  Creating
+ backoffice-ui The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested 
+ dataportal The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested 
+ Container docker-deploy-test-backoffice-ui  Created
+ Container docker-deploy-test-data-portal  Created
+ Container docker-deploy-test-rabbitmq  Starting
+ Container docker-deploy-test-metadata-database  Starting
+ Container docker-deploy-test-metadata-database  Started
+ Container docker-deploy-test-metadata-database  Waiting
+ Container docker-deploy-test-metadata-database  Waiting
+ Container docker-deploy-test-metadata-database  Waiting
+ Container docker-deploy-test-metadata-database  Waiting
+ Container docker-deploy-test-metadata-database  Waiting
+ Container docker-deploy-test-rabbitmq  Started
+ Container docker-deploy-test-metadata-database  Waiting
+ Container docker-deploy-test-rabbitmq  Waiting
+ Container docker-deploy-test-rabbitmq  Waiting
+ Container docker-deploy-test-metadata-database  Waiting
+ Container docker-deploy-test-metadata-database  Waiting
+ Container docker-deploy-test-rabbitmq  Waiting
+ Container docker-deploy-test-metadata-database  Healthy
+ Container docker-deploy-test-sharing-service  Starting
+ Container docker-deploy-test-metadata-database  Healthy
+ Container docker-deploy-test-backoffice-service  Starting
+ Container docker-deploy-test-metadata-database  Healthy
+ Container docker-deploy-test-email-sender-service  Starting
+ Container docker-deploy-test-metadata-database  Healthy
+ Container docker-deploy-test-converter-routine  Starting
+ Container docker-deploy-test-metadata-database  Healthy
+ Container docker-deploy-test-ingestor-service  Starting
+ Container docker-deploy-test-metadata-database  Healthy
+ Container docker-deploy-test-metadata-database  Healthy
+ Container docker-deploy-test-metadata-database  Healthy
+ Container docker-deploy-test-sharing-service  Started
+ Container docker-deploy-test-email-sender-service  Started
+ Container docker-deploy-test-converter-routine  Started
+ Container docker-deploy-test-backoffice-service  Started
+ Container docker-deploy-test-ingestor-service  Started
+ Container docker-deploy-test-rabbitmq  Healthy
+ Container docker-deploy-test-resources-service  Starting
+ Container docker-deploy-test-rabbitmq  Healthy
+ Container docker-deploy-test-external-access-service  Starting
+ Container docker-deploy-test-rabbitmq  Healthy
+ Container docker-deploy-test-converter-service  Starting
+ Container docker-deploy-test-external-access-service  Started
+ Container docker-deploy-test-resources-service  Started
+ Container docker-deploy-test-converter-service  Started
+ Container docker-deploy-test-converter-routine  Waiting
+ Container docker-deploy-test-backoffice-service  Waiting
+ Container docker-deploy-test-resources-service  Waiting
+ Container docker-deploy-test-ingestor-service  Waiting
+ Container docker-deploy-test-external-access-service  Waiting
+ Container docker-deploy-test-converter-service  Waiting
+ Container docker-deploy-test-converter-service  Healthy
+ Container docker-deploy-test-ingestor-service  Healthy
+ Container docker-deploy-test-external-access-service  Healthy
+ Container docker-deploy-test-resources-service  Healthy
+ Container docker-deploy-test-converter-routine  Healthy
+ Container docker-deploy-test-backoffice-service  Healthy
+ Container docker-deploy-test-gateway  Starting
+ Container docker-deploy-test-gateway  Started
+ Container docker-deploy-test-gateway  Waiting
+ Container docker-deploy-test-gateway  Waiting
+ Container docker-deploy-test-gateway  Healthy
+ Container docker-deploy-test-backoffice-ui  Starting
+ Container docker-deploy-test-gateway  Healthy
+ Container docker-deploy-test-data-portal  Starting
+ Container docker-deploy-test-backoffice-ui  Started
+ Container docker-deploy-test-data-portal  Started
+[DONE]  Deployed environment: docker-deploy-test
+[STEP]  Populating the environment with base ontologies
+[STEP]    [1/3] Loading EPOS-DCAT-AP-V1 ontology...
+[STEP]    [2/3] Loading EPOS-DCAT-AP-V3 ontology...
+[STEP]    [3/3] Loading EDM-TO-DCAT-AP ontology...
+[DONE]  All ontologies loaded successfully
+╭────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                        epos-opensource docker deploy docker-deploy-test                        │
+├────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                │
+│                                                  *************                                 │
+│ &&&&&&&&&&&&&&&&&& *&&&&&&&%&&&%               *****************               &&&&&&/         │
+│ &&&&&&&&&&&&&&&&&& *&&&&&&&&&&&&&&&&&       **  **********  *******       &&&&&&&&&&&&&&&&&    │
+│ &&&&&&&&&&&%&&&&&& *&&&&&&&%    &&&&&&&   ,************     *********    &&%&&&&&&&&&&&&&      │
+│ &&&&&&             *&&&&&&        &&&&&( ************   **   ********** &&&&&&#                │
+│ &&&&&&             *&&&&&&(       &&&&& ****** * *****  **  *********** &&&&&&&&#              │
+│ &&&&&&&&&&&&&&&&.  *&&&&&&&&&&&&&&&&&&& *******   *   , *    *********** &&&&&&&&&&&&&&&&      │
+│ &&&%&&&&&&&%&&&&.  *&&&&&&&%&&&&&&&%&   *******                 ,*******    &&&&&&&%&&&&&&&    │
+│ &&&&&&             *&&&&&&               *                   , ********              &&&&&&.   │
+│ &&&&&&             *&&&&&&               .    ******  *,    ******* **    &&         &&&&&&    │
+│ &&&&&&&&&&&&&&&&&& *&&&&&&                 ************** *         *   &&&&&&&&&&&&&&&&&&&    │
+│ &&&&&&&&&&&%&&&&&& *&&&&&&                   ************* ,*******     &&&%&&&&&&&&&&&&       │
+│                                                ****************          &&&&&&&&&&&&          │
+│                                                                                                │
+├───────────────────────────────────────┬────────────────────────────────────────────────────────┤
+│ EPOS Data Portal                      │ http://localhost:61997                                 │
+├───────────────────────────────────────┼────────────────────────────────────────────────────────┤
+│ EPOS API Gateway                      │ http://localhost:61998/api/v1/ui                       │
+├───────────────────────────────────────┼────────────────────────────────────────────────────────┤
+│ EPOS Backoffice                       │ http://localhost:61999/home                            │
+├───────────────────────────────────────┴────────────────────────────────────────────────────────┤
+│ COPYRIGHT (C) 2023  EPOS ERIC                                                                  │
+╰────────────────────────────────────────────────────────────────────────────────────────────────╯

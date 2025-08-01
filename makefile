@@ -19,7 +19,15 @@ generate:
 lint:
 	golangci-lint run ./...
 
-test:
+test: build
 	go test ./...
+
+test-integration: build
+	go test -tags=integration -parallel 2 ./integration
+
+# run the integration tests and update the fixtures/golden files with the new outputs of the commands.
+# ONLY RUN THIS ON FUNCTIONAL CHANGES
+update-fixtures: build
+	go test -tags=integration -parallel 2 ./integration -update
 
 .PHONY: build build-release clean generate lint test

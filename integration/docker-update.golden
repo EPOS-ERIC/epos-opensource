@@ -1,0 +1,91 @@
+[STEP]  Updating environment: docker-update-test
+[STEP]  Creating backup copy of environment
+[DONE]  Backup created at: /backup/dir
+[STEP]  Updating stack
+[STEP]  Removing old environment directory
+[STEP]  Deleting environment directory: /testdir/
+[DONE]  Deleted environment directory: /testdir/
+[STEP]  Creating new environment directory
+[DONE]  Updated environment created in directory: /testdir/
+[STEP]  Deploying stack
+ Container docker-update-test-metadata-database  Running
+ Container docker-update-test-rabbitmq  Running
+ Container docker-update-test-ingestor-service  Running
+ Container docker-update-test-email-sender-service  Running
+ Container docker-update-test-converter-routine  Running
+ Container docker-update-test-converter-service  Running
+ Container docker-update-test-external-access-service  Running
+ Container docker-update-test-sharing-service  Running
+ Container docker-update-test-backoffice-service  Running
+ Container docker-update-test-resources-service  Running
+ Container docker-update-test-gateway  Running
+ Container docker-update-test-data-portal  Running
+ Container docker-update-test-backoffice-ui  Running
+ Container docker-update-test-metadata-database  Waiting
+ Container docker-update-test-metadata-database  Waiting
+ Container docker-update-test-metadata-database  Waiting
+ Container docker-update-test-rabbitmq  Waiting
+ Container docker-update-test-rabbitmq  Waiting
+ Container docker-update-test-metadata-database  Waiting
+ Container docker-update-test-metadata-database  Waiting
+ Container docker-update-test-metadata-database  Waiting
+ Container docker-update-test-metadata-database  Waiting
+ Container docker-update-test-rabbitmq  Waiting
+ Container docker-update-test-metadata-database  Waiting
+ Container docker-update-test-metadata-database  Healthy
+ Container docker-update-test-rabbitmq  Healthy
+ Container docker-update-test-metadata-database  Healthy
+ Container docker-update-test-rabbitmq  Healthy
+ Container docker-update-test-metadata-database  Healthy
+ Container docker-update-test-metadata-database  Healthy
+ Container docker-update-test-metadata-database  Healthy
+ Container docker-update-test-metadata-database  Healthy
+ Container docker-update-test-rabbitmq  Healthy
+ Container docker-update-test-metadata-database  Healthy
+ Container docker-update-test-metadata-database  Healthy
+ Container docker-update-test-ingestor-service  Waiting
+ Container docker-update-test-external-access-service  Waiting
+ Container docker-update-test-converter-service  Waiting
+ Container docker-update-test-converter-routine  Waiting
+ Container docker-update-test-backoffice-service  Waiting
+ Container docker-update-test-resources-service  Waiting
+ Container docker-update-test-converter-service  Healthy
+ Container docker-update-test-converter-routine  Healthy
+ Container docker-update-test-ingestor-service  Healthy
+ Container docker-update-test-backoffice-service  Healthy
+ Container docker-update-test-external-access-service  Healthy
+ Container docker-update-test-resources-service  Healthy
+ Container docker-update-test-gateway  Waiting
+ Container docker-update-test-gateway  Waiting
+ Container docker-update-test-gateway  Healthy
+ Container docker-update-test-gateway  Healthy
+[DONE]  Deployed environment: docker-update-test
+[STEP]  Cleaning up backup directory: /backup/dir
+[DONE]  Backup directory cleaned up: /backup/dir
+╭────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                        epos-opensource docker update docker-update-test                        │
+├────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                │
+│                                                  *************                                 │
+│ &&&&&&&&&&&&&&&&&& *&&&&&&&%&&&%               *****************               &&&&&&/         │
+│ &&&&&&&&&&&&&&&&&& *&&&&&&&&&&&&&&&&&       **  **********  *******       &&&&&&&&&&&&&&&&&    │
+│ &&&&&&&&&&&%&&&&&& *&&&&&&&%    &&&&&&&   ,************     *********    &&%&&&&&&&&&&&&&      │
+│ &&&&&&             *&&&&&&        &&&&&( ************   **   ********** &&&&&&#                │
+│ &&&&&&             *&&&&&&(       &&&&& ****** * *****  **  *********** &&&&&&&&#              │
+│ &&&&&&&&&&&&&&&&.  *&&&&&&&&&&&&&&&&&&& *******   *   , *    *********** &&&&&&&&&&&&&&&&      │
+│ &&&%&&&&&&&%&&&&.  *&&&&&&&%&&&&&&&%&   *******                 ,*******    &&&&&&&%&&&&&&&    │
+│ &&&&&&             *&&&&&&               *                   , ********              &&&&&&.   │
+│ &&&&&&             *&&&&&&               .    ******  *,    ******* **    &&         &&&&&&    │
+│ &&&&&&&&&&&&&&&&&& *&&&&&&                 ************** *         *   &&&&&&&&&&&&&&&&&&&    │
+│ &&&&&&&&&&&%&&&&&& *&&&&&&                   ************* ,*******     &&&%&&&&&&&&&&&&       │
+│                                                ****************          &&&&&&&&&&&&          │
+│                                                                                                │
+├───────────────────────────────────────┬────────────────────────────────────────────────────────┤
+│ EPOS Data Portal                      │ http://localhost:32000                                 │
+├───────────────────────────────────────┼────────────────────────────────────────────────────────┤
+│ EPOS API Gateway                      │ http://localhost:33000/api/v1/ui                       │
+├───────────────────────────────────────┼────────────────────────────────────────────────────────┤
+│ EPOS Backoffice                       │ http://localhost:34000/home                            │
+├───────────────────────────────────────┴────────────────────────────────────────────────────────┤
+│ COPYRIGHT (C) 2023  EPOS ERIC                                                                  │
+╰────────────────────────────────────────────────────────────────────────────────────────────────╯
