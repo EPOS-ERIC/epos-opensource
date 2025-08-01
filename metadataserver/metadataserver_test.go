@@ -64,7 +64,7 @@ func TestMetadataServer(t *testing.T) {
 			if tc.makeDir {
 				dir = t.TempDir()
 				// create a sample file the server should serve
-				if err := os.WriteFile(filepath.Join(dir, "greet.txt"), []byte(tc.wantBody), 0600); err != nil {
+				if err := os.WriteFile(filepath.Join(dir, "greet.txt"), []byte(tc.wantBody), 0o600); err != nil {
 					t.Fatalf("write fixture: %v", err)
 				}
 			}

@@ -20,6 +20,6 @@ lint:
 	golangci-lint run ./...
 
 test:
-	go test ./... -v
+	go test ./...
 
 .PHONY: build build-release clean generate lint test

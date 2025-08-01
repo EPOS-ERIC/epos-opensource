@@ -1,3 +1,15 @@
+// Package metadataserver spins up a tiny HTTP file server that exposes
+// a directory full of TTL files and provides a helper to POST those
+// files to an EPOS Gateway for ingestion.
+//
+// # Example
+//
+//	ms, _ := metadataserver.NewMetadataServer("/path/to/ttl")
+//	_ = ms.Start()
+//	defer ms.Stop()
+//
+//	// Send all *.ttl files to the gateway
+//	_ = ms.PostFiles("https://gateway.epos.eu", "http")
 package metadataserver
 
 import (
@@ -75,21 +87,21 @@ func (ms *MetadataServer) Stop() error {
 // Addr returns the full "ip:port" string (valid after Start()).
 func (ms *MetadataServer) Addr() string { return ms.addr }
 
-// PostFiles walks the server's directory tree and POSTs **every file
-// ending in `.ttl`** to the EPOS gateway associated with *gatewayURL*.
+// PostFiles walks the server's directory tree and POSTs every file
+// ending in .ttl to the EPOS gateway associated with gatewayURL.
 //
 //   - gatewayURL should be the base URL of the EPOS Gateway (e.g.
 //     "http://localhost:8080" or "https://gateway.epos.eu").  The
 //     function will automatically append the "/populate" endpoint and
 //     encode the required query parameters.
-//   - The MetadataServer **must be running**; the function uses Addr()
+//   - The MetadataServer must be running; the function uses Addr()
 //     to build public URLs for each TTL file.
 //   - If any file fails to ingest—or if directory traversal itself
 //     fails—the function returns a non‑nil error.  The ingestion stops
 //     at the first fatal directory walk error but continues on HTTP
 //     errors.
 func (ms *MetadataServer) PostFiles(gatewayURL, protocol string) error {
-	gatewayURL = strings.Trim(gatewayURL, "/ui")
+	gatewayURL = strings.TrimSuffix(gatewayURL, "/ui")
 	postURL, err := url.Parse(gatewayURL)
 	if err != nil {
 		return fmt.Errorf("error parsing url '%s': %w", gatewayURL, err)

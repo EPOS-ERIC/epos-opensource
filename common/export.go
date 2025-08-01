@@ -30,15 +30,7 @@ func Export(path, filename string, content []byte) error {
 
 	// Create the file in the directory
 	filePath := filepath.Join(dir, filename)
-	file, err := os.Create(filePath)
-	if err != nil {
-		return fmt.Errorf("failed to create file %s: %w", filePath, err)
-	}
-	defer file.Close()
-
-	// Write content to the file
-	_, err = file.Write(content)
-	if err != nil {
+	if err := os.WriteFile(filePath, content, 0o600); err != nil {
 		return fmt.Errorf("failed to write content to file %s: %w", filePath, err)
 	}
 
