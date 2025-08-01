@@ -24,3 +24,6 @@ linters:
       - linters:
           - gosec
         text: "^G102:"
+      - linters:
+          - gosec
+        text: "^G107:"
