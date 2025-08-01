@@ -14,7 +14,9 @@ var ExportCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		path := args[0]
-		err := dockercore.Export(path)
+		err := dockercore.Export(dockercore.ExportOpts{
+			Path: path,
+		})
 		if err != nil {
 			display.Error("%v", err)
 			return

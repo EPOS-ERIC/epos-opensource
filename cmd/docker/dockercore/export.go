@@ -5,19 +5,24 @@ import (
 	"github.com/epos-eu/epos-opensource/display"
 )
 
-func Export(path string) error {
-	err := common.Export(path, ".env", []byte(EnvFile))
+type ExportOpts struct {
+	// Required. Path to export the embedded docker-compose.yaml and .env files
+	Path string
+}
+
+func Export(opts ExportOpts) error {
+	err := common.Export(opts.Path, ".env", []byte(EnvFile))
 	if err != nil {
 		return err
 	}
 	display.Done("Exported %s", ".env")
 
-	err = common.Export(path, "docker-compose.yaml", []byte(ComposeFile))
+	err = common.Export(opts.Path, "docker-compose.yaml", []byte(ComposeFile))
 	if err != nil {
 		return err
 	}
 	display.Done("Exported %s", "docker-compose.yaml")
 
-	display.Done("Successfully exported default environment files in %s", path)
+	display.Done("Successfully exported default environment files in %s", opts)
 	return nil
 }

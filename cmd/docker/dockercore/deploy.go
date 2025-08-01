@@ -25,14 +25,14 @@ type DeployOpts struct {
 	PullImages bool
 }
 
-func (d *DeployOpts) Deploy() (*sqlc.Docker, error) {
-	if err := d.Validate(); err != nil {
+func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
+	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid options: %w", err)
 	}
 
-	display.Step("Creating environment: %s", d.Name)
+	display.Step("Creating environment: %s", opts.Name)
 
-	dir, err := NewEnvDir(d.EnvFile, d.ComposeFile, d.Path, d.Name)
+	dir, err := NewEnvDir(opts.EnvFile, opts.ComposeFile, opts.Path, opts.Name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare environment directory: %w", err)
 	}
@@ -52,8 +52,8 @@ func (d *DeployOpts) Deploy() (*sqlc.Docker, error) {
 		}
 	}
 
-	if d.PullImages {
-		if err := pullEnvImages(dir, d.Name); err != nil {
+	if opts.PullImages {
+		if err := pullEnvImages(dir, opts.Name); err != nil {
 			display.Error("Pulling images failed: %v", err)
 			cleanup()
 			if cleanupErr != nil {
@@ -68,10 +68,10 @@ func (d *DeployOpts) Deploy() (*sqlc.Docker, error) {
 		API:        33000,
 		Backoffice: 34000,
 	}
-	if d.EnvFile != "" {
-		ports, err = loadPortsFromEnvFile(d.EnvFile)
+	if opts.EnvFile != "" {
+		ports, err = loadPortsFromEnvFile(opts.EnvFile)
 		if err != nil {
-			return nil, fmt.Errorf("error loading ports from custom .env file at '%s': %w", d.EnvFile, err)
+			return nil, fmt.Errorf("error loading ports from custom .env file at '%s': %w", opts.EnvFile, err)
 		}
 	} else {
 		err := ports.ensureFree()
@@ -80,7 +80,7 @@ func (d *DeployOpts) Deploy() (*sqlc.Docker, error) {
 		}
 	}
 
-	urls, err := deployStack(dir, d.Name, ports)
+	urls, err := deployStack(dir, opts.Name, ports)
 	if err != nil {
 		display.Error("Deploy failed: %v", err)
 		stackDeployed = true
@@ -104,7 +104,7 @@ func (d *DeployOpts) Deploy() (*sqlc.Docker, error) {
 	}
 
 	docker, err := db.InsertDocker(sqlc.Docker{
-		Name:           d.Name,
+		Name:           opts.Name,
 		Directory:      dir,
 		ApiUrl:         urls.apiURL,
 		GuiUrl:         urls.guiURL,
@@ -118,7 +118,7 @@ func (d *DeployOpts) Deploy() (*sqlc.Docker, error) {
 		if cleanupErr != nil {
 			return nil, cleanupErr
 		}
-		return nil, fmt.Errorf("failed to insert docker %s (dir: %s) in db: %w", d.Name, dir, err)
+		return nil, fmt.Errorf("failed to insert docker %s (dir: %s) in db: %w", opts.Name, dir, err)
 	}
 	return docker, err
 }

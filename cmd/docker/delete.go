@@ -16,7 +16,9 @@ var DeleteCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		err := dockercore.Delete(name)
+		err := dockercore.Delete(dockercore.DeleteOpts{
+			Name: name,
+		})
 		if err != nil {
 			display.Error("%v", err)
 			return

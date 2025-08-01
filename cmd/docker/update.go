@@ -19,7 +19,13 @@ var UpdateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		d, err := dockercore.Update(envFile, composeFile, name, force, pullImages)
+		d, err := dockercore.Update(dockercore.UpdateOpts{
+			EnvFile:     envFile,
+			ComposeFile: composeFile,
+			Name:        name,
+			PullImages:  pullImages,
+			Force:       force,
+		})
 		if err != nil {
 			display.Error("%v", err)
 			return

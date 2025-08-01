@@ -10,21 +10,28 @@ import (
 	"github.com/epos-eu/epos-opensource/metadataserver"
 )
 
-func Populate(name string, ttlDirs []string) (*sqlc.Docker, error) {
-	display.Step("Populating environment %s with %d directories", name, len(ttlDirs))
+type PopulateOpts struct {
+	// Required. Slice of the paths to directories that contain *.ttl files to populate the environment with
+	TTLDirs []string
+	// Required. name of the environment
+	Name string
+}
 
-	docker, err := db.GetDockerByName(name)
+func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
+	display.Step("Populating environment %s with %d directories", opts.Name, len(opts.TTLDirs))
+
+	docker, err := db.GetDockerByName(opts.Name)
 	if err != nil {
-		return nil, fmt.Errorf("error getting docker environment from db called '%s': %w", name, err)
+		return nil, fmt.Errorf("error getting docker environment from db called '%s': %w", opts.Name, err)
 	}
 
-	for i, ttlDir := range ttlDirs {
+	for i, ttlDir := range opts.TTLDirs {
 		ttlDir, err = filepath.Abs(ttlDir)
 		if err != nil {
 			return nil, fmt.Errorf("error finding absolute path for given metadata path '%s': %w", ttlDir, err)
 		}
 
-		display.Step("Starting metadata server for directory %d of %d: %s", i+1, len(ttlDirs), ttlDir)
+		display.Step("Starting metadata server for directory %d of %d: %s", i+1, len(opts.TTLDirs), ttlDir)
 		metadataServer, err := metadataserver.NewMetadataServer(ttlDir)
 		if err != nil {
 			return nil, fmt.Errorf("creating metadata server for dir %q: %w", ttlDir, err)
@@ -42,7 +49,7 @@ func Populate(name string, ttlDirs []string) (*sqlc.Docker, error) {
 			} else {
 				display.Done("Metadata server stopped successfully")
 			}
-		}(name)
+		}(opts.Name)
 
 		err = metadataServer.PostFiles(docker.ApiUrl, "http")
 		if err != nil {
@@ -50,6 +57,6 @@ func Populate(name string, ttlDirs []string) (*sqlc.Docker, error) {
 		}
 	}
 
-	display.Done("Finished populating environment with ttl files from %d directories", len(ttlDirs))
+	display.Done("Finished populating environment with ttl files from %d directories", len(opts.TTLDirs))
 	return docker, err
 }

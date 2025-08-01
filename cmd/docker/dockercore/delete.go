@@ -9,12 +9,17 @@ import (
 	"github.com/epos-eu/epos-opensource/display"
 )
 
-func Delete(name string) error {
-	display.Step("Deleting environment: %s", name)
+type DeleteOpts struct {
+	// Required. name of the environment
+	Name string
+}
 
-	env, err := db.GetDockerByName(name)
+func Delete(opts DeleteOpts) error {
+	display.Step("Deleting environment: %s", opts.Name)
+
+	env, err := db.GetDockerByName(opts.Name)
 	if err != nil {
-		return fmt.Errorf("error getting docker environment from db called '%s': %w", name, err)
+		return fmt.Errorf("error getting docker environment from db called '%s': %w", opts.Name, err)
 	}
 
 	display.Step("Stopping stack")
@@ -23,18 +28,18 @@ func Delete(name string) error {
 		return fmt.Errorf("docker compose down failed: %w", err)
 	}
 
-	display.Done("Stopped environment: %s", name)
+	display.Done("Stopped environment: %s", opts.Name)
 
 	if err := common.RemoveEnvDir(env.Directory); err != nil {
 		return fmt.Errorf("failed to remove directory %s: %w", env.Directory, err)
 	}
 
-	err = db.DeleteDocker(name)
+	err = db.DeleteDocker(opts.Name)
 	if err != nil {
-		return fmt.Errorf("failed to delete docker %s (dir: %s) in db: %w", name, env.Directory, err)
+		return fmt.Errorf("failed to delete docker %s (dir: %s) in db: %w", opts.Name, env.Directory, err)
 	}
 
-	display.Done("Deleted environment: %s", name)
+	display.Done("Deleted environment: %s", opts.Name)
 
 	return nil
 }

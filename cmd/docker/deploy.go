@@ -25,7 +25,7 @@ var DeployCmd = &cobra.Command{
 			PullImages:  pullImages,
 		}
 
-		docker, err := opts.Deploy()
+		docker, err := dockercore.Deploy(opts)
 		if err != nil {
 			display.Error("%v", err)
 			return
