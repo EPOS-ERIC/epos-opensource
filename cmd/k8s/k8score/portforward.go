@@ -39,7 +39,7 @@ func ForwardAndRun(namespace, deployment string, localPort, remotePort int, cont
 	defer stopProcess(cmd.Process)
 
 	if err := waitForForward(stdout, stderr, 30*time.Second); err != nil {
-		return fmt.Errorf("error waiting ror port-forward: %w", err)
+		return fmt.Errorf("error waiting for port-forward: %w", err)
 	}
 
 	if err := fn("127.0.0.1", localPort); err != nil {
