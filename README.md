@@ -231,7 +231,3 @@ After submitting:
 - Update your branch until it is approved and merged.
 
 Thank you for your contribution!
-
-```
-
-```
