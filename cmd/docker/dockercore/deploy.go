@@ -40,26 +40,23 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 	display.Done("Environment created in directory: %s", dir)
 
 	var stackDeployed bool
-	var cleanupErr error
-	cleanup := func() {
+	handleFailure := func(msg string, mainErr error) (*sqlc.Docker, error) {
 		if stackDeployed {
 			if derr := downStack(dir, false); derr != nil {
 				display.Warn("docker compose down failed, there may be dangling resources: %v", derr)
 			}
 		}
-		if rerr := common.RemoveEnvDir(dir); rerr != nil {
-			cleanupErr = fmt.Errorf("error deleting environment %s: %w", dir, rerr)
+		if err := common.RemoveEnvDir(dir); err != nil {
+			return nil, fmt.Errorf("error deleting environment %s: %w", dir, err)
 		}
+		display.Error("stack deployment failed")
+		return nil, fmt.Errorf(msg, mainErr)
 	}
 
 	if opts.PullImages {
 		if err := pullEnvImages(dir, opts.Name); err != nil {
 			display.Error("Pulling images failed: %v", err)
-			cleanup()
-			if cleanupErr != nil {
-				return nil, cleanupErr
-			}
-			return nil, err
+			return handleFailure("pulling images failed: %w", err)
 		}
 	}
 
@@ -71,12 +68,12 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 	if opts.EnvFile != "" {
 		ports, err = loadPortsFromEnvFile(opts.EnvFile)
 		if err != nil {
-			return nil, fmt.Errorf("error loading ports from custom .env file at '%s': %w", opts.EnvFile, err)
+			return handleFailure("error loading ports from custom .env file at '%s': %w", fmt.Errorf("%s: %w", opts.EnvFile, err))
 		}
 	} else {
 		err := ports.ensureFree()
 		if err != nil {
-			return nil, fmt.Errorf("failed to find free ports: %w", err)
+			return handleFailure("failed to find free ports: %w", err)
 		}
 	}
 
@@ -84,23 +81,13 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 	if err != nil {
 		display.Error("Deploy failed: %v", err)
 		stackDeployed = true
-		cleanup()
-		if cleanupErr != nil {
-			return nil, cleanupErr
-		}
-		display.Error("stack deployment failed")
-		return nil, err
+		return handleFailure("deploy failed: %w", err)
 	}
 	stackDeployed = true
 
 	if err := common.PopulateOntologies(urls.apiURL); err != nil {
 		display.Error("error initializing the ontologies in the environment: %v", err)
-		cleanup()
-		if cleanupErr != nil {
-			return nil, cleanupErr
-		}
-		display.Error("stack deployment failed")
-		return nil, err
+		return handleFailure("error initializing the ontologies: %w", err)
 	}
 
 	docker, err := db.InsertDocker(sqlc.Docker{
@@ -114,11 +101,7 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 		BackofficePort: int64(ports.Backoffice),
 	})
 	if err != nil {
-		cleanup()
-		if cleanupErr != nil {
-			return nil, cleanupErr
-		}
-		return nil, fmt.Errorf("failed to insert docker %s (dir: %s) in db: %w", opts.Name, dir, err)
+		return handleFailure("failed to insert docker %s (dir: %s) in db: %w", fmt.Errorf("%s, %s, %w", opts.Name, dir, err))
 	}
 	return docker, err
 }

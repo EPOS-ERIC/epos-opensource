@@ -1,6 +1,7 @@
 package dockercore_test
 
 import (
+	"io"
 	"net/http"
 	"regexp"
 	"testing"
@@ -100,17 +101,29 @@ func TestDeploy(t *testing.T) {
 	}
 }
 
+var client = &http.Client{
+	Timeout: 10 * time.Second,
+	Transport: &http.Transport{
+		DisableKeepAlives: true,
+	},
+}
+
 func testEndpoint(url string, t *testing.T) {
-	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Get(url)
 	if err != nil {
 		t.Fatalf("failed to call url '%s': %v", url, err)
 	}
-	t.Cleanup(func() {
-		_ = resp.Body.Close()
-	})
-
+	defer resp.Body.Close()
 	resp.Close = true
+
+	_, readErr := io.Copy(io.Discard, resp.Body)
+	if readErr != nil {
+		t.Logf("warning: failed to read response body: %v", readErr)
+	}
+
+	if resp.StatusCode != 200 {
+		t.Fatalf("url '%s' answered with non 200 status code: %d", url, resp.StatusCode)
+	}
 
 	if resp.StatusCode != 200 {
 		t.Fatalf("url '%s' answered with non 200 satus code: %d", url, resp.StatusCode)
