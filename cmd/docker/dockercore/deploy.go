@@ -127,30 +127,31 @@ func (d *DeployOpts) Validate() error {
 	}
 
 	// path validation
-	path, err := filepath.Abs(d.Path)
-	if err != nil {
-		return fmt.Errorf("error getting absolute path for path: %s", d.Path)
-	}
-
-	info, err := os.Stat(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
+	if d.Path != "" {
+		path, err := filepath.Abs(d.Path)
+		if err != nil {
+			return fmt.Errorf("error getting absolute path for path: %s", d.Path)
 		}
-		return fmt.Errorf("cannot stat %q: %w", path, err)
-	}
+		info, err := os.Stat(path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return nil
+			}
+			return fmt.Errorf("cannot stat %q: %w", path, err)
+		}
 
-	if !info.IsDir() {
-		return fmt.Errorf("%q exists but is not a directory", path)
-	}
+		if !info.IsDir() {
+			return fmt.Errorf("%q exists but is not a directory", path)
+		}
 
-	forbidden := []string{".env", "docker-compose.yaml"}
-	for _, name := range forbidden {
-		p := filepath.Join(path, name)
-		if _, err := os.Stat(p); err == nil {
-			return fmt.Errorf("directory %q already contains %s", path, name)
-		} else if !os.IsNotExist(err) {
-			return fmt.Errorf("error checking for %s: %w", p, err)
+		forbidden := []string{".env", "docker-compose.yaml"}
+		for _, name := range forbidden {
+			p := filepath.Join(path, name)
+			if _, err := os.Stat(p); err == nil {
+				return fmt.Errorf("directory %q already contains %s", path, name)
+			} else if !os.IsNotExist(err) {
+				return fmt.Errorf("error checking for %s: %w", p, err)
+			}
 		}
 	}
 
