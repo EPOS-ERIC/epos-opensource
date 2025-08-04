@@ -152,6 +152,7 @@ Look for these in your terminal output.
 - **Docker/Kubernetes not found:** Make sure Docker and/or kubectl are installed and running.
 - **Environment/Directory already exists:** Use a new name, or delete the old environment first.
 - **Problems with `.ttl` files:** Make sure the directory exists and contains valid `.ttl` files and that their path are valid (no spaces, weird symbols, ...).
+- **Environment not found/Does not exists:** Make sure to be running the commands as the same user, the cli uses an user level sqlite database to store the environment information.
 
 If you get stuck, run with `--help` for more info, or feel free to [open an issue](https://github.com/epos-eu/epos-opensource/issues).
 
