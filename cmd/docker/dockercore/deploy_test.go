@@ -13,6 +13,7 @@ import (
 )
 
 func TestDeploy(t *testing.T) {
+	tempDirCustomPath := t.TempDir()
 	tests := []struct {
 		name string
 		opts dockercore.DeployOpts
@@ -43,11 +44,11 @@ func TestDeploy(t *testing.T) {
 			name: "deploy with custom path",
 			opts: dockercore.DeployOpts{
 				Name: "docker-deploy-test",
-				Path: "./../../../.test/",
+				Path: tempDirCustomPath,
 			},
 			want: &sqlc.Docker{
 				Name:           "docker-deploy-test",
-				Directory:      `.*/\.test/.*`,
+				Directory:      tempDirCustomPath,
 				ApiUrl:         "http://localhost:33000/api/v1",
 				GuiUrl:         "http://localhost:32000",
 				BackofficeUrl:  "http://localhost:34000",
@@ -108,6 +109,8 @@ func testEndpoint(url string, t *testing.T) {
 	t.Cleanup(func() {
 		_ = resp.Body.Close()
 	})
+
+	resp.Close = true
 
 	if resp.StatusCode != 200 {
 		t.Fatalf("url '%s' answered with non 200 satus code: %d", url, resp.StatusCode)
