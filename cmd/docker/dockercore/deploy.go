@@ -66,9 +66,9 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 		Backoffice: 34000,
 	}
 	if opts.EnvFile != "" {
-		ports, err = loadPortsFromEnvFile(opts.EnvFile)
+		ports, err = loadPortsFromEnvFile(dir)
 		if err != nil {
-			return handleFailure("error loading ports from custom .env file at '%s': %w", fmt.Errorf("%s: %w", opts.EnvFile, err))
+			return handleFailure("error loading ports from custom .env file at %w", fmt.Errorf("%s: %w", opts.EnvFile, err))
 		}
 	} else {
 		err := ports.ensureFree()
@@ -101,7 +101,7 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 		BackofficePort: int64(ports.Backoffice),
 	})
 	if err != nil {
-		return handleFailure("failed to insert docker %s (dir: %s) in db: %w", fmt.Errorf("%s, %s, %w", opts.Name, dir, err))
+		return handleFailure("failed to insert docker in db: %w", fmt.Errorf("%s (dir: %s): %w", opts.Name, dir, err))
 	}
 	return docker, err
 }
