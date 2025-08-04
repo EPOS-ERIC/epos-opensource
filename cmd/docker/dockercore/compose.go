@@ -142,7 +142,7 @@ func loadPortsFromEnvFile(filePath string) (*DeploymentPorts, error) {
 	if !ok {
 		return nil, fmt.Errorf("environment variable GATEWAY_PORT is not set")
 	}
-	ports.API, err = strconv.Atoi(guiPort)
+	ports.API, err = strconv.Atoi(apiPort)
 	if err != nil {
 		return nil, fmt.Errorf("invalid value for port GATEWAY_PORT: %s", apiPort)
 	}
