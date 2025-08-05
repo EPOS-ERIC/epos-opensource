@@ -23,6 +23,8 @@ type UpdateOpts struct {
 	PullImages bool
 	// Optional. whether to do a docker compose down before updating the environment. Useful to reset the environment's database
 	Force bool
+	// Optional. custom ip to use instead of localhost if set
+	CustomIP string
 }
 
 // Update logic:
@@ -62,7 +64,7 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 			display.Error("Failed to restore from backup: %v", err)
 		} else {
 			// we can ignore the resulting urls since they be the same as the original ones
-			if _, err := deployStack(docker.Directory, opts.Name, ports); err != nil {
+			if _, err := deployStack(docker.Directory, opts.Name, ports, opts.CustomIP); err != nil {
 				display.Error("Failed to deploy restored environment: %v", err)
 			}
 		}
@@ -110,7 +112,7 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 
 	// Deploy the updated compose
 	// we can ignore the urls returned because they will be the same as before
-	if _, err = deployStack(dir, opts.Name, ports); err != nil {
+	if _, err = deployStack(dir, opts.Name, ports, opts.CustomIP); err != nil {
 		display.Error("Deploy failed: %v", err)
 		return handleFailure("deploy failed: %w", err)
 	}

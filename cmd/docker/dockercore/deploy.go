@@ -3,8 +3,10 @@ package dockercore
 import (
 	_ "embed"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
@@ -23,6 +25,8 @@ type DeployOpts struct {
 	Name string
 	// Optional. whether to pull the images before deploying or not
 	PullImages bool
+	// Optional. custom ip to use instead of localhost if set
+	CustomIP string
 }
 
 func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
@@ -77,7 +81,7 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 		}
 	}
 
-	urls, err := deployStack(dir, opts.Name, ports)
+	urls, err := deployStack(dir, opts.Name, ports, opts.CustomIP)
 	if err != nil {
 		display.Error("Deploy failed: %v", err)
 		stackDeployed = true
@@ -105,6 +109,8 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 	}
 	return docker, err
 }
+
+var validHostnameRegex = regexp.MustCompile(`^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$`)
 
 // Validate checks if the DeployOpts are valid for a deployment.
 // It checks:
@@ -151,6 +157,16 @@ func (d *DeployOpts) Validate() error {
 				return fmt.Errorf("directory %q already contains %s", path, name)
 			} else if !os.IsNotExist(err) {
 				return fmt.Errorf("error checking for %s: %w", p, err)
+			}
+		}
+	}
+
+	// ip validation
+	if d.CustomIP != "" {
+		ip := net.ParseIP(d.CustomIP)
+		if ip == nil {
+			if !validHostnameRegex.MatchString(d.CustomIP) {
+				return fmt.Errorf("custom ip is not a valid ip or hostname")
 			}
 		}
 	}

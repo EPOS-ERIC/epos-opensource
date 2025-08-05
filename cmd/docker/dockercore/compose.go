@@ -42,7 +42,7 @@ type Urls struct {
 // deployStack deploys the stack in the specified directory.
 // the deployed stack will use the given ports for the deployment of the services.
 // it is the responsibility of the caller to ensure the ports are not used
-func deployStack(dir, name string, ports *DeploymentPorts) (*Urls, error) {
+func deployStack(dir, name string, ports *DeploymentPorts, customIP string) (*Urls, error) {
 	err := os.Setenv("DATAPORTAL_PORT", strconv.Itoa(ports.GUI))
 	if err != nil {
 		return nil, fmt.Errorf("failed to set env var 'DATAPORTAL_PORT': %w", err)
@@ -63,7 +63,7 @@ func deployStack(dir, name string, ports *DeploymentPorts) (*Urls, error) {
 
 	display.Done("Deployed environment: %s", name)
 
-	urls, err := buildEnvURLs(dir, ports)
+	urls, err := buildEnvURLs(dir, ports, customIP)
 	if err != nil {
 		return nil, fmt.Errorf("error building urls for environment '%s': %w", dir, err)
 	}

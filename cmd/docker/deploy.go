@@ -23,6 +23,7 @@ var DeployCmd = &cobra.Command{
 			Path:        path,
 			Name:        name,
 			PullImages:  pullImages,
+			CustomIP:    customIP,
 		}
 
 		docker, err := dockercore.Deploy(opts)
@@ -40,4 +41,5 @@ func init() {
 	DeployCmd.Flags().StringVarP(&path, "path", "p", "", "Location for the environment files")
 	DeployCmd.Flags().StringVarP(&composeFile, "compose-file", "c", "", "Path to the Docker Compose file")
 	DeployCmd.Flags().BoolVarP(&pullImages, "update-images", "u", false, "Download Docker images before starting")
+	DeployCmd.Flags().StringVar(&customIP, "ip", "", "Custom IP to expose the environment to, if not set localhost will be used")
 }

@@ -81,7 +81,7 @@ func NewEnvDir(customEnvFilePath, customComposeFilePath, customPath, name string
 	return envPath, nil
 }
 
-func buildEnvURLs(dir string, ports *DeploymentPorts) (urls Urls, err error) {
+func buildEnvURLs(dir string, ports *DeploymentPorts, customIP string) (urls Urls, err error) {
 	env, err := godotenv.Read(filepath.Join(dir, ".env"))
 	if err != nil {
 		return urls, fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
@@ -92,14 +92,19 @@ func buildEnvURLs(dir string, ports *DeploymentPorts) (urls Urls, err error) {
 		return urls, fmt.Errorf("environment variable API_PATH is not set")
 	}
 
-	urls.guiURL = fmt.Sprintf("http://localhost:%d", ports.GUI)
+	ip := "localhost"
+	if customIP != "" {
+		ip = customIP
+	}
 
-	urls.apiURL, err = url.JoinPath(fmt.Sprintf("http://localhost:%d", ports.API), apiPath)
+	urls.guiURL = fmt.Sprintf("http://%s:%d", ip, ports.GUI)
+
+	urls.apiURL, err = url.JoinPath(fmt.Sprintf("http://%s:%d", ip, ports.API), apiPath)
 	if err != nil {
 		return urls, fmt.Errorf("error building gateway URL: %w", err)
 	}
 
-	urls.backofficeURL = fmt.Sprintf("http://localhost:%d", ports.Backoffice)
+	urls.backofficeURL = fmt.Sprintf("http://%s:%d", ip, ports.Backoffice)
 
 	return urls, nil
 }
