@@ -126,7 +126,8 @@ func copyCustomManifests(customManifestsDirPath, envPath string) error {
 	}
 
 	for _, de := range dirEntries {
-		if de.IsDir() {
+		if de.IsDir() || (filepath.Ext(de.Name()) != ".yaml" && filepath.Ext(de.Name()) != ".yml") {
+			display.Warn("Found unknown item %s in custom manifest dir, ignoring it", de.Name())
 			continue
 		}
 
