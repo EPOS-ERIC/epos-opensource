@@ -17,16 +17,14 @@ var DeployCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		opts := dockercore.DeployOpts{
+		docker, err := dockercore.Deploy(dockercore.DeployOpts{
 			EnvFile:     envFile,
 			ComposeFile: composeFile,
 			Path:        path,
 			Name:        name,
 			PullImages:  pullImages,
 			CustomIP:    customIP,
-		}
-
-		docker, err := dockercore.Deploy(opts)
+		})
 		if err != nil {
 			display.Error("%v", err)
 			return
@@ -37,7 +35,7 @@ var DeployCmd = &cobra.Command{
 }
 
 func init() {
-	DeployCmd.Flags().StringVarP(&envFile, "env-file", "e", "", "Path to the environment variables file (.env)")
+	DeployCmd.Flags().StringVarP(&envFile, "env-file", "e", "", "Path to the environment variables file (.env). If using a custom env file make sure to manually set the ports inside of it")
 	DeployCmd.Flags().StringVarP(&path, "path", "p", "", "Location for the environment files")
 	DeployCmd.Flags().StringVarP(&composeFile, "compose-file", "c", "", "Path to the Docker Compose file")
 	DeployCmd.Flags().BoolVarP(&pullImages, "update-images", "u", false, "Download Docker images before starting")
