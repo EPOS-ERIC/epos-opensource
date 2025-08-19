@@ -4,14 +4,14 @@ GOOS?=$(shell go env GOOS)
 GOARCH?=$(shell go env GOARCH)
 
 build: generate
-	go build -ldflags "-X github.com/epos-eu/epos-opensource/cmd.Version=$(VERSION)" -o $(BIN) .
+	CGO_ENABLED=0 go build -ldflags "-X github.com/epos-eu/epos-opensource/cmd.Version=$(VERSION)" -o $(BIN) .
 
 # Build for specific platform (used by CI)
-build-release:
+build-release: generate
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags "-X github.com/epos-eu/epos-opensource/cmd.Version=$(VERSION)" -o $(BIN)-$(GOOS)-$(GOARCH)$(EXT) .
 
 clean:
-	rm -f $(BIN)*
+	rm $(BIN)*
 
 generate:
 	go generate ./...
@@ -19,7 +19,14 @@ generate:
 lint:
 	golangci-lint run ./...
 
-test:
+test: vet
 	go test ./...
 
-.PHONY: build build-release clean generate lint test
+test-integration: vet
+	go test -tags=integration ./...
+
+vet:
+	go vet ./...
+	go tool sqlc vet ./...
+
+.PHONY: build build-release clean generate lint test vet

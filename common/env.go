@@ -8,7 +8,7 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/epos-eu/epos-opensource/common/configdir"
+	"github.com/epos-eu/epos-opensource/configdir"
 	"github.com/epos-eu/epos-opensource/display"
 )
 

@@ -10,7 +10,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/epos-eu/epos-opensource/common/configdir"
+	"github.com/epos-eu/epos-opensource/configdir"
 	"github.com/epos-eu/epos-opensource/db/sqlc"
 	"github.com/pressly/goose/v3"
 	_ "modernc.org/sqlite"
