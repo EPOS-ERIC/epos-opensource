@@ -6,4 +6,5 @@ var (
 	manifestsDir string
 	context      string
 	secure       bool
+	host         string
 )

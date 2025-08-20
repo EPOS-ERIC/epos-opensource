@@ -19,7 +19,7 @@ var UpdateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		k, err := k8score.Update(envFile, manifestsDir, name, force)
+		k, err := k8score.Update(envFile, manifestsDir, name, host, force)
 		if err != nil {
 			display.Error("%v", err)
 			return
@@ -33,4 +33,5 @@ func init() {
 	UpdateCmd.Flags().BoolVarP(&force, "force", "f", false, "Remove the current containers before redeploying")
 	UpdateCmd.Flags().StringVarP(&envFile, "env-file", "e", "", "Path to the environment variables file (.env)")
 	UpdateCmd.Flags().StringVarP(&manifestsDir, "manifests-dir", "m", "", "Path to the directory containing the manifests files")
+	UpdateCmd.Flags().StringVar(&host, "host", "", "host (either IP or hostname) to use for exposing the environment. If not set the nginx ingress controller IP is used by default")
 }

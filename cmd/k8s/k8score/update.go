@@ -21,7 +21,7 @@ import (
 // deploy the updated manifests
 // if everything goes right, delete the tmp dir and finish
 // else restore the tmp dir, deploy the old restored env and give an error in output
-func Update(envFile, composeFile, name string, force bool) (*sqlc.Kubernetes, error) {
+func Update(envFile, composeFile, name, customIP string, force bool) (*sqlc.Kubernetes, error) {
 	display.Step("Updating environment: %s", name)
 
 	kube, err := db.GetKubernetesByName(name)
@@ -85,7 +85,7 @@ func Update(envFile, composeFile, name string, force bool) (*sqlc.Kubernetes, er
 
 	// create the directory in the parent
 	path := filepath.Dir(kube.Directory)
-	dir, err := NewEnvDir(envFile, composeFile, path, name, kube.Context, kube.Protocol)
+	dir, err := NewEnvDir(envFile, composeFile, path, name, kube.Context, kube.Protocol, customIP)
 	if err != nil {
 		if restoreErr := restoreFromTmp(); restoreErr != nil {
 			display.Error("Restore failed: %v", restoreErr)

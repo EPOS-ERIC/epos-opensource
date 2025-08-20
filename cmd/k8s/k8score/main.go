@@ -62,7 +62,7 @@ func init() {
 // NewEnvDir creates an environment directory with .env and manifest files.
 // Uses custom files if provided, otherwise uses embedded defaults.
 // Expands environment variables in all manifest files.
-func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name, context, protocol string) (string, error) {
+func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name, context, protocol, host string) (string, error) {
 	envPath, err := common.BuildEnvPath(customPath, name, platform)
 	if err != nil {
 		return "", err
@@ -96,6 +96,10 @@ func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name, cont
 	if err != nil {
 		return "", fmt.Errorf("failed to set 'NAMESPACE' environment variable: %w", err)
 	}
+	err = os.Setenv("HOST_NAME", host)
+	if err != nil {
+		return "", fmt.Errorf("failed to set 'HOST_NAME' environment variable: %w", err)
+	}
 	expandedEnv := os.ExpandEnv(string(envContent))
 	if err := common.CreateFileWithContent(path.Join(envPath, ".env"), expandedEnv); err != nil {
 		return "", fmt.Errorf("failed to create .env file: %w", err)
@@ -111,7 +115,7 @@ func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name, cont
 		}
 	}
 
-	if err := loadEnvAndExpandManifests(envPath, name, context, protocol); err != nil {
+	if err := loadEnvAndExpandManifests(envPath, name, context, protocol, host); err != nil {
 		return "", fmt.Errorf("failed to process environment variables: %w", err)
 	}
 
@@ -160,16 +164,7 @@ func copyEmbeddedManifests(envPath string) error {
 // getAPIHost returns the public host for the environment.
 // If HOST_NAME is set in the .env file, it is returned.
 // Otherwise, it attempts to get the ingress controller IP/hostname, and if that fails, falls back to the local IP.
-func getAPIHost(dir, context string) (string, error) {
-	env, err := godotenv.Read(filepath.Join(dir, ".env"))
-	if err != nil {
-		return "", fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
-	}
-
-	if hostName := env["HOST_NAME"]; hostName != "" {
-		return hostName, nil
-	}
-
+func getAPIHost(context string) (string, error) {
 	ip, err := getIngressControllerIP(context)
 	if err != nil {
 		display.Warn("error getting ingress IP, falling back to local IP: %v", err)
@@ -181,7 +176,7 @@ func getAPIHost(dir, context string) (string, error) {
 	return ip, nil
 }
 
-func loadEnvAndExpandManifests(envPath, name, context, protocol string) error {
+func loadEnvAndExpandManifests(envPath, name, context, protocol, host string) error {
 	envFilePath := path.Join(envPath, ".env")
 	if err := godotenv.Load(envFilePath); err != nil {
 		return fmt.Errorf("failed to load environment file %q: %w", envFilePath, err)
@@ -191,7 +186,7 @@ func loadEnvAndExpandManifests(envPath, name, context, protocol string) error {
 	if err != nil {
 		return fmt.Errorf("failed to set 'NAMESPACE' environment variable: %w", err)
 	}
-	_, apiURL, _, err := buildEnvURLs(envPath, context, protocol)
+	_, apiURL, _, err := buildEnvURLs(envPath, context, protocol, host)
 	if err != nil {
 		return fmt.Errorf("error building API URL: %w", err)
 	}
@@ -379,7 +374,7 @@ func deleteNamespace(name, context string) error {
 
 // buildEnvURLs returns the base urls for the dataportal and the gateway.
 // It tries to get the ip of the ingress of the cluster, and if there is an error it returns the localIP
-func buildEnvURLs(dir, context, protocol string) (portalURL, gatewayURL, backofficeURL string, err error) {
+func buildEnvURLs(dir, context, protocol, host string) (portalURL, gatewayURL, backofficeURL string, err error) {
 	env, err := godotenv.Read(filepath.Join(dir, ".env"))
 	if err != nil {
 		return "", "", "", fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
@@ -396,11 +391,6 @@ func buildEnvURLs(dir, context, protocol string) (portalURL, gatewayURL, backoff
 	backofficeDeployPath, ok := env["BACKOFFICE_DEPLOY_PATH"]
 	if !ok {
 		return "", "", "", fmt.Errorf("environment variable BACKOFFICE_DEPLOY_PATH is not set")
-	}
-
-	host, err := getAPIHost(dir, context)
-	if err != nil {
-		return "", "", "", fmt.Errorf("error getting api host: %w", err)
 	}
 
 	gatewayURL, err = url.JoinPath(fmt.Sprintf("%s://%s", protocol, host), apiDeployPath)

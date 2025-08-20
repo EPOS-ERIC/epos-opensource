@@ -86,7 +86,7 @@ func TestNewEnvDir(t *testing.T) {
 				_ = os.MkdirAll(filepath.Join(basePath, envName), 0o700)
 			}
 
-			envPath, err := NewEnvDir(customEnv, customManif, basePath, envName, "docker-desktop", "http")
+			envPath, err := NewEnvDir(customEnv, customManif, basePath, envName, "docker-desktop", "http", "localhost")
 			if tt.wantErr {
 				if err == nil {
 					t.Fatalf("expected error, got nil")

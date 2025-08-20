@@ -12,21 +12,47 @@ import (
 	"github.com/epos-eu/epos-opensource/display"
 )
 
-func Deploy(envFile, composeFile, path, name, context, protocol string) (*sqlc.Kubernetes, error) {
-	if context == "" {
+type DeployOpts struct {
+	// Optional. path to an env file to use. If not set the default embedded one will be used
+	EnvFile string
+	// Optional. path to a directory that will contain the custom manifest to use for the deploy
+	ManifestDir string
+	// Optional. path to a custom directory to store the .env and manifests in
+	Path string
+	// Required. name of the environment
+	Name string
+	// Optional. the kubernetes context to be used. uses current kubeclt default if not set
+	Context string
+	// Optional. the protocol to use for the deployment. currently supports http and https
+	Protocol string
+	// Optional. custom ip (or hostname) to use instead of using the generated one
+	CustomHost string
+}
+
+func Deploy(opts DeployOpts) (*sqlc.Kubernetes, error) {
+	if opts.Context == "" {
 		cmd := exec.Command("kubectl", "config", "current-context")
 		out, err := command.RunCommand(cmd, true)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get current kubectl context: %w", err)
 		}
-		context = string(out)
-		context = strings.TrimSpace(context)
+		opts.Context = string(out)
+		opts.Context = strings.TrimSpace(opts.Context)
 	}
 
-	display.Info("Using kubectl context: %s", context)
-	display.Step("Creating environment: %s", name)
+	display.Info("Using kubectl context: %s", opts.Context)
+	display.Step("Creating environment: %s", opts.Name)
 
-	dir, err := NewEnvDir(envFile, composeFile, path, name, context, protocol)
+	host := opts.CustomHost
+	if host == "" {
+		generatedHost, err := getAPIHost(opts.Context)
+		if err != nil {
+			return nil, fmt.Errorf("error getting api host: %w", err)
+		}
+		host = generatedHost
+	}
+
+	dir, err := NewEnvDir(opts.EnvFile, opts.ManifestDir, opts.Path, opts.Name, opts.Context, opts.Protocol, host)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare environment directory: %w", err)
 	}
@@ -34,8 +60,8 @@ func Deploy(envFile, composeFile, path, name, context, protocol string) (*sqlc.K
 	display.Done("Environment created in directory: %s", dir)
 
 	handleFailure := func(msg string, mainErr error) (*sqlc.Kubernetes, error) {
-		if err := deleteNamespace(name, context); err != nil {
-			display.Warn("error deleting namespace %s, %v", name, err)
+		if err := deleteNamespace(opts.Name, opts.Context); err != nil {
+			display.Warn("error deleting namespace %s, %v", opts.Name, err)
 		}
 		if err := common.RemoveEnvDir(dir); err != nil {
 			return nil, fmt.Errorf("error deleting environment %s: %w", dir, err)
@@ -44,12 +70,12 @@ func Deploy(envFile, composeFile, path, name, context, protocol string) (*sqlc.K
 		return nil, fmt.Errorf(msg, mainErr)
 	}
 
-	if err := deployManifests(dir, name, true, context, protocol); err != nil {
+	if err := deployManifests(dir, opts.Name, true, opts.Context, opts.Protocol); err != nil {
 		display.Error("Deploy failed: %v", err)
 		return handleFailure("deploy failed: %w", err)
 	}
 
-	portalURL, gatewayURL, backofficeURL, err := buildEnvURLs(dir, context, protocol)
+	portalURL, gatewayURL, backofficeURL, err := buildEnvURLs(dir, opts.Context, opts.Protocol, host)
 	if err != nil {
 		display.Error("error building env urls for the environment: %v", err)
 		return handleFailure("error building env urls for environment '%s': %w", fmt.Errorf("%s: %w", dir, err))
@@ -64,10 +90,10 @@ func Deploy(envFile, composeFile, path, name, context, protocol string) (*sqlc.K
 		return handleFailure("error initializing the ontologies: %w", err)
 	}
 
-	kube, err := db.InsertKubernetes(name, dir, context, gatewayURL, portalURL, backofficeURL, protocol)
+	kube, err := db.InsertKubernetes(opts.Name, dir, opts.Context, gatewayURL, portalURL, backofficeURL, opts.Protocol)
 	if err != nil {
 		display.Error("failed to insert kubernetes in db: %v", err)
-		return handleFailure("failed to insert kubernetes %s (dir: %s) in db: %w", fmt.Errorf("%s, %s, %w", name, dir, err))
+		return handleFailure("failed to insert kubernetes %s (dir: %s) in db: %w", fmt.Errorf("%s, %s, %w", opts.Name, dir, err))
 	}
 
 	return kube, nil
