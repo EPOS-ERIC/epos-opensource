@@ -5,5 +5,5 @@ var (
 	path        string
 	composeFile string
 	pullImages  bool
-	customIP    string
+	host        string
 )

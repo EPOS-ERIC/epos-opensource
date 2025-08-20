@@ -25,7 +25,7 @@ var UpdateCmd = &cobra.Command{
 			Name:        name,
 			PullImages:  pullImages,
 			Force:       force,
-			CustomIP:    customIP,
+			CustomHost:  host,
 		})
 		if err != nil {
 			display.Error("%v", err)
@@ -41,5 +41,5 @@ func init() {
 	UpdateCmd.Flags().StringVarP(&composeFile, "compose-file", "c", "", "Path to the Docker Compose file")
 	UpdateCmd.Flags().BoolVarP(&force, "force", "f", false, "Remove the current containers before redeploying")
 	UpdateCmd.Flags().BoolVarP(&pullImages, "update-images", "u", false, "Download Docker images before starting")
-	UpdateCmd.Flags().StringVar(&customIP, "ip", "", "Custom IP to expose the environment to, if not set localhost will be used")
+	UpdateCmd.Flags().StringVar(&host, "host", "", "host (either IP or hostname) to use for exposing the environment. If not set the nginx ingress controller IP is used by default")
 }

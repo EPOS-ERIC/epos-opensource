@@ -26,7 +26,7 @@ type DeployOpts struct {
 	// Optional. whether to pull the images before deploying or not
 	PullImages bool
 	// Optional. custom ip to use instead of localhost if set
-	CustomIP string
+	CustomHost string
 }
 
 func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
@@ -81,7 +81,7 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 		}
 	}
 
-	urls, err := deployStack(dir, opts.Name, ports, opts.CustomIP)
+	urls, err := deployStack(dir, opts.Name, ports, opts.CustomHost)
 	if err != nil {
 		display.Error("Deploy failed: %v", err)
 		stackDeployed = true
@@ -162,10 +162,10 @@ func (d *DeployOpts) Validate() error {
 	}
 
 	// ip validation
-	if d.CustomIP != "" {
-		ip := net.ParseIP(d.CustomIP)
+	if d.CustomHost != "" {
+		ip := net.ParseIP(d.CustomHost)
 		if ip == nil {
-			if !validHostnameRegex.MatchString(d.CustomIP) {
+			if !validHostnameRegex.MatchString(d.CustomHost) {
 				return fmt.Errorf("custom ip is not a valid ip or hostname")
 			}
 		}
