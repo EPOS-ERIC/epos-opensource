@@ -16,7 +16,10 @@ clean:
 generate:
 	go generate ./...
 
-lint:
+fmt:
+	go fmt ./...
+
+lint: fmt
 	golangci-lint run ./...
 
 test: vet
@@ -29,4 +32,4 @@ vet:
 	go vet ./...
 	go tool sqlc vet ./...
 
-.PHONY: build build-release clean generate lint test vet
+.PHONY: build build-release clean generate lint test vet fmt
