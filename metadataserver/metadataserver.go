@@ -30,22 +30,38 @@ import (
 )
 
 type MetadataServer struct {
-	dir  string       // absolute path served
-	Srv  *http.Server // underlying HTTP server
-	addr string       // full address "ip:port", e.g. "192.168.1.20:53513"
+	dir      string       // absolute path served
+	Srv      *http.Server // underlying HTTP server
+	addr     string
+	onlyFile string // full address "ip:port", e.g. "192.168.1.20:53513"
+}
+
+func (ms *MetadataServer) LimitToFile(file string) {
+	ms.dir = filepath.Dir(file)       // serve parent dir
+	ms.onlyFile = filepath.Base(file) // only expose this file
 }
 
 // NewMetadataServer validates ttlDir and prepares the object.
 // The listener is created when Start() is called.
 func NewMetadataServer(ttlDir string) (*MetadataServer, error) {
-	absDir, err := filepath.Abs(ttlDir)
+	absPath, err := filepath.Abs(ttlDir)
 	if err != nil {
-		return nil, fmt.Errorf("resolve ttlDir: %w", err)
+		return nil, fmt.Errorf("resolve path: %w", err)
 	}
-	if fi, err := os.Stat(absDir); err != nil || !fi.IsDir() {
-		return nil, fmt.Errorf("ttlDir %q is not a directory: %w", absDir, err)
+
+	fi, err := os.Stat(absPath)
+	if err != nil {
+		return nil, fmt.Errorf("stat path %q: %w", absPath, err)
 	}
-	return &MetadataServer{dir: absDir}, nil
+
+	ms := &MetadataServer{}
+	if fi.IsDir() {
+		ms.dir = absPath
+	} else {
+		ms.LimitToFile(absPath)
+	}
+
+	return ms, nil
 }
 
 // Start binds an ephemeral port on all interfaces, launches the HTTP
@@ -68,7 +84,15 @@ func (ms *MetadataServer) Start() error {
 
 	ms.Srv = &http.Server{
 		ReadHeaderTimeout: 15 * time.Second,
-		Handler:           http.FileServer(http.Dir(ms.dir)),
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// If LimitToFile was called, only serve that file
+			if ms.onlyFile != "" && filepath.Base(r.URL.Path) != ms.onlyFile {
+				http.NotFound(w, r)
+				return
+			}
+			// Serve the requested file
+			http.FileServer(http.Dir(ms.dir)).ServeHTTP(w, r)
+		}),
 	}
 
 	go func() {
