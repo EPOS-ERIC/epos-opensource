@@ -61,14 +61,14 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 			return nil, fmt.Errorf("error starting metadata server: %w", err)
 		}
 
-		defer func(env string, m *metadataserver.MetadataServer) {
+		defer func(env string) {
 			display.Step("Stopping metadata server for path: %s", p)
-			if err := m.Stop(); err != nil {
+			if err := metadataServer.Stop(); err != nil {
 				display.Error("Error while removing metadata server deployment: %v. You might have to remove it manually.", err)
 			} else {
 				display.Done("Metadata server stopped successfully")
 			}
-		}(opts.Name, metadataServer)
+		}(opts.Name)
 
 		err = metadataServer.PostFiles(docker.ApiUrl, "http")
 		if err != nil {

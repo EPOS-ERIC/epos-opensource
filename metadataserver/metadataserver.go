@@ -32,11 +32,11 @@ import (
 type MetadataServer struct {
 	dir      string       // absolute path served
 	Srv      *http.Server // underlying HTTP server
-	addr     string
-	onlyFile string // full address "ip:port", e.g. "192.168.1.20:53513"
+	addr     string       // full address "ip:port", e.g. "192.168.1.20:53513"
+	onlyFile string
 }
 
-func (ms *MetadataServer) LimitToFile(file string) {
+func (ms *MetadataServer) limitToFile(file string) {
 	ms.dir = filepath.Dir(file)       // serve parent dir
 	ms.onlyFile = filepath.Base(file) // only expose this file
 }
@@ -58,7 +58,7 @@ func NewMetadataServer(ttlDir string) (*MetadataServer, error) {
 	if fi.IsDir() {
 		ms.dir = absPath
 	} else {
-		ms.LimitToFile(absPath)
+		ms.limitToFile(absPath)
 	}
 
 	return ms, nil
@@ -84,15 +84,7 @@ func (ms *MetadataServer) Start() error {
 
 	ms.Srv = &http.Server{
 		ReadHeaderTimeout: 15 * time.Second,
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// If LimitToFile was called, only serve that file
-			if ms.onlyFile != "" && filepath.Base(r.URL.Path) != ms.onlyFile {
-				http.NotFound(w, r)
-				return
-			}
-			// Serve the requested file
-			http.FileServer(http.Dir(ms.dir)).ServeHTTP(w, r)
-		}),
+		Handler:           http.FileServer(http.Dir(ms.dir)),
 	}
 
 	go func() {
@@ -146,8 +138,6 @@ func (ms *MetadataServer) PostFiles(gatewayURL, protocol string) error {
 		if !strings.HasSuffix(d.Name(), ".ttl") {
 			return nil
 		}
-
-		display.Step("Ingesting file: %s", d.Name())
 		relPath, err := filepath.Rel(ms.dir, path)
 		if err != nil {
 			display.Error("Error getting relative path: %v", err)
@@ -155,6 +145,11 @@ func (ms *MetadataServer) PostFiles(gatewayURL, protocol string) error {
 			return nil
 		}
 
+		if ms.onlyFile != "" && relPath != ms.onlyFile {
+			return nil
+		}
+
+		display.Step("Ingesting file: %s", d.Name())
 		q := postURL.Query()
 		// TODO: remove securityCode once it's removed from the ingestor
 		q.Set("securityCode", "changeme")

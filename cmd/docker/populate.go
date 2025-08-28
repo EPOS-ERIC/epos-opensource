@@ -16,9 +16,9 @@ Multiple directories can be provided and will be processed in order.`,
 	Args: cobra.MinimumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
-		ttlpaths := args[1:]
+		ttlPaths := args[1:]
 		d, err := dockercore.Populate(dockercore.PopulateOpts{
-			TTLDirs: ttlpaths,
+			TTLDirs: ttlPaths,
 			Name:    name,
 		})
 		if err != nil {
