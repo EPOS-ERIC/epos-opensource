@@ -5,21 +5,21 @@ import (
 
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
 	"github.com/epos-eu/epos-opensource/display"
-
 	"github.com/spf13/cobra"
 )
 
 var PopulateCmd = &cobra.Command{
-	Use:   "populate [env-name] [ttl-directory...]",
-	Short: "Ingest TTL files from one or more directories into an environment",
-	Long: `Populate an existing environment with all *.ttl files found in the specified directories (recursively).
-Multiple directories can be provided and will be processed in order.`,
+	Use:   "populate [env-name] [ttl-paths...]",
+	Short: "Ingest TTL files from one or more directories or individual files into an environment",
+	Long: `Populate an existing environment with all *.ttl files found in the specified directories (recursively),
+or ingest the files directly if individual file paths are provided.
+Multiple directories and/or files can be provided and will be processed in order.`,
 	Args: cobra.MinimumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
-		ttlDirs := args[1:]
+		ttlPaths := args[1:]
 		d, err := dockercore.Populate(dockercore.PopulateOpts{
-			TTLDirs: ttlDirs,
+			TTLDirs: ttlPaths,
 			Name:    name,
 		})
 		if err != nil {

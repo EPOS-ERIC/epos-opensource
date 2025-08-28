@@ -2,6 +2,7 @@ package k8score
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/epos-eu/epos-opensource/common"
@@ -19,16 +20,35 @@ func Populate(name string, ttlDirs []string) (*sqlc.Kubernetes, error) {
 		return nil, fmt.Errorf("error getting kubernetes environment from db called '%s': %w", name, err)
 	}
 
-	for i, ttlDir := range ttlDirs {
-		ttlDir, err = filepath.Abs(ttlDir)
+	for i, path := range ttlDirs {
+		path, err = filepath.Abs(path)
 		if err != nil {
-			return nil, fmt.Errorf("error finding absolute path for given metadata path '%s': %w", ttlDir, err)
+			return nil, fmt.Errorf("error finding absolute path for given metadata path '%s': %w", path, err)
 		}
-
-		display.Step("Starting metadata server for directory %d of %d: %s", i+1, len(ttlDirs), ttlDir)
-		metadataServer, err := metadataserver.NewMetadataServer(ttlDir)
+		info, err := os.Stat(path)
 		if err != nil {
-			return nil, fmt.Errorf("creating metadata server for dir %q: %w", ttlDir, err)
+			return nil, fmt.Errorf("error stating path %q: %w", path, err)
+		}
+		var metadataServer *metadataserver.MetadataServer
+
+		if info.IsDir() {
+			// Case 1: directory
+			display.Step("Starting metadata server for directory %d of %d: %s", i+1, len(ttlDirs), path)
+			metadataServer, err = metadataserver.NewMetadataServer(path)
+			if err != nil {
+				return nil, fmt.Errorf("creating metadata server for dir %q: %w", path, err)
+			}
+		} else {
+			// Case 2: file
+			if filepath.Ext(path) != ".ttl" {
+				return nil, fmt.Errorf("file %s is not a .ttl file", path)
+			}
+
+			metadataServer, err = metadataserver.NewMetadataServer(path)
+			if err != nil {
+				return nil, fmt.Errorf("creating metadata server for file %q in directory none: %w", path, err)
+			}
+
 		}
 
 		if err = metadataServer.Start(); err != nil {
@@ -37,7 +57,7 @@ func Populate(name string, ttlDirs []string) (*sqlc.Kubernetes, error) {
 
 		// Make sure the metadata server is stopped and URLs are printed last on success.
 		defer func(env string) {
-			display.Step("Stopping metadata server for directory: %s", ttlDir)
+			display.Step("Stopping metadata server for directory: %s", path)
 			if err := metadataServer.Stop(); err != nil {
 				display.Error("Error while removing metadata server deployment: %v. You might have to remove it manually.", err)
 			} else {

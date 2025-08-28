@@ -30,22 +30,38 @@ import (
 )
 
 type MetadataServer struct {
-	dir  string       // absolute path served
-	Srv  *http.Server // underlying HTTP server
-	addr string       // full address "ip:port", e.g. "192.168.1.20:53513"
+	dir      string       // absolute path served
+	Srv      *http.Server // underlying HTTP server
+	addr     string       // full address "ip:port", e.g. "192.168.1.20:53513"
+	onlyFile string
+}
+
+func (ms *MetadataServer) limitToFile(file string) {
+	ms.dir = filepath.Dir(file)       // serve parent dir
+	ms.onlyFile = filepath.Base(file) // only expose this file
 }
 
 // NewMetadataServer validates ttlDir and prepares the object.
 // The listener is created when Start() is called.
 func NewMetadataServer(ttlDir string) (*MetadataServer, error) {
-	absDir, err := filepath.Abs(ttlDir)
+	absPath, err := filepath.Abs(ttlDir)
 	if err != nil {
-		return nil, fmt.Errorf("resolve ttlDir: %w", err)
+		return nil, fmt.Errorf("resolve path: %w", err)
 	}
-	if fi, err := os.Stat(absDir); err != nil || !fi.IsDir() {
-		return nil, fmt.Errorf("ttlDir %q is not a directory: %w", absDir, err)
+
+	fi, err := os.Stat(absPath)
+	if err != nil {
+		return nil, fmt.Errorf("stat path %q: %w", absPath, err)
 	}
-	return &MetadataServer{dir: absDir}, nil
+
+	ms := &MetadataServer{}
+	if fi.IsDir() {
+		ms.dir = absPath
+	} else {
+		ms.limitToFile(absPath)
+	}
+
+	return ms, nil
 }
 
 // Start binds an ephemeral port on all interfaces, launches the HTTP
@@ -122,8 +138,6 @@ func (ms *MetadataServer) PostFiles(gatewayURL, protocol string) error {
 		if !strings.HasSuffix(d.Name(), ".ttl") {
 			return nil
 		}
-
-		display.Step("Ingesting file: %s", d.Name())
 		relPath, err := filepath.Rel(ms.dir, path)
 		if err != nil {
 			display.Error("Error getting relative path: %v", err)
@@ -131,6 +145,11 @@ func (ms *MetadataServer) PostFiles(gatewayURL, protocol string) error {
 			return nil
 		}
 
+		if ms.onlyFile != "" && relPath != ms.onlyFile {
+			return nil
+		}
+
+		display.Step("Ingesting file: %s", d.Name())
 		q := postURL.Query()
 		// TODO: remove securityCode once it's removed from the ingestor
 		q.Set("securityCode", "changeme")

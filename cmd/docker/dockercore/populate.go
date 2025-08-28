@@ -2,6 +2,7 @@ package dockercore
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/epos-eu/epos-opensource/db"
@@ -11,39 +12,57 @@ import (
 )
 
 type PopulateOpts struct {
-	// Required. Slice of the paths to directories that contain *.ttl files to populate the environment with
 	TTLDirs []string
-	// Required. name of the environment
+
 	Name string
 }
 
 func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
-	display.Step("Populating environment %s with %d directories", opts.Name, len(opts.TTLDirs))
+	display.Step("Populating environment %s with %d path(s)", opts.Name, len(opts.TTLDirs))
 
 	docker, err := db.GetDockerByName(opts.Name)
 	if err != nil {
 		return nil, fmt.Errorf("error getting docker environment from db called '%s': %w", opts.Name, err)
 	}
 
-	for i, ttlDir := range opts.TTLDirs {
-		ttlDir, err = filepath.Abs(ttlDir)
+	for _, p := range opts.TTLDirs {
+		p, err = filepath.Abs(p)
 		if err != nil {
-			return nil, fmt.Errorf("error finding absolute path for given metadata path '%s': %w", ttlDir, err)
+			return nil, fmt.Errorf("error finding absolute path for given metadata path '%s': %w", p, err)
 		}
 
-		display.Step("Starting metadata server for directory %d of %d: %s", i+1, len(opts.TTLDirs), ttlDir)
-		metadataServer, err := metadataserver.NewMetadataServer(ttlDir)
+		info, err := os.Stat(p)
 		if err != nil {
-			return nil, fmt.Errorf("creating metadata server for dir %q: %w", ttlDir, err)
+			return nil, fmt.Errorf("error stating path %q: %w", p, err)
+		}
+
+		var metadataServer *metadataserver.MetadataServer
+
+		if info.IsDir() {
+			// Case 1: directory
+			metadataServer, err = metadataserver.NewMetadataServer(p)
+			if err != nil {
+				return nil, fmt.Errorf("creating metadata server for dir %q: %w", p, err)
+			}
+		} else {
+			// Case 2: file
+			if filepath.Ext(p) != ".ttl" {
+				return nil, fmt.Errorf("file %s is not a .ttl file", p)
+			}
+
+			metadataServer, err = metadataserver.NewMetadataServer(p)
+			if err != nil {
+				return nil, fmt.Errorf("creating metadata server for file %q in directory none: %w", p, err)
+			}
+
 		}
 
 		if err = metadataServer.Start(); err != nil {
 			return nil, fmt.Errorf("error starting metadata server: %w", err)
 		}
 
-		// Make sure the metadata server is stopped and URLs are printed last on success.
 		defer func(env string) {
-			display.Step("Stopping metadata server for directory: %s", ttlDir)
+			display.Step("Stopping metadata server for path: %s", p)
 			if err := metadataServer.Stop(); err != nil {
 				display.Error("Error while removing metadata server deployment: %v. You might have to remove it manually.", err)
 			} else {
@@ -57,6 +76,6 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 		}
 	}
 
-	display.Done("Finished populating environment with ttl files from %d directories", len(opts.TTLDirs))
+	display.Done("Finished populating environment with ttl files from %d path(s)", len(opts.TTLDirs))
 	return docker, err
 }
