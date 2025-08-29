@@ -12,44 +12,52 @@ Title: <type>(<scope>): <summary>
 
 <!-- If any -->
 
-Closes #
-
 ## How to Test
 
-<!-- How to test this PR for reviewers to check -->
+<!--
+Step-by-step instructions for a reviewer to verify the changes.
+Be explicit: commands to run, expected output, etc.
+-->
 
 ---
 
-## Required (must pass)
+## Quality Checklist
 
-- [ ] Lint & vet pass locally (`make lint`).
-- [ ] Unit tests pass (`make test`) and run with race detector (`make test-race`).
-- [ ] Integration tests pass (`make test-integration`) **or** marked N/A with reason.
-- [ ] Project builds with no warnings (`make build`).
-- [ ] I did a self-review and removed dead/debug code.
+### Pre-commit & CI (automatic)
+
+_(No need to re-run manually — pre-commit hook + CI pipeline handle this.)_
+
+- [ ] Pre-commit hook passed (lint + unit tests).
+- [ ] CI pipeline is green (lint, tests, build).
+
+### Code & Design
+
+- [ ] Code is self-reviewed, clean, and free of debug/log/test junk.
+- [ ] Clear, consistent naming; no duplicated logic (helpers extracted when useful).
+- [ ] Errors include context (`return fmt.Errorf("...: %w", err)`) rather than plain `return err`.
+- [ ] Edge cases handled (empty inputs, timeouts, invalid paths, missing tools).
+- [ ] Long operations have cancellation/timeouts; network/IO has retries/backoff.
 - [ ] No secrets/keys/tokens introduced.
-- [ ] CLI remains backward compatible (commands/flags/help), **or** I documented the breaking change in this PR and updated docs/examples.
+- [ ] **If a new dependency was added, I explained why it is necessary and why alternatives were not chosen.**
 
-## Correctness & Design
+### Testing
 
-- [ ] Clear naming; avoided duplicated logic by extracting helpers where sensible.
-- [ ] Errors include context, don't just `return err`.
-- [ ] Edge cases handled (empty inputs, timeouts, missing binaries/tools, invalid paths).
-- [ ] Long operations have cancellation or timeouts; network/IO has retries/backoff.
+- [ ] Added or updated at least one test for new/changed code.
+- [ ] Verified tests pass locally (pre-commit hook covers this).
+- [ ] Verified main use case manually (document steps in **How to Test**).
 
-## Security & Dependencies
+### Documentation & UX
 
-- [ ] No secrets/keys/tokens introduced.
-- [ ] Inputs validated; outputs escaped where appropriate.
+- [ ] README/help/examples updated if user-visible behavior changed.
+- [ ] Feature flags/toggles documented.
+- [ ] CLI remains backward compatible, **or** breaking changes are documented in this PR.
 
-## Performance & Reliability (as applicable)
+### Final Self-Check
 
-- [ ] Concurrency is safe (tests pass with `-race`).
+- [ ] I personally reviewed all changes before submitting.
+- [ ] Removed leftover debug code, logs, TODOs, experimental bits.
 
-## Documentation & Maintainability
-
-- [ ] README/help/examples updated for UX-visible changes.
-- [ ] Feature flags/toggles documented (default state + removal plan).
+---
 
 ## Reviewer Notes
 
