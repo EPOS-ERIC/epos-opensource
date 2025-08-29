@@ -19,8 +19,9 @@ Multiple directories and/or files can be provided and will be processed in order
 		name := args[0]
 		ttlPaths := args[1:]
 		d, err := dockercore.Populate(dockercore.PopulateOpts{
-			TTLDirs: ttlPaths,
-			Name:    name,
+			TTLDirs:  ttlPaths,
+			Name:     name,
+			Parallel: parallel,
 		})
 		if err != nil {
 			display.Error("%v", err)
@@ -28,4 +29,8 @@ Multiple directories and/or files can be provided and will be processed in order
 		}
 		display.Urls(d.GuiUrl, d.ApiUrl, d.BackofficeUrl, fmt.Sprintf("epos-opensource docker populate %s", name))
 	},
+}
+
+func init() {
+	PopulateCmd.Flags().IntVarP(&parallel, "parallel", "p", 1, "Number of parallel uploads to perform when ingesting TTL files. Default is 1")
 }

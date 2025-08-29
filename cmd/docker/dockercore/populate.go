@@ -12,14 +12,16 @@ import (
 )
 
 type PopulateOpts struct {
-	TTLDirs []string
-
-	Name string
+	TTLDirs  []string
+	Name     string
+	Parallel int
 }
 
 func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 	display.Step("Populating environment %s with %d path(s)", opts.Name, len(opts.TTLDirs))
-
+	if opts.Parallel < 1 && opts.Parallel > 20 {
+		return nil, fmt.Errorf("parallel uploads must be between 1 and 20")
+	}
 	docker, err := db.GetDockerByName(opts.Name)
 	if err != nil {
 		return nil, fmt.Errorf("error getting docker environment from db called '%s': %w", opts.Name, err)
@@ -40,7 +42,7 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 
 		if info.IsDir() {
 			// Case 1: directory
-			metadataServer, err = metadataserver.NewMetadataServer(p)
+			metadataServer, err = metadataserver.NewMetadataServer(p, opts.Parallel)
 			if err != nil {
 				return nil, fmt.Errorf("creating metadata server for dir %q: %w", p, err)
 			}
@@ -50,7 +52,7 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 				return nil, fmt.Errorf("file %s is not a .ttl file", p)
 			}
 
-			metadataServer, err = metadataserver.NewMetadataServer(p)
+			metadataServer, err = metadataserver.NewMetadataServer(p, opts.Parallel)
 			if err != nil {
 				return nil, fmt.Errorf("creating metadata server for file %q in directory none: %w", p, err)
 			}
