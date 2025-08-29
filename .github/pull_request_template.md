@@ -4,6 +4,10 @@ Examples: fix(auth): handle expired refresh token
           feat(cli): add --dry-run flag
 -->
 
+> Prefer a different template?
+>
+> - **New to project**: [use this guided template](?expand=1&template=new-to-project.md)
+
 ## Summary
 
 <!-- 1–3 sentences: what and why -->
