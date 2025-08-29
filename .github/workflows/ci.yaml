@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go (from go.mod)
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      - name: Show Go env (debug)
+        run: go env
+
+      - name: Install project tools
+        run: go mod download
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+          args: --timeout=5m
+          only-new-issues: false
+
+      - name: Build (sanity)
+        run: make build-release
+
+      - name: Unit tests
+        run: make test
+
+      - name: Unit tests (with race)
+        run: make test-race

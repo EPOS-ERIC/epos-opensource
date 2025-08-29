@@ -22,10 +22,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Go
+      - name: Set up Go (from go.mod)
         uses: actions/setup-go@v5
         with:
-          go-version: "1.24.4"
+          go-version-file: "go.mod"
+          cache: true
 
       - name: Build Binary for ${{ matrix.platform.os }}
         env:
@@ -51,9 +52,11 @@ jobs:
         with:
           path: artifacts
 
-      - name: List downloaded artifacts (debug)
+      - name: Generate checksums
         run: |
-          find artifacts -type f -name "*" | sort
+          cd artifacts
+          find . -type f -maxdepth 2 -exec sha256sum {} \; | sort > SHA256SUMS.txt
+          cat SHA256SUMS.txt
 
       - name: Create GitHub Release and Upload Binaries
         uses: softprops/action-gh-release@v2
@@ -68,5 +71,6 @@ jobs:
             artifacts/epos-opensource-macos/epos-opensource-darwin-amd64
             artifacts/epos-opensource-macos-arm64/epos-opensource-darwin-arm64
             artifacts/epos-opensource-windows/epos-opensource-windows-amd64.exe
+            artifacts/SHA256SUMS.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
