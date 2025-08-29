@@ -6,4 +6,5 @@ var (
 	composeFile string
 	pullImages  bool
 	host        string
+	parallel    int
 )

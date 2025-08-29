@@ -12,7 +12,7 @@ import (
 	"github.com/epos-eu/epos-opensource/metadataserver"
 )
 
-func Populate(name string, ttlDirs []string) (*sqlc.Kubernetes, error) {
+func Populate(name string, ttlDirs []string, parallel int) (*sqlc.Kubernetes, error) {
 	display.Step("Populating environment %s with %d directories", name, len(ttlDirs))
 
 	kube, err := db.GetKubernetesByName(name)
@@ -34,7 +34,7 @@ func Populate(name string, ttlDirs []string) (*sqlc.Kubernetes, error) {
 		if info.IsDir() {
 			// Case 1: directory
 			display.Step("Starting metadata server for directory %d of %d: %s", i+1, len(ttlDirs), path)
-			metadataServer, err = metadataserver.NewMetadataServer(path)
+			metadataServer, err = metadataserver.NewMetadataServer(path, parallel)
 			if err != nil {
 				return nil, fmt.Errorf("creating metadata server for dir %q: %w", path, err)
 			}
@@ -44,7 +44,7 @@ func Populate(name string, ttlDirs []string) (*sqlc.Kubernetes, error) {
 				return nil, fmt.Errorf("file %s is not a .ttl file", path)
 			}
 
-			metadataServer, err = metadataserver.NewMetadataServer(path)
+			metadataServer, err = metadataserver.NewMetadataServer(path, parallel)
 			if err != nil {
 				return nil, fmt.Errorf("creating metadata server for file %q in directory none: %w", path, err)
 			}

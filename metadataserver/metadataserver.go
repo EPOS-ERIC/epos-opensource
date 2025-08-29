@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/epos-eu/epos-opensource/common"
@@ -34,6 +35,7 @@ type MetadataServer struct {
 	Srv      *http.Server // underlying HTTP server
 	addr     string       // full address "ip:port", e.g. "192.168.1.20:53513"
 	onlyFile string
+	parallel int
 }
 
 func (ms *MetadataServer) limitToFile(file string) {
@@ -43,7 +45,7 @@ func (ms *MetadataServer) limitToFile(file string) {
 
 // NewMetadataServer validates ttlDir and prepares the object.
 // The listener is created when Start() is called.
-func NewMetadataServer(ttlDir string) (*MetadataServer, error) {
+func NewMetadataServer(ttlDir string, parallel int) (*MetadataServer, error) {
 	absPath, err := filepath.Abs(ttlDir)
 	if err != nil {
 		return nil, fmt.Errorf("resolve path: %w", err)
@@ -54,7 +56,7 @@ func NewMetadataServer(ttlDir string) (*MetadataServer, error) {
 		return nil, fmt.Errorf("stat path %q: %w", absPath, err)
 	}
 
-	ms := &MetadataServer{}
+	ms := &MetadataServer{parallel: parallel}
 	if fi.IsDir() {
 		ms.dir = absPath
 	} else {
@@ -126,78 +128,86 @@ func (ms *MetadataServer) PostFiles(gatewayURL, protocol string) error {
 
 	display.Done("Deployed metadata server with mounted dir: %s", ms.dir)
 	display.Step("Starting the ingestion of the '*.ttl' files")
-
+	var wg sync.WaitGroup
+	semaphore := make(chan struct{}, ms.parallel)
 	ingestionError := false
 	err = filepath.WalkDir(ms.dir, func(path string, d fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			display.Error("Error while walking directory: %v", walkErr)
-			ingestionError = true
-			return nil
-		}
+		wg.Add(1)
+		go func() {
+			semaphore <- struct{}{}
+			defer wg.Done()
+			defer func() { <-semaphore }()
+			if walkErr != nil {
+				display.Error("Error while walking directory: %v", walkErr)
+				ingestionError = true
+				return
+			}
 
-		if !strings.HasSuffix(d.Name(), ".ttl") {
-			return nil
-		}
-		relPath, err := filepath.Rel(ms.dir, path)
-		if err != nil {
-			display.Error("Error getting relative path: %v", err)
-			ingestionError = true
-			return nil
-		}
+			if !strings.HasSuffix(d.Name(), ".ttl") {
+				return
+			}
+			relPath, err := filepath.Rel(ms.dir, path)
+			if err != nil {
+				display.Error("Error getting relative path: %v", err)
+				ingestionError = true
+				return
+			}
 
-		if ms.onlyFile != "" && relPath != ms.onlyFile {
-			return nil
-		}
+			if ms.onlyFile != "" && relPath != ms.onlyFile {
+				return
+			}
+			display.Step("Ingesting file: %s", d.Name())
+			q := postURL.Query()
+			// TODO: remove securityCode once it's removed from the ingestor
+			q.Set("securityCode", "changeme")
+			q.Set("type", "single")
+			q.Set("model", "EPOS-DCAT-AP-V1")
+			q.Set("mapping", "EDM-TO-DCAT-AP")
 
-		display.Step("Ingesting file: %s", d.Name())
-		q := postURL.Query()
-		// TODO: remove securityCode once it's removed from the ingestor
-		q.Set("securityCode", "changeme")
-		q.Set("type", "single")
-		q.Set("model", "EPOS-DCAT-AP-V1")
-		q.Set("mapping", "EDM-TO-DCAT-AP")
+			fileURL, err := url.JoinPath(protocol+"://", ms.Addr(), relPath)
+			if err != nil {
+				display.Error("Error while building URL for file '%s': %v", d.Name(), err)
+				ingestionError = true
+				return
+			}
 
-		fileURL, err := url.JoinPath(protocol+"://", ms.Addr(), relPath)
-		if err != nil {
-			display.Error("Error while building URL for file '%s': %v", d.Name(), err)
-			ingestionError = true
-			return nil
-		}
+			q.Set("path", fileURL)
+			//postURL.RawQuery = q.Encode()
+			routinePostURL := *postURL
+			routinePostURL.RawQuery = q.Encode()
 
-		q.Set("path", fileURL)
-		postURL.RawQuery = q.Encode()
+			r, err := http.NewRequest("POST", routinePostURL.String(), nil)
+			if err != nil {
+				display.Error("Error building request for file '%s': %v", d.Name(), err)
+				ingestionError = true
+				return
+			}
 
-		r, err := http.NewRequest("POST", postURL.String(), nil)
-		if err != nil {
-			display.Error("Error building request for file '%s': %v", d.Name(), err)
-			ingestionError = true
-			return nil
-		}
+			r.Header.Add("accept", "*/*")
+			res, err := http.DefaultClient.Do(r)
+			if err != nil {
+				display.Error("Error ingesting file '%s' in database: %v", d.Name(), err)
+				ingestionError = true
+				return
+			}
+			defer res.Body.Close()
 
-		r.Header.Add("accept", "*/*")
-		res, err := http.DefaultClient.Do(r)
-		if err != nil {
-			display.Error("Error ingesting file '%s' in database: %v", d.Name(), err)
-			ingestionError = true
-			return nil
-		}
-		defer res.Body.Close()
+			body, err := io.ReadAll(res.Body)
+			if err != nil {
+				display.Error("Error reading response body for file '%s': %v", d.Name(), err)
+				ingestionError = true
+				return
+			}
 
-		body, err := io.ReadAll(res.Body)
-		if err != nil {
-			display.Error("Error reading response body for file '%s': %v", d.Name(), err)
-			ingestionError = true
-			return nil
-		}
-
-		if res.StatusCode != http.StatusOK {
-			display.Error("Error ingesting file '%s' in database: received status code %d. Body of response: %s", d.Name(), res.StatusCode, string(body))
-			ingestionError = true
-			return nil
-		}
-
+			if res.StatusCode != http.StatusOK {
+				display.Error("Error ingesting file '%s' in database: received status code %d. Body of response: %s", d.Name(), res.StatusCode, string(body))
+				ingestionError = true
+				return
+			}
+		}()
 		return nil
 	})
+	wg.Wait()
 	if err != nil {
 		return fmt.Errorf("failed to ingest metadata in directory %s: %w", ms.dir, err)
 	}
@@ -205,7 +215,6 @@ func (ms *MetadataServer) PostFiles(gatewayURL, protocol string) error {
 	if ingestionError {
 		return fmt.Errorf("failed to ingest metadata in directory %s", ms.dir)
 	}
-
 	display.Done("Ingestion of *.ttl files from dir '%s' finished successfully", ms.dir)
 	return nil
 }

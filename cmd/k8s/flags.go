@@ -7,4 +7,5 @@ var (
 	context      string
 	secure       bool
 	host         string
+	parallel     int
 )
