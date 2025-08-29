@@ -2,16 +2,22 @@ BIN=epos-opensource
 VERSION?=makefile
 GOOS?=$(shell go env GOOS)
 GOARCH?=$(shell go env GOARCH)
+EXT?=
+
+LDFLAGS=-s -w -X github.com/epos-eu/epos-opensource/cmd.Version=$(VERSION)
+BUILDFLAGS=-trimpath
+
+.DEFAULT_GOAL := build
 
 build: generate
-	CGO_ENABLED=0 go build -ldflags "-X github.com/epos-eu/epos-opensource/cmd.Version=$(VERSION)" -o $(BIN) .
+	CGO_ENABLED=0 go build $(BUILDFLAGS) -ldflags "$(LDFLAGS)" -o $(BIN) .
 
 # Build for specific platform (used by CI)
 build-release: generate
-	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags "-X github.com/epos-eu/epos-opensource/cmd.Version=$(VERSION)" -o $(BIN)-$(GOOS)-$(GOARCH)$(EXT) .
+	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(BUILDFLAGS) -ldflags "$(LDFLAGS)" -o $(BIN)-$(GOOS)-$(GOARCH)$(EXT) .
 
 clean:
-	rm $(BIN)*
+	rm -f $(BIN) $(BIN)-* || true
 
 generate:
 	go generate ./...
@@ -22,14 +28,19 @@ fmt:
 lint: fmt
 	golangci-lint run ./...
 
-test: vet
-	go test ./...
-
-test-integration: vet
-	go test -tags=integration ./...
-
 vet:
 	go vet ./...
 	go tool sqlc vet ./...
 
-.PHONY: build build-release clean generate lint test vet fmt
+test: vet
+	go test ./...
+
+test-race:
+	go test ./... -race -count=1
+
+test-integration:
+	go test -tags=integration ./...
+
+test-all: test test-race test-integration
+
+.PHONY: build build-release clean generate fmt lint vet test test-race test-integration test-all
