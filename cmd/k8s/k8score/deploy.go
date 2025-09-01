@@ -85,7 +85,19 @@ func Deploy(opts DeployOpts) (*sqlc.Kubernetes, error) {
 	display.Info("Generated URL for gateway: %s", gatewayURL)
 	display.Info("Generated URL for backoffice: %s", backofficeURL)
 
-	if err := common.PopulateOntologies(gatewayURL); err != nil {
+	display.Step("Starting port-forward to gateway pod for ontologies")
+	localPort, err := common.FindFreePort()
+	if err != nil {
+		return handleFailure("could not find free port: %w", err)
+	}
+	err = ForwardAndRun(opts.Name, "gateway", localPort, 8080, opts.Context, func(host string, port int) error {
+		display.Done("Port forward started successfully")
+		if err := common.PopulateOntologies(gatewayURL); err != nil {
+			return fmt.Errorf("error populating ontologies through port-forward: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
 		display.Error("error initializing the ontologies in the environment: %v", err)
 		return handleFailure("error initializing the ontologies: %w", err)
 	}
