@@ -3,15 +3,12 @@ package dockercore
 import (
 	_ "embed"
 	"fmt"
-	"net"
-	"os"
-	"path/filepath"
-	"regexp"
 
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
 	"github.com/epos-eu/epos-opensource/db/sqlc"
 	"github.com/epos-eu/epos-opensource/display"
+	"github.com/epos-eu/epos-opensource/validate"
 )
 
 type DeployOpts struct {
@@ -31,9 +28,8 @@ type DeployOpts struct {
 
 func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 	if err := opts.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid options: %w", err)
+		return nil, fmt.Errorf("invalid deploy parameters: %w", err)
 	}
-
 	display.Step("Creating environment: %s", opts.Name)
 
 	dir, err := NewEnvDir(opts.EnvFile, opts.ComposeFile, opts.Path, opts.Name)
@@ -109,67 +105,18 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 	}
 	return docker, err
 }
-
-var validHostnameRegex = regexp.MustCompile(`^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$`)
-
-// Validate checks if the DeployOpts are valid for a deployment.
-// It checks:
-// - the name is set
-// - the name is not already used by some other environment
-// - the path directory (if it exists) does not contain a '.env' or 'docker-compose.yaml' file
 func (d *DeployOpts) Validate() error {
-	if err := common.ValidateEnvName(d.Name); err != nil {
+	if err := validate.Name(d.Name); err != nil {
 		return fmt.Errorf("invalid name for environment: %w", err)
 	}
-
-	envs, err := db.GetAllDocker()
-	if err != nil {
-		return fmt.Errorf("error getting installed docker environment from db: %w", err)
+	if err := validate.EnviromentNotExistDocker(d.Name); err != nil {
+		return fmt.Errorf("an environment with the name '%s' already exists: %w", d.Name, err)
 	}
-	for _, env := range envs {
-		if env.Name == d.Name {
-			return fmt.Errorf("an environment with the name '%s' already exists", d.Name)
-		}
+	if err := validate.PathExists(d.Path); err != nil {
+		return fmt.Errorf("the path '%s' is not a valid path: %w", d.Path, err)
 	}
-
-	// path validation
-	if d.Path != "" {
-		path, err := filepath.Abs(d.Path)
-		if err != nil {
-			return fmt.Errorf("error getting absolute path for path: %s", d.Path)
-		}
-		info, err := os.Stat(path)
-		if err != nil {
-			if os.IsNotExist(err) {
-				return nil
-			}
-			return fmt.Errorf("cannot stat %q: %w", path, err)
-		}
-
-		if !info.IsDir() {
-			return fmt.Errorf("%q exists but is not a directory", path)
-		}
-
-		forbidden := []string{".env", "docker-compose.yaml"}
-		for _, name := range forbidden {
-			p := filepath.Join(path, name)
-			if _, err := os.Stat(p); err == nil {
-				return fmt.Errorf("directory %q already contains %s", path, name)
-			} else if !os.IsNotExist(err) {
-				return fmt.Errorf("error checking for %s: %w", p, err)
-			}
-		}
+	if err := validate.CustomHost(d.CustomHost); err != nil {
+		return fmt.Errorf("the custom host '%s' is not a valid ip or hostname: %w", d.CustomHost, err)
 	}
-
-	// ip validation
-	if d.CustomHost != "" {
-		ip := net.ParseIP(d.CustomHost)
-		if ip == nil {
-			if !validHostnameRegex.MatchString(d.CustomHost) {
-				return fmt.Errorf("custom ip is not a valid ip or hostname")
-			}
-		}
-	}
-
 	return nil
 }

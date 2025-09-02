@@ -10,6 +10,7 @@ import (
 	"github.com/epos-eu/epos-opensource/db"
 	"github.com/epos-eu/epos-opensource/db/sqlc"
 	"github.com/epos-eu/epos-opensource/display"
+	"github.com/epos-eu/epos-opensource/validate"
 )
 
 type UpdateOpts struct {
@@ -37,6 +38,9 @@ type UpdateOpts struct {
 // if everything goes right, delete the tmp dir and finish
 // else restore the tmp dir, deploy the old restored env and give an error in output
 func Update(opts UpdateOpts) (*sqlc.Docker, error) {
+	if err := opts.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid parameters for update command: %w", err)
+	}
 	display.Step("Updating environment: %s", opts.Name)
 
 	docker, err := db.GetDockerByName(opts.Name)
@@ -131,4 +135,13 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 	}
 
 	return docker, nil
+}
+func (u *UpdateOpts) Validate() error {
+	if err := validate.EnviromentExistsDocker(u.Name); err != nil {
+		return fmt.Errorf("no environment with name '%s' exists: %w", u.Name, err)
+	}
+	if err := validate.CustomHost(u.CustomHost); err != nil {
+		return fmt.Errorf("the custom host '%s' is not a valid ip or hostname: %w", u.CustomHost, err)
+	}
+	return nil
 }

@@ -9,15 +9,22 @@ import (
 	"github.com/epos-eu/epos-opensource/db/sqlc"
 	"github.com/epos-eu/epos-opensource/display"
 	"github.com/epos-eu/epos-opensource/metadataserver"
+	"github.com/epos-eu/epos-opensource/validate"
 )
 
 type PopulateOpts struct {
-	TTLDirs  []string
-	Name     string
+	// Required. paths to ttl files or directories containing ttl files to populate the environment
+	TTLDirs []string
+	// Required. name of the environment to populate
+	Name string
+	// Optional. number of parallel uploads to use. If not set the default will be 1. Max is 20
 	Parallel int
 }
 
 func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
+	if err := opts.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid populate parameters: %w", err)
+	}
 	display.Step("Populating environment %s with %d path(s)", opts.Name, len(opts.TTLDirs))
 	if opts.Parallel < 1 && opts.Parallel > 20 {
 		return nil, fmt.Errorf("parallel uploads must be between 1 and 20")
@@ -80,4 +87,10 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 
 	display.Done("Finished populating environment with ttl files from %d path(s)", len(opts.TTLDirs))
 	return docker, err
+}
+func (p *PopulateOpts) Validate() error {
+	if validate.EnviromentExistsDocker(p.Name) != nil {
+		return fmt.Errorf("no enviroment with name'%s' exists", p.Name)
+	}
+	return nil
 }

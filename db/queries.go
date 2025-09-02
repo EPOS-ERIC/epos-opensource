@@ -116,7 +116,7 @@ func GetDockerByName(name string) (*sqlc.Docker, error) {
 	docker, err := q.GetDockerByName(context.Background(), name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("error getting docker %s: no row found", name)
+			return nil, fmt.Errorf("error getting docker '%s' no row found: %w", name, err)
 		}
 		return nil, fmt.Errorf("error getting docker %s: %w", name, err)
 	}
