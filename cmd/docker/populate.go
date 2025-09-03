@@ -10,7 +10,7 @@ import (
 
 var PopulateCmd = &cobra.Command{
 	Use:   "populate [env-name] [ttl-paths...]",
-	Short: "Ingest TTL files from one or more directories or individual files into an environment",
+	Short: "Ingest TTL files from directories or files into an environment.",
 	Long: `Populate an existing environment with all *.ttl files found in the specified directories (recursively),
 or ingest the files directly if individual file paths are provided.
 Multiple directories and/or files can be provided and will be processed in order.`,
@@ -32,5 +32,5 @@ Multiple directories and/or files can be provided and will be processed in order
 }
 
 func init() {
-	PopulateCmd.Flags().IntVarP(&parallel, "parallel", "p", 1, "Number of parallel uploads to perform when ingesting TTL files. Default is 1")
+	PopulateCmd.Flags().IntVarP(&parallel, "parallel", "p", 1, "Number of parallel uploads to perform when ingesting TTL files")
 }

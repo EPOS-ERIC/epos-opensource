@@ -9,7 +9,7 @@ import (
 
 var ExportCmd = &cobra.Command{
 	Use:   "export [path]",
-	Short: "Export default environment files and manifests",
+	Short: "Export default environment files and manifests.",
 	Long:  "Copies the default .env file and all embedded Kubernetes manifest files to the specified directory for manual inspection or customization.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {

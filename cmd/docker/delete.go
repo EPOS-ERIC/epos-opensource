@@ -10,7 +10,7 @@ import (
 
 var DeleteCmd = &cobra.Command{
 	Use:   "delete [env-name]",
-	Short: "Stop and remove a Docker Compose environment",
+	Short: "Stop and remove a Docker Compose environment.",
 	Long:  "Deletes the Docker Compose environment with the given name.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
