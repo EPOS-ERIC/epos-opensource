@@ -280,7 +280,6 @@ func deployManifests(dir, namespace string, createNamespace bool, context, proto
 	display.Step("Setting up the environment")
 	setup := []string{
 		"configmap-epos-env.yaml",
-		"secret-epos-secret.yaml",
 		"pvc-psqldata.yaml",
 		"pvc-converter-plugins.yaml",
 	}

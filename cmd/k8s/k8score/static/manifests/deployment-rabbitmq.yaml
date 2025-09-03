@@ -21,8 +21,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: epos-env
-            - secretRef:
-                name: epos-secret
           env:
             - name: RABBITMQ_DEFAULT_USER
               valueFrom:
@@ -31,8 +29,8 @@ spec:
                   key: BROKER_USERNAME
             - name: RABBITMQ_DEFAULT_PASS
               valueFrom:
-                secretKeyRef:
-                  name: epos-secret
+                configMapKeyRef:
+                  name: epos-env
                   key: BROKER_PASSWORD
             - name: RABBITMQ_DEFAULT_VHOST
               valueFrom:
