@@ -36,7 +36,7 @@ func Get() (*sqlc.Queries, error) {
 	dbDir := configdir.GetPath()
 	dbFile := path.Join(dbDir, dbName)
 
-	err := os.MkdirAll(dbDir, 0750)
+	err := os.MkdirAll(dbDir, 0o750)
 	if err != nil {
 		return nil, fmt.Errorf("error creating db directory %s: %w", dbDir, err)
 	}

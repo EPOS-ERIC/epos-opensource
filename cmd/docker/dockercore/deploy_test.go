@@ -133,36 +133,3 @@ func testEndpoint(url string, t *testing.T) {
 		t.Fatalf("url '%s' answered with non 200 satus code: %d", url, resp.StatusCode)
 	}
 }
-
-func TestDeployOpts_Validate(t *testing.T) {
-	type fields struct {
-		EnvFile     string
-		ComposeFile string
-		Path        string
-		Name        string
-		PullImages  bool
-		CustomHost  string
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			d := &DeployOpts{
-				EnvFile:     tt.fields.EnvFile,
-				ComposeFile: tt.fields.ComposeFile,
-				Path:        tt.fields.Path,
-				Name:        tt.fields.Name,
-				PullImages:  tt.fields.PullImages,
-				CustomHost:  tt.fields.CustomHost,
-			}
-			if err := d.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("DeployOpts.Validate() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}

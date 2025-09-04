@@ -11,7 +11,6 @@ type ExportOpts struct {
 }
 
 func Export(opts ExportOpts) error {
-
 	err := common.Export(opts.Path, ".env", []byte(EnvFile))
 	if err != nil {
 		return err

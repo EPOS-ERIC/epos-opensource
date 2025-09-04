@@ -33,27 +33,17 @@ func Populate(opts PopulateOpts) (*sqlc.Kubernetes, error) {
 		return nil, fmt.Errorf("error getting kubernetes environment from db called '%s': %w", opts.Name, err)
 	}
 
-	for i, path := range opts.TTLDirs {
+	for _, path := range opts.TTLDirs {
 		path, err = filepath.Abs(path)
 		if err != nil {
 			return nil, fmt.Errorf("error finding absolute path for given metadata path '%s': %w", path, err)
 		}
-		info, err := os.Stat(path)
-		if err != nil {
-			return nil, fmt.Errorf("error stating path %q: %w", path, err)
-		}
+
 		var metadataServer *metadataserver.MetadataServer
 
-		if !info.IsDir() {
-			if filepath.Ext(path) != ".ttl" {
-				return nil, fmt.Errorf("file %s is not a .ttl file", path)
-			}
-			display.Step("Starting metadata server for directory %d of %d: %s", i+1, len(opts.TTLDirs), path)
-			metadataServer, err = metadataserver.New(path, opts.Parallel)
-			if err != nil {
-				return nil, fmt.Errorf("creating metadata server for file %q in directory none: %w", path, err)
-			}
-
+		metadataServer, err = metadataserver.New(path, opts.Parallel)
+		if err != nil {
+			return nil, fmt.Errorf("creating metadata server for file %q in directory none: %w", path, err)
 		}
 
 		if err = metadataServer.Start(); err != nil {
@@ -71,23 +61,28 @@ func Populate(opts PopulateOpts) (*sqlc.Kubernetes, error) {
 		}(opts.Name)
 
 		display.Step("Starting port-forward to ingestor-service pod")
+
 		port, err := common.FindFreePort()
 		if err != nil {
 			return nil, fmt.Errorf("error getting free port: %w", err)
 		}
+
 		// start a port forward locally to the ingestor service and use that to do the populate posts
 		err = ForwardAndRun(opts.Name, "ingestor-service", port, 8080, kube.Context, func(host string, port int) error {
 			display.Done("Port forward started successfully")
 			// here we use http because we are accessing the apis in the pod itself, through the port forward
 			url := fmt.Sprintf("http://%s:%d/api/ingestor-service/v1/", host, port)
+
 			err = metadataServer.PostFiles(url, kube.Protocol)
 			if err != nil {
 				return fmt.Errorf("error populating environment: %w", err)
 			}
+
 			return nil
 		})
 		if err != nil {
 			display.Warn("error populating environment through port-forward, trying with direct IP. error: %v", err)
+
 			err = metadataServer.PostFiles(kube.ApiUrl, kube.Protocol)
 			if err != nil {
 				return nil, fmt.Errorf("error populating environment: %w", err)
@@ -98,12 +93,27 @@ func Populate(opts PopulateOpts) (*sqlc.Kubernetes, error) {
 	display.Done("Finished populating environment with ttl files from %d directories", len(opts.TTLDirs))
 	return kube, nil
 }
+
 func (p *PopulateOpts) Validate() error {
 	if p.Parallel < 1 && p.Parallel > 20 {
 		return fmt.Errorf("parallel uploads must be between 1 and 20")
 	}
+
 	if err := validate.EnvironmentExistsK8s(p.Name); err != nil {
 		return fmt.Errorf("error validating environment name, no environment with '%s' exists: %w", p.Name, err)
 	}
+
+	for _, item := range p.TTLDirs {
+		info, err := os.Stat(item)
+		if err != nil {
+			return fmt.Errorf("error stating path %q: %w", item, err)
+		}
+		if !info.IsDir() {
+			if filepath.Ext(item) != ".ttl" {
+				return fmt.Errorf("file %s is not a .ttl file", item)
+			}
+		}
+	}
+
 	return nil
 }

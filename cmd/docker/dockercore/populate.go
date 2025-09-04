@@ -25,7 +25,9 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid populate parameters: %w", err)
 	}
+
 	display.Step("Populating environment %s with %d path(s)", opts.Name, len(opts.TTLDirs))
+
 	docker, err := db.GetDockerByName(opts.Name)
 	if err != nil {
 		return nil, fmt.Errorf("error getting docker environment from db called '%s': %w", opts.Name, err)
@@ -37,17 +39,8 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 			return nil, fmt.Errorf("error finding absolute path for given metadata path '%s': %w", p, err)
 		}
 
-		info, err := os.Stat(p)
-		if err != nil {
-			return nil, fmt.Errorf("error stating path %q: %w", p, err)
-		}
-
 		var metadataServer *metadataserver.MetadataServer
-		if !info.IsDir() {
-			if filepath.Ext(p) != ".ttl" {
-				return nil, fmt.Errorf("file %s is not a .ttl file", p)
-			}
-		}
+
 		metadataServer, err = metadataserver.New(p, opts.Parallel)
 		if err != nil {
 			return nil, fmt.Errorf("creating metadata server for dir %q: %w", p, err)
@@ -75,12 +68,26 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 	display.Done("Finished populating environment with ttl files from %d path(s)", len(opts.TTLDirs))
 	return docker, err
 }
+
 func (p *PopulateOpts) Validate() error {
 	if p.Parallel < 1 && p.Parallel > 20 {
 		return fmt.Errorf("parallel uploads must be between 1 and 20")
 	}
+
 	if validate.EnvironmentExistsDocker(p.Name) != nil {
 		return fmt.Errorf("no environment with name'%s' exists", p.Name)
+	}
+
+	for _, item := range p.TTLDirs {
+		info, err := os.Stat(item)
+		if err != nil {
+			return fmt.Errorf("error stating path %q: %w", item, err)
+		}
+		if !info.IsDir() {
+			if filepath.Ext(item) != ".ttl" {
+				return fmt.Errorf("file %s is not a .ttl file", item)
+			}
+		}
 	}
 
 	return nil

@@ -136,12 +136,23 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 
 	return docker, nil
 }
+
 func (u *UpdateOpts) Validate() error {
 	if err := validate.EnvironmentExistsDocker(u.Name); err != nil {
 		return fmt.Errorf("no environment with name '%s' exists: %w", u.Name, err)
 	}
+
 	if err := validate.CustomHost(u.CustomHost); err != nil {
 		return fmt.Errorf("the custom host '%s' is not a valid ip or hostname: %w", u.CustomHost, err)
 	}
+
+	if err := validate.IsFile(u.EnvFile); err != nil {
+		return fmt.Errorf("the path to .env '%s' is not a file: %w", u.EnvFile, err)
+	}
+
+	if err := validate.IsFile(u.ComposeFile); err != nil {
+		return fmt.Errorf("the path to docker-compose '%s' is not a file: %w", u.ComposeFile, err)
+	}
+
 	return nil
 }

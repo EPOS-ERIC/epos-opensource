@@ -47,9 +47,11 @@ func Delete(opts DeleteOpts) error {
 
 	return nil
 }
+
 func (d *DeleteOpts) Validate() error {
 	if err := validate.EnvironmentExistsDocker(d.Name); err != nil {
 		return fmt.Errorf("no environment with the name '%s' exists: %w", d.Name, err)
 	}
+
 	return nil
 }

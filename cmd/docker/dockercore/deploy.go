@@ -105,24 +105,31 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 	}
 	return docker, err
 }
+
 func (d *DeployOpts) Validate() error {
 	if err := validate.Name(d.Name); err != nil {
 		return fmt.Errorf("invalid name for environment: %w", err)
 	}
+
 	if err := validate.EnvironmentNotExistDocker(d.Name); err != nil {
 		return fmt.Errorf("an environment with the name '%s' already exists: %w", d.Name, err)
 	}
+
 	if err := validate.PathExists(d.Path); err != nil {
 		return fmt.Errorf("the path '%s' is not a valid path: %w", d.Path, err)
 	}
+
 	if err := validate.CustomHost(d.CustomHost); err != nil {
 		return fmt.Errorf("the custom host '%s' is not a valid ip or hostname: %w", d.CustomHost, err)
 	}
+
 	if err := validate.IsFile(d.EnvFile); err != nil {
 		return fmt.Errorf("the path to .env '%s' is not a file: %w", d.EnvFile, err)
 	}
+
 	if err := validate.IsFile(d.ComposeFile); err != nil {
 		return fmt.Errorf("the path to docker-compose '%s' is not a file: %w", d.ComposeFile, err)
 	}
+
 	return nil
 }

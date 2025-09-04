@@ -149,12 +149,23 @@ func Update(opts UpdateOpts) (*sqlc.Kubernetes, error) {
 
 	return kube, nil
 }
+
 func (u *UpdateOpts) Validate() error {
 	if err := validate.EnvironmentExistsK8s(u.Name); err != nil {
 		return fmt.Errorf("no environment with name '%s' exists: %w", u.Name, err)
 	}
+
 	if err := validate.CustomHost(u.CustomHost); err != nil {
 		return fmt.Errorf("custom host '%s' is invalid: %w ", u.CustomHost, err)
 	}
+
+	if err := validate.IsFile(u.EnvFile); err != nil {
+		return fmt.Errorf("the path to .env '%s' is not a file: %w", u.EnvFile, err)
+	}
+
+	if err := validate.PathExists(u.ManifestDir); err != nil {
+		return fmt.Errorf("the manifest directory path '%s' is not a valid path: %w", u.ManifestDir, err)
+	}
+
 	return nil
 }
