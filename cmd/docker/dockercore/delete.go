@@ -7,6 +7,7 @@ import (
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
 	"github.com/epos-eu/epos-opensource/display"
+	"github.com/epos-eu/epos-opensource/validate"
 )
 
 type DeleteOpts struct {
@@ -15,6 +16,9 @@ type DeleteOpts struct {
 }
 
 func Delete(opts DeleteOpts) error {
+	if err := opts.Validate(); err != nil {
+		return fmt.Errorf("invalid delete parameters: %w", err)
+	}
 	display.Step("Deleting environment: %s", opts.Name)
 
 	env, err := db.GetDockerByName(opts.Name)
@@ -40,6 +44,14 @@ func Delete(opts DeleteOpts) error {
 	}
 
 	display.Done("Deleted environment: %s", opts.Name)
+
+	return nil
+}
+
+func (d *DeleteOpts) Validate() error {
+	if err := validate.EnvironmentExistsDocker(d.Name); err != nil {
+		return fmt.Errorf("no environment with the name '%s' exists: %w", d.Name, err)
+	}
 
 	return nil
 }

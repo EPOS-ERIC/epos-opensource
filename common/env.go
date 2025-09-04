@@ -15,7 +15,7 @@ import (
 func init() {
 	// Create the directory if it doesn't exist
 	if _, err := os.Stat(configdir.GetPath()); os.IsNotExist(err) {
-		err = os.MkdirAll(configdir.GetPath(), 0750)
+		err = os.MkdirAll(configdir.GetPath(), 0o750)
 		if err != nil {
 			display.Error("failed to create config directory %s: %v", configdir.GetPath(), err)
 			os.Exit(1)
@@ -106,7 +106,7 @@ func CreateTmpCopy(dir string) (string, error) {
 func RestoreTmpDir(tmpDir, targetDir string) error {
 	display.Step("Restoring environment from backup")
 
-	if err := os.MkdirAll(targetDir, 0750); err != nil {
+	if err := os.MkdirAll(targetDir, 0o750); err != nil {
 		return fmt.Errorf("failed to create target directory: %w", err)
 	}
 

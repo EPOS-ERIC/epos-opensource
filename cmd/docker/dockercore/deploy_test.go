@@ -4,6 +4,7 @@
 package dockercore_test
 
 import (
+	_ "embed"
 	"io"
 	"net/http"
 	"regexp"

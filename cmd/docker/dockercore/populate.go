@@ -9,19 +9,25 @@ import (
 	"github.com/epos-eu/epos-opensource/db/sqlc"
 	"github.com/epos-eu/epos-opensource/display"
 	"github.com/epos-eu/epos-opensource/metadataserver"
+	"github.com/epos-eu/epos-opensource/validate"
 )
 
 type PopulateOpts struct {
-	TTLDirs  []string
-	Name     string
+	// Required. paths to ttl files or directories containing ttl files to populate the environment
+	TTLDirs []string
+	// Required. name of the environment to populate
+	Name string
+	// Optional. number of parallel uploads to use. If not set the default will be 1. Max is 20
 	Parallel int
 }
 
 func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
-	display.Step("Populating environment %s with %d path(s)", opts.Name, len(opts.TTLDirs))
-	if opts.Parallel < 1 && opts.Parallel > 20 {
-		return nil, fmt.Errorf("parallel uploads must be between 1 and 20")
+	if err := opts.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid populate parameters: %w", err)
 	}
+
+	display.Step("Populating environment %s with %d path(s)", opts.Name, len(opts.TTLDirs))
+
 	docker, err := db.GetDockerByName(opts.Name)
 	if err != nil {
 		return nil, fmt.Errorf("error getting docker environment from db called '%s': %w", opts.Name, err)
@@ -33,30 +39,11 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 			return nil, fmt.Errorf("error finding absolute path for given metadata path '%s': %w", p, err)
 		}
 
-		info, err := os.Stat(p)
-		if err != nil {
-			return nil, fmt.Errorf("error stating path %q: %w", p, err)
-		}
-
 		var metadataServer *metadataserver.MetadataServer
 
-		if info.IsDir() {
-			// Case 1: directory
-			metadataServer, err = metadataserver.New(p, opts.Parallel)
-			if err != nil {
-				return nil, fmt.Errorf("creating metadata server for dir %q: %w", p, err)
-			}
-		} else {
-			// Case 2: file
-			if filepath.Ext(p) != ".ttl" {
-				return nil, fmt.Errorf("file %s is not a .ttl file", p)
-			}
-
-			metadataServer, err = metadataserver.New(p, opts.Parallel)
-			if err != nil {
-				return nil, fmt.Errorf("creating metadata server for file %q in directory none: %w", p, err)
-			}
-
+		metadataServer, err = metadataserver.New(p, opts.Parallel)
+		if err != nil {
+			return nil, fmt.Errorf("creating metadata server for dir %q: %w", p, err)
 		}
 
 		if err = metadataServer.Start(); err != nil {
@@ -80,4 +67,28 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 
 	display.Done("Finished populating environment with ttl files from %d path(s)", len(opts.TTLDirs))
 	return docker, err
+}
+
+func (p *PopulateOpts) Validate() error {
+	if p.Parallel < 1 && p.Parallel > 20 {
+		return fmt.Errorf("parallel uploads must be between 1 and 20")
+	}
+
+	if validate.EnvironmentExistsDocker(p.Name) != nil {
+		return fmt.Errorf("no environment with name'%s' exists", p.Name)
+	}
+
+	for _, item := range p.TTLDirs {
+		info, err := os.Stat(item)
+		if err != nil {
+			return fmt.Errorf("error stating path %q: %w", item, err)
+		}
+		if !info.IsDir() {
+			if filepath.Ext(item) != ".ttl" {
+				return fmt.Errorf("file %s is not a .ttl file", item)
+			}
+		}
+	}
+
+	return nil
 }

@@ -74,7 +74,7 @@ func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name, cont
 		return "", fmt.Errorf("failed to check directory %s: %w", envPath, err)
 	}
 
-	if err := os.MkdirAll(envPath, 0750); err != nil {
+	if err := os.MkdirAll(envPath, 0o750); err != nil {
 		return "", fmt.Errorf("failed to create env directory %s: %w", envPath, err)
 	}
 

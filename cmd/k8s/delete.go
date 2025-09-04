@@ -15,7 +15,9 @@ var DeleteCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		err := k8score.Delete(name)
+		err := k8score.Delete(k8score.DeleteOpts{
+			Name: name,
+		})
 		if err != nil {
 			display.Error("%v", err)
 			return

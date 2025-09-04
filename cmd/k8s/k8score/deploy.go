@@ -10,6 +10,7 @@ import (
 	"github.com/epos-eu/epos-opensource/db"
 	"github.com/epos-eu/epos-opensource/db/sqlc"
 	"github.com/epos-eu/epos-opensource/display"
+	"github.com/epos-eu/epos-opensource/validate"
 )
 
 type DeployOpts struct {
@@ -39,7 +40,9 @@ func Deploy(opts DeployOpts) (*sqlc.Kubernetes, error) {
 		opts.Context = string(out)
 		opts.Context = strings.TrimSpace(opts.Context)
 	}
-
+	if err := opts.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid deploy parameters: %w", err)
+	}
 	display.Info("Using kubectl context: %s", opts.Context)
 	display.Step("Creating environment: %s", opts.Name)
 
@@ -97,4 +100,53 @@ func Deploy(opts DeployOpts) (*sqlc.Kubernetes, error) {
 	}
 
 	return kube, nil
+}
+
+func (d *DeployOpts) Validate() error {
+	if err := validate.Name(d.Name); err != nil {
+		return fmt.Errorf("'%s' is an invalid name for an environment: %w", d.Name, err)
+	}
+
+	if err := validate.EnvironmentNotExistK8s(d.Name); err != nil {
+		return fmt.Errorf("an environment with the name '%s' already exists: %w", d.Name, err)
+	}
+
+	if err := validate.PathExists(d.Path); err != nil {
+		return fmt.Errorf("the path '%s' is not a valid path: %w", d.Path, err)
+	}
+
+	if err := validate.PathExists(d.ManifestDir); err != nil {
+		return fmt.Errorf("the manifest directory path '%s' is not a valid path: %w", d.ManifestDir, err)
+	}
+
+	if err := validate.CustomHost(d.CustomHost); err != nil {
+		return fmt.Errorf("the custom host '%s' is not a valid ip or hostname: %w", d.CustomHost, err)
+	}
+
+	if d.Protocol != "http" && d.Protocol != "https" {
+		return fmt.Errorf("invalid protocol '%s': must be either 'http' or 'https'", d.Protocol)
+	}
+
+	if err := validate.IsFile(d.EnvFile); err != nil {
+		return fmt.Errorf("the path to .env '%s' is not a file: %w", d.EnvFile, err)
+	}
+
+	cmd := exec.Command("kubectl", "config", "get-contexts", "-o=name")
+	out, err := command.RunCommand(cmd, true)
+	if err != nil {
+		return fmt.Errorf("failed to list kubectl contexts: %w", err)
+	}
+	contextFound := false
+	contexts := strings.SplitSeq(strings.TrimSpace(string(out)), "\n")
+	for ctx := range contexts {
+		if ctx == d.Context {
+			contextFound = true
+			break
+		}
+	}
+	if !contextFound {
+		return fmt.Errorf("kubernetes context %q is not an available context", d.Context)
+	}
+
+	return nil
 }
