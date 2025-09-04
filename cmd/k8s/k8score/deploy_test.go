@@ -26,7 +26,7 @@ func TestDeployOpts_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "Invalid Path to  Enviroment file",
+			name:    "Invalid Path to  Environment file",
 			opts:    DeployOpts{Name: "test", EnvFile: "/this/is/a/dir"},
 			wantErr: true,
 		},
