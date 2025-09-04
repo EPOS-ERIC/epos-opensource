@@ -21,8 +21,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: epos-env
-            - secretRef:
-                name: epos-secret
           readinessProbe:
             exec:
               command:

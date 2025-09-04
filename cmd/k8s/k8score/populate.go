@@ -49,7 +49,7 @@ func Populate(opts PopulateOpts) (*sqlc.Kubernetes, error) {
 				return nil, fmt.Errorf("file %s is not a .ttl file", path)
 			}
 			display.Step("Starting metadata server for directory %d of %d: %s", i+1, len(opts.TTLDirs), path)
-			metadataServer, err = metadataserver.NewMetadataServer(path, opts.Parallel)
+			metadataServer, err = metadataserver.New(path, opts.Parallel)
 			if err != nil {
 				return nil, fmt.Errorf("creating metadata server for file %q in directory none: %w", path, err)
 			}

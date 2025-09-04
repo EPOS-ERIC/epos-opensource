@@ -9,13 +9,13 @@ import (
 
 var ListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "list installed docker environments",
+	Short: "List installed Docker environments.",
 	Run: func(cmd *cobra.Command, args []string) {
 		dockerEnvs, err := db.GetAllDocker()
 		if err != nil {
 			return
 		}
 
-		display.DockerList(dockerEnvs, "installed docker environments")
+		display.DockerList(dockerEnvs, "Installed Docker environments")
 	},
 }

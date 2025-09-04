@@ -47,5 +47,5 @@ func init() {
 	DeployCmd.Flags().StringVarP(&manifestsDir, "manifests-dir", "m", "", "Path to the directory containing the manifests files")
 	DeployCmd.Flags().StringVarP(&context, "context", "c", "", "kubectl context used for the environment deployment. Uses current if not set")
 	DeployCmd.Flags().BoolVarP(&secure, "secure", "s", false, "Use https as the protocol. If not set uses http by default")
-	DeployCmd.Flags().StringVar(&host, "host", "", "host (either IP or hostname) to use for exposing the environment. If not set the nginx ingress controller IP is used by default")
+	DeployCmd.Flags().StringVar(&host, "host", "", "Host (either IP or hostname) to use for exposing the environment. If not set the nginx ingress controller IP is used by default")
 }

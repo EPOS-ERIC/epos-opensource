@@ -48,7 +48,7 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 				return nil, fmt.Errorf("file %s is not a .ttl file", p)
 			}
 		}
-		metadataServer, err = metadataserver.NewMetadataServer(p, opts.Parallel)
+		metadataServer, err = metadataserver.New(p, opts.Parallel)
 		if err != nil {
 			return nil, fmt.Errorf("creating metadata server for dir %q: %w", p, err)
 		}

@@ -13,7 +13,7 @@ var force bool
 
 var UpdateCmd = &cobra.Command{
 	Use:   "update [env-name]",
-	Short: "Recreate an environment with new settings",
+	Short: "Recreate an environment with new settings.",
 	Long:  "Re-deploy an existing Docker Compose environment after modifying its configuration.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -41,5 +41,5 @@ func init() {
 	UpdateCmd.Flags().StringVarP(&composeFile, "compose-file", "c", "", "Path to the Docker Compose file")
 	UpdateCmd.Flags().BoolVarP(&force, "force", "f", false, "Remove the current containers before redeploying")
 	UpdateCmd.Flags().BoolVarP(&pullImages, "update-images", "u", false, "Download Docker images before starting")
-	UpdateCmd.Flags().StringVar(&host, "host", "", "host (either IP or hostname) to use for exposing the environment. If not set the nginx ingress controller IP is used by default")
+	UpdateCmd.Flags().StringVar(&host, "host", "", "Host (either IP or hostname) to use for exposing the environment")
 }
