@@ -52,7 +52,7 @@ func GetKubernetesByName(name string) (*sqlc.Kubernetes, error) {
 	kube, err := q.GetKubernetesByName(context.Background(), name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("error getting kubernetes %s: no row found", name)
+			return nil, fmt.Errorf("error getting kubernetes %s: no row found: %w", name, err)
 		}
 		return nil, fmt.Errorf("error getting kubernetes %s: %w", name, err)
 	}

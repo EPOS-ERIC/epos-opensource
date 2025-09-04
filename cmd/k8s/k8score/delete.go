@@ -47,7 +47,7 @@ func Delete(opts DeleteOpts) error {
 	return nil
 }
 func (d *DeleteOpts) Validate() error {
-	if err := validate.EnviromentNotExistK8s(d.Name); err != nil {
+	if err := validate.EnvironmentExistsK8s(d.Name); err != nil {
 		return fmt.Errorf("invalid name for environment: %w", err)
 	}
 	return nil

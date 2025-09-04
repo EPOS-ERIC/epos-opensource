@@ -19,7 +19,12 @@ NOTE: to execute the population it will try to use port-forwarding to the cluste
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 		ttlPaths := args[1:]
-		k, err := k8score.Populate(name, ttlPaths, parallel)
+
+		k, err := k8score.Populate(k8score.PopulateOpts{
+			TTLDirs:  ttlPaths,
+			Name:     name,
+			Parallel: parallel,
+		})
 		if err != nil {
 			display.Error("%v", err)
 			return

@@ -15,7 +15,7 @@ var validHostnameRegex = regexp.MustCompile(
 	`^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$`,
 )
 
-// enviroment name validation
+// environment name validation
 func Name(name string) error {
 	if err := validateEnvName(name); err != nil {
 		return fmt.Errorf("invalid name for environment: %w", err)
@@ -40,7 +40,7 @@ func CustomHost(CustomHost string) error {
 }
 
 // checks that an environment with the given name doesn't already exists otherwise returns an error
-func EnviromentNotExistDocker(name string) error {
+func EnvironmentNotExistDocker(name string) error {
 	_, err := db.GetDockerByName(name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -48,19 +48,19 @@ func EnviromentNotExistDocker(name string) error {
 		}
 		return fmt.Errorf("error getting installed docker environment from db: %w", err)
 	}
-	return fmt.Errorf("an enviroment with name '%s' already exists", name)
+	return fmt.Errorf("an environment with name '%s' already exists", name)
 }
 
 // checks that an environment with the given name exists
-func EnviromentExistsDocker(name string) error {
-	if err := EnviromentNotExistDocker(name); err != nil {
+func EnvironmentExistsDocker(name string) error {
+	if err := EnvironmentNotExistDocker(name); err != nil {
 		return nil
 	}
-	return fmt.Errorf("no enviroment with name'%s' exists", name)
+	return fmt.Errorf("no environment with name'%s' exists", name)
 }
 
 // checks that an environment with the given name doesn't already exists in kubernetes otherwise returns an error
-func EnviromentNotExistK8s(name string) error {
+func EnvironmentNotExistK8s(name string) error {
 	_, err := db.GetKubernetesByName(name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -68,10 +68,15 @@ func EnviromentNotExistK8s(name string) error {
 		}
 		return fmt.Errorf("error getting installed kubernetes environment from db: %w", err)
 	}
-	return fmt.Errorf("an enviroment with name '%s' already exists", name)
+	return fmt.Errorf("an environment with name '%s' already exists", name)
+}
+func EnvironmentExistsK8s(name string) error {
+	if err := EnvironmentNotExistK8s(name); err != nil {
+		return nil
+	}
+	return fmt.Errorf("no environment with name '%s' exists", name)
 }
 
-// path validation
 func PathExists(path string) error {
 	if path == "" {
 		return nil
@@ -103,6 +108,20 @@ func validateEnvName(name string) error {
 
 	if !validEnv.MatchString(name) {
 		return fmt.Errorf("invalid environment name %s: only letters, digits, '.', '_' and '-' allowed", name)
+	}
+	return nil
+}
+func IsFile(path string) error {
+	if path == "" {
+		return nil
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("failed to stat path %q: %w", path, err)
+	}
+
+	if info.IsDir() {
+		return fmt.Errorf("path %q is a directory, not a file", path)
 	}
 	return nil
 }

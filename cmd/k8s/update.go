@@ -19,7 +19,13 @@ var UpdateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		k, err := k8score.Update(envFile, manifestsDir, name, host, force)
+		k, err := k8score.Update(k8score.UpdateOpts{
+			EnvFile:     envFile,
+			ManifestDir: manifestsDir,
+			Name:        name,
+			Force:       force,
+			CustomHost:  host,
+		})
 		if err != nil {
 			display.Error("%v", err)
 			return

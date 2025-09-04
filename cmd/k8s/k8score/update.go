@@ -10,7 +10,21 @@ import (
 	"github.com/epos-eu/epos-opensource/db"
 	"github.com/epos-eu/epos-opensource/db/sqlc"
 	"github.com/epos-eu/epos-opensource/display"
+	"github.com/epos-eu/epos-opensource/validate"
 )
+
+type UpdateOpts struct {
+	// Optional. path to an env file to use. If not set the default embedded one will be used
+	EnvFile string
+	// Optional. path to a directory that will contain the custom manifest to use for the deploy
+	ManifestDir string
+	// Required. name of the environment
+	Name string
+	// Optional. whether to do a docker compose down before updating the environment. Useful to reset the environment's database
+	Force bool
+	// Optional. custom ip to use instead of localhost if set
+	CustomHost string
+}
 
 // Update logic:
 // find the old env, if it does not exist give an error
@@ -21,12 +35,15 @@ import (
 // deploy the updated manifests
 // if everything goes right, delete the tmp dir and finish
 // else restore the tmp dir, deploy the old restored env and give an error in output
-func Update(envFile, composeFile, name, customIP string, force bool) (*sqlc.Kubernetes, error) {
-	display.Step("Updating environment: %s", name)
+func Update(opts UpdateOpts) (*sqlc.Kubernetes, error) {
+	if err := opts.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid parameters for update command: %w", err)
+	}
+	display.Step("Updating environment: %s", opts.Name)
 
-	kube, err := db.GetKubernetesByName(name)
+	kube, err := db.GetKubernetesByName(opts.Name)
 	if err != nil {
-		return nil, fmt.Errorf("error getting kubernetes environment from db called '%s': %w", name, err)
+		return nil, fmt.Errorf("error getting kubernetes environment from db called '%s': %w", opts.Name, err)
 	}
 
 	display.Info("Environment directory: %s", kube.Directory)
@@ -46,7 +63,7 @@ func Update(envFile, composeFile, name, customIP string, force bool) (*sqlc.Kube
 		if err := common.RestoreTmpDir(tmpDir, kube.Directory); err != nil {
 			return fmt.Errorf("failed to restore from backup: %w", err)
 		}
-		if err := deployManifests(kube.Directory, name, true, kube.Context, kube.Protocol); err != nil {
+		if err := deployManifests(kube.Directory, opts.Name, true, kube.Context, kube.Protocol); err != nil {
 			return fmt.Errorf("failed to deploy restored environment: %w", err)
 		}
 		return nil
@@ -55,8 +72,8 @@ func Update(envFile, composeFile, name, customIP string, force bool) (*sqlc.Kube
 	display.Step("Updating stack")
 
 	// If force is set delete the original env
-	if force {
-		if err := deleteNamespace(name, kube.Context); err != nil {
+	if opts.Force {
+		if err := deleteNamespace(opts.Name, kube.Context); err != nil {
 			if restoreErr := restoreFromTmp(); restoreErr != nil {
 				display.Error("Restore failed: %v", restoreErr)
 			}
@@ -65,7 +82,7 @@ func Update(envFile, composeFile, name, customIP string, force bool) (*sqlc.Kube
 			}
 			return nil, fmt.Errorf("kubernetes namespace deletion failed: %w", err)
 		}
-		display.Done("Stopped environment: %s", name)
+		display.Done("Stopped environment: %s", opts.Name)
 	}
 
 	display.Step("Removing old environment directory")
@@ -85,7 +102,7 @@ func Update(envFile, composeFile, name, customIP string, force bool) (*sqlc.Kube
 
 	// create the directory in the parent
 	path := filepath.Dir(kube.Directory)
-	dir, err := NewEnvDir(envFile, composeFile, path, name, kube.Context, kube.Protocol, customIP)
+	dir, err := NewEnvDir(opts.EnvFile, opts.ManifestDir, path, opts.Name, kube.Context, kube.Protocol, opts.CustomHost)
 	if err != nil {
 		if restoreErr := restoreFromTmp(); restoreErr != nil {
 			display.Error("Restore failed: %v", restoreErr)
@@ -99,7 +116,7 @@ func Update(envFile, composeFile, name, customIP string, force bool) (*sqlc.Kube
 	display.Done("Updated environment created in directory: %s", dir)
 
 	// Deploy the updated manifests
-	if err := deployManifests(dir, name, force, kube.Context, kube.Protocol); err != nil {
+	if err := deployManifests(dir, opts.Name, opts.Force, kube.Context, kube.Protocol); err != nil {
 		display.Error("Deploy failed: %v", err)
 		if restoreErr := restoreFromTmp(); restoreErr != nil {
 			display.Error("Restore failed: %v", restoreErr)
@@ -111,7 +128,7 @@ func Update(envFile, composeFile, name, customIP string, force bool) (*sqlc.Kube
 	}
 
 	// only repopulate the ontologies if the database has been cleaned
-	if force {
+	if opts.Force {
 		if err := common.PopulateOntologies(kube.ApiUrl); err != nil {
 			display.Error("error initializing the ontologies in the environment: %v", err)
 			if restoreErr := restoreFromTmp(); restoreErr != nil {
@@ -131,4 +148,13 @@ func Update(envFile, composeFile, name, customIP string, force bool) (*sqlc.Kube
 	}
 
 	return kube, nil
+}
+func (u *UpdateOpts) Validate() error {
+	if err := validate.EnvironmentExistsK8s(u.Name); err != nil {
+		return fmt.Errorf("no environment with name '%s' exists: %w", u.Name, err)
+	}
+	if err := validate.CustomHost(u.CustomHost); err != nil {
+		return fmt.Errorf("custom host '%s' is invalid: %w ", u.CustomHost, err)
+	}
+	return nil
 }

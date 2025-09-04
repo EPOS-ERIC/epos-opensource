@@ -26,9 +26,6 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 		return nil, fmt.Errorf("invalid populate parameters: %w", err)
 	}
 	display.Step("Populating environment %s with %d path(s)", opts.Name, len(opts.TTLDirs))
-	if opts.Parallel < 1 && opts.Parallel > 20 {
-		return nil, fmt.Errorf("parallel uploads must be between 1 and 20")
-	}
 	docker, err := db.GetDockerByName(opts.Name)
 	if err != nil {
 		return nil, fmt.Errorf("error getting docker environment from db called '%s': %w", opts.Name, err)
@@ -46,24 +43,14 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 		}
 
 		var metadataServer *metadataserver.MetadataServer
-
-		if info.IsDir() {
-			// Case 1: directory
-			metadataServer, err = metadataserver.NewMetadataServer(p, opts.Parallel)
-			if err != nil {
-				return nil, fmt.Errorf("creating metadata server for dir %q: %w", p, err)
-			}
-		} else {
-			// Case 2: file
+		if !info.IsDir() {
 			if filepath.Ext(p) != ".ttl" {
 				return nil, fmt.Errorf("file %s is not a .ttl file", p)
 			}
-
-			metadataServer, err = metadataserver.NewMetadataServer(p, opts.Parallel)
-			if err != nil {
-				return nil, fmt.Errorf("creating metadata server for file %q in directory none: %w", p, err)
-			}
-
+		}
+		metadataServer, err = metadataserver.NewMetadataServer(p, opts.Parallel)
+		if err != nil {
+			return nil, fmt.Errorf("creating metadata server for dir %q: %w", p, err)
 		}
 
 		if err = metadataServer.Start(); err != nil {
@@ -89,8 +76,12 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 	return docker, err
 }
 func (p *PopulateOpts) Validate() error {
-	if validate.EnviromentExistsDocker(p.Name) != nil {
-		return fmt.Errorf("no enviroment with name'%s' exists", p.Name)
+	if p.Parallel < 1 && p.Parallel > 20 {
+		return fmt.Errorf("parallel uploads must be between 1 and 20")
 	}
+	if validate.EnvironmentExistsDocker(p.Name) != nil {
+		return fmt.Errorf("no environment with name'%s' exists", p.Name)
+	}
+
 	return nil
 }

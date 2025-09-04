@@ -137,7 +137,7 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 	return docker, nil
 }
 func (u *UpdateOpts) Validate() error {
-	if err := validate.EnviromentExistsDocker(u.Name); err != nil {
+	if err := validate.EnvironmentExistsDocker(u.Name); err != nil {
 		return fmt.Errorf("no environment with name '%s' exists: %w", u.Name, err)
 	}
 	if err := validate.CustomHost(u.CustomHost); err != nil {
