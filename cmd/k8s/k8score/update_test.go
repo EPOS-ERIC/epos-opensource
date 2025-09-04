@@ -1,4 +1,4 @@
-package dockercore
+package k8score
 
 import (
 	"testing"
@@ -27,7 +27,7 @@ func TestUpdateOpts_Validate(t *testing.T) {
 			err := tt.opts.Validate()
 			if err != nil {
 				if !tt.wantErr {
-					t.Fatalf("Update Validation Test Failed error = %v, wantErr %v", err, tt.wantErr)
+					t.Fatalf("Update Kubernetes Validation Test Failed error = %v, wantErr %v", err, tt.wantErr)
 				}
 			}
 		})

@@ -1,4 +1,4 @@
-package dockercore
+package k8score
 
 import (
 	_ "embed"
@@ -23,7 +23,7 @@ func TestDeleteOpts_Validate(t *testing.T) {
 			err := tt.opts.Validate()
 			if err != nil {
 				if !tt.wantErr {
-					t.Fatalf("DeleteOpts.Validate() error = %v, wantErr %v", err, tt.wantErr)
+					t.Fatalf("delete Kebernetes Validation test failed = %v, wantErr %v", err, tt.wantErr)
 				}
 			}
 		})

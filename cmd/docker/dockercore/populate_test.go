@@ -4,20 +4,25 @@ import (
 	"testing"
 )
 
-func TestUpdateOpts_Validate(t *testing.T) {
+func TestPopulateOpts_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
-		opts    UpdateOpts
+		opts    PopulateOpts
 		wantErr bool
 	}{
 		{
 			name:    "Environment does not exist",
-			opts:    UpdateOpts{Name: "does-not-exist"},
+			opts:    PopulateOpts{Name: "does-not-exist"},
 			wantErr: true,
 		},
 		{
 			name:    "To many files in parallel",
-			opts:    UpdateOpts{Name: "test", CustomHost: "ht!tp://invalid-url"},
+			opts:    PopulateOpts{Name: "test", Parallel: 21},
+			wantErr: true,
+		},
+		{
+			name:    "Negative number in parallel",
+			opts:    PopulateOpts{Name: "test", Parallel: -1},
 			wantErr: true,
 		},
 	}
@@ -27,7 +32,7 @@ func TestUpdateOpts_Validate(t *testing.T) {
 			err := tt.opts.Validate()
 			if err != nil {
 				if !tt.wantErr {
-					t.Fatalf("Update Validation Test Failed error = %v, wantErr %v", err, tt.wantErr)
+					t.Fatalf("Populate Validation Test Failed error = %v, wantErr %v", err, tt.wantErr)
 				}
 			}
 		})
