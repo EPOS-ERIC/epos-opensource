@@ -28,14 +28,16 @@ jobs:
           go-version-file: "go.mod"
           cache: true
 
+      - name: Generate code
+        run: make generate
+
       - name: Build Binary for ${{ matrix.platform.os }}
         env:
           GOOS: ${{ matrix.platform.goos }}
           GOARCH: ${{ matrix.platform.goarch }}
           VERSION: ${{ github.ref_name }}
           EXT: ${{ matrix.platform.ext }}
-        run: |
-          make build-release
+        run: make build-release
 
       - name: Upload Artifact for ${{ matrix.platform.os }}
         uses: actions/upload-artifact@v4
