@@ -21,5 +21,6 @@ func init() {
 	dockerCmd.AddCommand(docker.PopulateCmd)
 	dockerCmd.AddCommand(docker.ExportCmd)
 	dockerCmd.AddCommand(docker.ListCmd)
+	dockerCmd.AddCommand(docker.CleanCmd)
 	rootCmd.AddCommand(dockerCmd)
 }
