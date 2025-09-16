@@ -8,6 +8,7 @@ import (
 	"github.com/epos-eu/epos-opensource/command"
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
+	"github.com/epos-eu/epos-opensource/display"
 	"github.com/epos-eu/epos-opensource/validate"
 )
 
@@ -20,7 +21,7 @@ func Clean(opts CleanOpts) error {
 	if err := opts.Validate(); err != nil {
 		return fmt.Errorf("invalid clean parameters: %w", err)
 	}
-
+	display.Done("Cleaning of Environment has started: ")
 	docker, err := db.GetDockerByName(opts.Name)
 	if err != nil {
 		return fmt.Errorf("failed to get docker info for %s: %w", opts.Name, err)
@@ -36,7 +37,7 @@ func Clean(opts CleanOpts) error {
 	externalAccContainer := fmt.Sprintf("%s-external-access-service", opts.Name)
 	resorceContainer := fmt.Sprintf("%s-resources-service", opts.Name)
 	volumeName := fmt.Sprintf("%s_psqldata", opts.Name)
-
+	display.Done("Stopping Metadata Database Environment: ")
 	if _, err := command.RunCommand(exec.Command("docker", "stop", metadataContainer), false); err != nil {
 		return fmt.Errorf("failed to stop %s: %w", metadataContainer, err)
 	}
@@ -62,7 +63,7 @@ func Clean(opts CleanOpts) error {
 	}
 
 	if _, err := command.RunCommand(exec.Command("docker", "stop", resorceContainer), false); err != nil {
-		return fmt.Errorf("failed to stop %s: %w", externalAccContainer, err)
+		return fmt.Errorf("failed to stop %s: %w", resorceContainer, err)
 	}
 
 	if _, err := deployStack(docker.Directory, opts.Name, ports, ""); err != nil {
@@ -73,6 +74,7 @@ func Clean(opts CleanOpts) error {
 		return fmt.Errorf("failed to populate base ontologies in environment %s: %w", opts.Name, err)
 	}
 
+	display.Done("The Environment has been Successfully Cleaned")
 	return nil
 }
 
