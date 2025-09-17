@@ -23,7 +23,7 @@ generate:
 	go generate ./...
 
 fmt:
-	gofumpt -w .
+	go tool gofumpt -w .
 
 lint: fmt
 	golangci-lint run ./...

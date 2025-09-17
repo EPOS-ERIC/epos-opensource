@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/epos-eu/epos-opensource/cmd/k8s/k8score"
 	"github.com/epos-eu/epos-opensource/display"
@@ -28,7 +29,7 @@ var UpdateCmd = &cobra.Command{
 		})
 		if err != nil {
 			display.Error("%v", err)
-			return
+			os.Exit(1)
 		}
 
 		display.Urls(k.GuiUrl, k.ApiUrl, k.BackofficeUrl, fmt.Sprintf("epos-opensource kubernetes update %s", name))

@@ -1,7 +1,9 @@
-// Package docker contains the internal functions used by the docker cmd to manage environments
 package docker
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
 	"github.com/epos-eu/epos-opensource/display"
 
@@ -10,18 +12,20 @@ import (
 
 var CleanCmd = &cobra.Command{
 	Use:   "clean [env-name]",
-	Short: "Removes the volume of the metadata database.",
-	Long:  "Stops the metadata database, removes the volume associated to it and re-deloys the container.",
+	Short: "Clean the data of an environment.",
+	Long:  "Clean the data of an environment without redeploying. After clean all custom data populated in the environment will be lost. This action is not reversible.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		err := dockercore.Clean(dockercore.CleanOpts{
+		docker, err := dockercore.Clean(dockercore.CleanOpts{
 			Name: name,
 		})
 		if err != nil {
 			display.Error("%v", err)
-			return
+			os.Exit(1)
 		}
+
+		display.Urls(docker.GuiUrl, docker.ApiUrl, docker.BackofficeUrl, fmt.Sprintf("epos-opensource docker clean %s", name))
 	},
 }

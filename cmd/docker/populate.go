@@ -2,6 +2,7 @@ package docker
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
 	"github.com/epos-eu/epos-opensource/display"
@@ -18,6 +19,7 @@ Multiple directories and/or files can be provided and will be processed in order
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 		ttlPaths := args[1:]
+
 		d, err := dockercore.Populate(dockercore.PopulateOpts{
 			TTLDirs:  ttlPaths,
 			Name:     name,
@@ -25,8 +27,9 @@ Multiple directories and/or files can be provided and will be processed in order
 		})
 		if err != nil {
 			display.Error("%v", err)
-			return
+			os.Exit(1)
 		}
+
 		display.Urls(d.GuiUrl, d.ApiUrl, d.BackofficeUrl, fmt.Sprintf("epos-opensource docker populate %s", name))
 	},
 }
