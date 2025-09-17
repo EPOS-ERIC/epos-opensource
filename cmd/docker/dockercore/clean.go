@@ -8,6 +8,7 @@ import (
 	"github.com/epos-eu/epos-opensource/command"
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
+	"github.com/epos-eu/epos-opensource/db/sqlc"
 	"github.com/epos-eu/epos-opensource/display"
 	"github.com/epos-eu/epos-opensource/validate"
 )
@@ -17,65 +18,90 @@ type CleanOpts struct {
 	Name string
 }
 
-func Clean(opts CleanOpts) error {
+func Clean(opts CleanOpts) (*sqlc.Docker, error) {
 	if err := opts.Validate(); err != nil {
-		return fmt.Errorf("invalid clean parameters: %w", err)
+		return nil, fmt.Errorf("invalid clean parameters: %w", err)
 	}
-	display.Done("Cleaning of Environment has started: ")
+
+	display.Step("Cleaning data in environment: %s", opts.Name)
+
 	docker, err := db.GetDockerByName(opts.Name)
 	if err != nil {
-		return fmt.Errorf("failed to get docker info for %s: %w", opts.Name, err)
+		return nil, fmt.Errorf("failed to get docker info for %s: %w", opts.Name, err)
 	}
+
 	ports := &DeploymentPorts{
 		GUI:        int(docker.GuiPort),
 		API:        int(docker.ApiPort),
 		Backoffice: int(docker.BackofficePort),
 	}
+
 	metadataContainer := fmt.Sprintf("%s-metadata-database", opts.Name)
 	backOfficeContainer := fmt.Sprintf("%s-backoffice-service", opts.Name)
 	ingestorContainer := fmt.Sprintf("%s-ingestor-service", opts.Name)
 	externalAccContainer := fmt.Sprintf("%s-external-access-service", opts.Name)
-	resorceContainer := fmt.Sprintf("%s-resources-service", opts.Name)
+	resourcesContainer := fmt.Sprintf("%s-resources-service", opts.Name)
 	volumeName := fmt.Sprintf("%s_psqldata", opts.Name)
-	display.Done("Stopping Metadata Database Environment: ")
+
+	handleFailure := func(msg string, mainErr error) (*sqlc.Docker, error) {
+		display.Error("Unexpected error: %v", mainErr)
+
+		display.Step("Attempting recovery")
+		if _, err := deployStack(docker.Directory, opts.Name, ports, ""); err != nil {
+			return nil, fmt.Errorf("unable to recover from error: %w", err)
+		}
+
+		display.Done("Recovery succeeded")
+
+		return nil, fmt.Errorf(msg, mainErr)
+	}
+
+	display.Step("Cleaning database volume")
+
 	if _, err := command.RunCommand(exec.Command("docker", "stop", metadataContainer), false); err != nil {
-		return fmt.Errorf("failed to stop %s: %w", metadataContainer, err)
+		return handleFailure("failed to stop metadata container: %w", fmt.Errorf("%s: %w", metadataContainer, err))
 	}
 
 	if _, err := command.RunCommand(exec.Command("docker", "rm", "-v", metadataContainer), false); err != nil {
-		return fmt.Errorf("failed to remove %s: %w", metadataContainer, err)
+		return handleFailure("failed to remove metadata container: %w", fmt.Errorf("%s: %w", metadataContainer, err))
 	}
 
 	if _, err := command.RunCommand(exec.Command("docker", "volume", "rm", volumeName), false); err != nil {
-		return fmt.Errorf("failed to remove volume %s: %w", volumeName, err)
+		return handleFailure("failed to remove volume: %w", fmt.Errorf("%s: %w", volumeName, err))
 	}
 
+	display.Done("Database volume cleaned")
+	display.Step("Restarting services")
+
 	if _, err := command.RunCommand(exec.Command("docker", "stop", backOfficeContainer), false); err != nil {
-		return fmt.Errorf("failed to stop %s: %w", backOfficeContainer, err)
+		return handleFailure("failed to stop container: %w", fmt.Errorf("%s: %w", backOfficeContainer, err))
 	}
 
 	if _, err := command.RunCommand(exec.Command("docker", "stop", ingestorContainer), false); err != nil {
-		return fmt.Errorf("failed to stop %s: %w", ingestorContainer, err)
+		return handleFailure("failed to stop container: %w", fmt.Errorf("%s: %w", ingestorContainer, err))
 	}
 
 	if _, err := command.RunCommand(exec.Command("docker", "stop", externalAccContainer), false); err != nil {
-		return fmt.Errorf("failed to stop %s: %w", externalAccContainer, err)
+		return handleFailure("failed to stop container: %w", fmt.Errorf("%s: %w", externalAccContainer, err))
 	}
 
-	if _, err := command.RunCommand(exec.Command("docker", "stop", resorceContainer), false); err != nil {
-		return fmt.Errorf("failed to stop %s: %w", resorceContainer, err)
+	if _, err := command.RunCommand(exec.Command("docker", "stop", resourcesContainer), false); err != nil {
+		return handleFailure("failed to stop container: %w", fmt.Errorf("%s: %w", resourcesContainer, err))
 	}
 
 	if _, err := deployStack(docker.Directory, opts.Name, ports, ""); err != nil {
-		return fmt.Errorf("failed to redeploy the metadata database for %s: %w", opts.Name, err)
+		return handleFailure("failed to restart the environment: %w", err)
 	}
+
+	display.Done("Services restarted successfully")
 
 	if err := common.PopulateOntologies(docker.ApiUrl); err != nil {
-		return fmt.Errorf("failed to populate base ontologies in environment %s: %w", opts.Name, err)
+		return handleFailure("failed to populate base ontologies in environment: %w", err)
 	}
 
-	display.Done("The Environment has been Successfully Cleaned")
-	return nil
+	display.Done("Cleaned environment: %s", opts.Name)
+
+	return docker, nil
 }
 
 func (c *CleanOpts) Validate() error {

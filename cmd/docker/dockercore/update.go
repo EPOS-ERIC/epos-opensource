@@ -92,7 +92,7 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 
 	// Remove the contents of the env dir and create the updated env file and docker-compose
 	if err := common.RemoveEnvDir(docker.Directory); err != nil {
-		return handleFailure("failed to remove directory %s: %w", fmt.Errorf("%s: %w", docker.Directory, err))
+		return handleFailure("failed to remove directory: %w", fmt.Errorf("%s: %w", docker.Directory, err))
 	}
 
 	display.Step("Creating new environment directory")

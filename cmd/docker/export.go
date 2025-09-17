@@ -1,6 +1,8 @@
 package docker
 
 import (
+	"os"
+
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
 	"github.com/epos-eu/epos-opensource/display"
 
@@ -19,7 +21,7 @@ var ExportCmd = &cobra.Command{
 		})
 		if err != nil {
 			display.Error("%v", err)
-			return
+			os.Exit(1)
 		}
 	},
 }

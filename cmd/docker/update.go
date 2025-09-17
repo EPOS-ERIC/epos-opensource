@@ -2,6 +2,7 @@ package docker
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
 	"github.com/epos-eu/epos-opensource/display"
@@ -29,7 +30,7 @@ var UpdateCmd = &cobra.Command{
 		})
 		if err != nil {
 			display.Error("%v", err)
-			return
+			os.Exit(1)
 		}
 
 		display.Urls(d.GuiUrl, d.ApiUrl, d.BackofficeUrl, fmt.Sprintf("epos-opensource docker update %s", name))

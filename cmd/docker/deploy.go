@@ -2,6 +2,7 @@ package docker
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
 	"github.com/epos-eu/epos-opensource/display"
@@ -27,7 +28,7 @@ var DeployCmd = &cobra.Command{
 		})
 		if err != nil {
 			display.Error("%v", err)
-			return
+			os.Exit(1)
 		}
 
 		display.Urls(docker.GuiUrl, docker.ApiUrl, docker.BackofficeUrl, fmt.Sprintf("epos-opensource docker deploy %s", name))
