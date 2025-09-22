@@ -19,11 +19,16 @@ var DeleteCmd = &cobra.Command{
 		name := args[0:]
 
 		err := dockercore.Delete(dockercore.DeleteOpts{
-			Name: name,
+			Name:     name,
+			Parallel: parallel,
 		})
 		if err != nil {
 			display.Error("%v", err)
 			os.Exit(1)
 		}
 	},
+}
+
+func init() {
+	DeleteCmd.Flags().IntVarP(&parallel, "parallel", "p", 1, "Number of Enviroments being deleted in Parallel")
 }
