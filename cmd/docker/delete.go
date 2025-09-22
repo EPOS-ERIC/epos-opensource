@@ -30,5 +30,5 @@ var DeleteCmd = &cobra.Command{
 }
 
 func init() {
-	DeleteCmd.Flags().IntVarP(&parallel, "parallel", "p", 1, "Number of Enviroments being deleted in Parallel")
+	DeleteCmd.Flags().IntVarP(&parallel, "parallel", "p", 1, "Number of Environments being deleted in Parallel")
 }
