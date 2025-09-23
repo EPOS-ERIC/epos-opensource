@@ -1,8 +1,9 @@
 package dockercore
 
 import (
-	_ "embed"
 	"fmt"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
@@ -11,47 +12,56 @@ import (
 )
 
 type DeleteOpts struct {
-	// Required. name of the environment
-	Name string
+	Name []string // names of environments
 }
 
 func Delete(opts DeleteOpts) error {
 	if err := opts.Validate(); err != nil {
 		return fmt.Errorf("invalid delete parameters: %w", err)
 	}
-	display.Step("Deleting environment: %s", opts.Name)
 
-	env, err := db.GetDockerByName(opts.Name)
-	if err != nil {
-		return fmt.Errorf("error getting docker environment from db called '%s': %w", opts.Name, err)
+	var eg errgroup.Group
+	eg.SetLimit(20)
+	for _, envName := range opts.Name {
+		eg.Go(func() error {
+			display.Step("Deleting environment: %s", envName)
+
+			env, err := db.GetDockerByName(envName)
+			if err != nil {
+				return fmt.Errorf("error getting docker environment '%s': %w", envName, err)
+			}
+
+			display.Step("Stopping stack for environment: %s", envName)
+			if err := downStack(env.Directory, true); err != nil {
+				return fmt.Errorf("docker compose down failed for '%s': %w", envName, err)
+			}
+			display.Done("Stopped environment: %s", envName)
+
+			if err := common.RemoveEnvDir(env.Directory); err != nil {
+				return fmt.Errorf("failed to remove directory %s: %w", env.Directory, err)
+			}
+
+			if err := db.DeleteDocker(envName); err != nil {
+				return fmt.Errorf("failed to delete docker '%s' (dir: %s) in db: %w", envName, env.Directory, err)
+			}
+
+			display.Done("Deleted environment: %s", envName)
+			return nil
+		})
 	}
 
-	display.Step("Stopping stack")
-
-	if err := downStack(env.Directory, true); err != nil {
-		return fmt.Errorf("docker compose down failed: %w", err)
+	if err := eg.Wait(); err != nil {
+		return err
 	}
-
-	display.Done("Stopped environment: %s", opts.Name)
-
-	if err := common.RemoveEnvDir(env.Directory); err != nil {
-		return fmt.Errorf("failed to remove directory %s: %w", env.Directory, err)
-	}
-
-	err = db.DeleteDocker(opts.Name)
-	if err != nil {
-		return fmt.Errorf("failed to delete docker %s (dir: %s) in db: %w", opts.Name, env.Directory, err)
-	}
-
-	display.Done("Deleted environment: %s", opts.Name)
 
 	return nil
 }
 
 func (d *DeleteOpts) Validate() error {
-	if err := validate.EnvironmentExistsDocker(d.Name); err != nil {
-		return fmt.Errorf("no environment with the name '%s' exists: %w", d.Name, err)
+	for _, env := range d.Name {
+		if err := validate.EnvironmentExistsDocker(env); err != nil {
+			return fmt.Errorf("no environment with the name '%s' exists: %w", env, err)
+		}
 	}
-
 	return nil
 }

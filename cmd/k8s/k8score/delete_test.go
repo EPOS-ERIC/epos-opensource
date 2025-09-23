@@ -13,7 +13,7 @@ func TestDeleteOpts_Validate(t *testing.T) {
 	}{
 		{
 			name:    "Environment does not exist",
-			opts:    DeleteOpts{Name: "does-not-exist"},
+			opts:    DeleteOpts{Name: []string{"does-not-exist"}},
 			wantErr: true,
 		},
 	}
