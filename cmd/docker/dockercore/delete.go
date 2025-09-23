@@ -13,7 +13,6 @@ import (
 
 type DeleteOpts struct {
 	Name []string // names of environments
-
 }
 
 func Delete(opts DeleteOpts) error {
@@ -25,7 +24,6 @@ func Delete(opts DeleteOpts) error {
 	eg.SetLimit(20)
 	for _, envName := range opts.Name {
 		eg.Go(func() error {
-
 			display.Step("Deleting environment: %s", envName)
 
 			env, err := db.GetDockerByName(envName)
@@ -49,7 +47,6 @@ func Delete(opts DeleteOpts) error {
 
 			display.Done("Deleted environment: %s", envName)
 			return nil
-
 		})
 	}
 
