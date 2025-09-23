@@ -27,7 +27,7 @@ func getVersion() string {
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "epos-opensource",
-	Short: "Manage EPOS environments and utilities",
+	Short: "Manage EPOS environments and utilities.",
 	Long: `epos-opensource provides commands for managing local EPOS environments
 using Docker Compose or Kubernetes. Use the "docker" and "kubernetes" command
 groups to deploy, populate, update, or delete an environment.`,

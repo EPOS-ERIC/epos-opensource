@@ -74,7 +74,7 @@ func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name, cont
 		return "", fmt.Errorf("failed to check directory %s: %w", envPath, err)
 	}
 
-	if err := os.MkdirAll(envPath, 0750); err != nil {
+	if err := os.MkdirAll(envPath, 0o750); err != nil {
 		return "", fmt.Errorf("failed to create env directory %s: %w", envPath, err)
 	}
 
@@ -280,7 +280,6 @@ func deployManifests(dir, namespace string, createNamespace bool, context, proto
 	display.Step("Setting up the environment")
 	setup := []string{
 		"configmap-epos-env.yaml",
-		"secret-epos-secret.yaml",
 		"pvc-psqldata.yaml",
 		"pvc-converter-plugins.yaml",
 	}

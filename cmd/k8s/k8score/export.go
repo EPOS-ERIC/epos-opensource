@@ -5,20 +5,25 @@ import (
 	"github.com/epos-eu/epos-opensource/display"
 )
 
-func Export(path string) error {
-	err := common.Export(path, ".env", []byte(EnvFile))
+type ExportOpts struct {
+	// Required. Path to export the embedded manifests and .env file
+	Path string
+}
+
+func Export(opts ExportOpts) error {
+	err := common.Export(opts.Path, ".env", []byte(EnvFile))
 	if err != nil {
 		return err
 	}
 
 	for name, content := range EmbeddedManifestContents {
-		err = common.Export(path, name, []byte(content))
+		err = common.Export(opts.Path, name, []byte(content))
 		if err != nil {
 			return err
 		}
 		display.Done("Exported %s", name)
 	}
 
-	display.Done("Successfully exported default environment files in %s", path)
+	display.Done("Successfully exported default environment files in %s", opts.Path)
 	return nil
 }

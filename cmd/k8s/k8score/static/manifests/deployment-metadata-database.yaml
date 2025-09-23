@@ -21,8 +21,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: epos-env
-            - secretRef:
-                name: epos-secret
           volumeMounts:
             - name: psqldata
               mountPath: /var/lib/postgresql

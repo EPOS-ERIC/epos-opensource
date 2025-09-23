@@ -6,34 +6,63 @@ import (
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
 	"github.com/epos-eu/epos-opensource/display"
+	"github.com/epos-eu/epos-opensource/validate"
+	"golang.org/x/sync/errgroup"
 )
 
-func Delete(name string) error {
-	display.Step("Deleting environment: %s", name)
+type DeleteOpts struct {
+	// Required. name of the environment
+	Name []string
+}
 
-	env, err := db.GetKubernetesByName(name)
-	if err != nil {
-		return fmt.Errorf("error getting kubernetes environment from db called '%s': %w", name, err)
+func Delete(opts DeleteOpts) error {
+	if err := opts.Validate(); err != nil {
+		return fmt.Errorf("invalid parameters for delete command: %w", err)
+	}
+	var eg errgroup.Group
+	eg.SetLimit(20)
+	for _, envName := range opts.Name {
+		eg.Go(func() error {
+			display.Step("Deleting environment: %s", envName)
+
+			env, err := db.GetKubernetesByName(envName)
+			if err != nil {
+				return fmt.Errorf("error getting kubernetes environment from db called '%s': %w", envName, err)
+			}
+
+			display.Step("Deleting namespace")
+
+			if err := deleteNamespace(envName, env.Context); err != nil {
+				return fmt.Errorf("error deleting namespace %s, %w", envName, err)
+			}
+
+			display.Done("Deleted namespace %s", envName)
+
+			if err := common.RemoveEnvDir(env.Directory); err != nil {
+				return fmt.Errorf("failed to remove directory %s: %w", env.Directory, err)
+			}
+
+			err = db.DeleteKubernetes(envName)
+			if err != nil {
+				return fmt.Errorf("failed to delete kubernetes %s (dir: %s) in db: %w", envName, env.Directory, err)
+			}
+
+			display.Done("Deleted environment: %s", envName)
+			return nil
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return err
 	}
 
-	display.Step("Deleting namespace")
+	return nil
+}
 
-	if err := deleteNamespace(name, env.Context); err != nil {
-		return fmt.Errorf("error deleting namespace %s, %w", name, err)
+func (d *DeleteOpts) Validate() error {
+	for _, envName := range d.Name {
+		if err := validate.EnvironmentExistsK8s(envName); err != nil {
+			return fmt.Errorf("invalid name for environment: %w", err)
+		}
 	}
-
-	display.Done("Deleted namespace %s", name)
-
-	if err := common.RemoveEnvDir(env.Directory); err != nil {
-		return fmt.Errorf("failed to remove directory %s: %w", env.Directory, err)
-	}
-
-	err = db.DeleteKubernetes(name)
-	if err != nil {
-		return fmt.Errorf("failed to delete kubernetes %s (dir: %s) in db: %w", name, env.Directory, err)
-	}
-
-	display.Done("Deleted environment: %s", name)
-
 	return nil
 }

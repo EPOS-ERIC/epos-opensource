@@ -69,7 +69,7 @@ func TestMetadataServer(t *testing.T) {
 				}
 			}
 
-			ms, err := NewMetadataServer(dir, 1)
+			ms, err := New(dir, 2)
 			if tc.expectErrNew {
 				if err == nil {
 					t.Fatalf("expected error from NewMetadataServer, got nil")

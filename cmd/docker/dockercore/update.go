@@ -10,6 +10,7 @@ import (
 	"github.com/epos-eu/epos-opensource/db"
 	"github.com/epos-eu/epos-opensource/db/sqlc"
 	"github.com/epos-eu/epos-opensource/display"
+	"github.com/epos-eu/epos-opensource/validate"
 )
 
 type UpdateOpts struct {
@@ -37,6 +38,9 @@ type UpdateOpts struct {
 // if everything goes right, delete the tmp dir and finish
 // else restore the tmp dir, deploy the old restored env and give an error in output
 func Update(opts UpdateOpts) (*sqlc.Docker, error) {
+	if err := opts.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid parameters for update command: %w", err)
+	}
 	display.Step("Updating environment: %s", opts.Name)
 
 	docker, err := db.GetDockerByName(opts.Name)
@@ -88,7 +92,7 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 
 	// Remove the contents of the env dir and create the updated env file and docker-compose
 	if err := common.RemoveEnvDir(docker.Directory); err != nil {
-		return handleFailure("failed to remove directory %s: %w", fmt.Errorf("%s: %w", docker.Directory, err))
+		return handleFailure("failed to remove directory: %w", fmt.Errorf("%s: %w", docker.Directory, err))
 	}
 
 	display.Step("Creating new environment directory")
@@ -131,4 +135,24 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 	}
 
 	return docker, nil
+}
+
+func (u *UpdateOpts) Validate() error {
+	if err := validate.EnvironmentExistsDocker(u.Name); err != nil {
+		return fmt.Errorf("no environment with name '%s' exists: %w", u.Name, err)
+	}
+
+	if err := validate.CustomHost(u.CustomHost); err != nil {
+		return fmt.Errorf("the custom host '%s' is not a valid ip or hostname: %w", u.CustomHost, err)
+	}
+
+	if err := validate.IsFile(u.EnvFile); err != nil {
+		return fmt.Errorf("the path to .env '%s' is not a file: %w", u.EnvFile, err)
+	}
+
+	if err := validate.IsFile(u.ComposeFile); err != nil {
+		return fmt.Errorf("the path to docker-compose '%s' is not a file: %w", u.ComposeFile, err)
+	}
+
+	return nil
 }

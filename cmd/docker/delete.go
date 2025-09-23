@@ -2,6 +2,8 @@
 package docker
 
 import (
+	"os"
+
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
 	"github.com/epos-eu/epos-opensource/display"
 
@@ -9,19 +11,19 @@ import (
 )
 
 var DeleteCmd = &cobra.Command{
-	Use:   "delete [env-name]",
-	Short: "Stop and remove a Docker Compose environment",
-	Long:  "Deletes the Docker Compose environment with the given name.",
-	Args:  cobra.ExactArgs(1),
+	Use:   "delete [env-name...]",
+	Short: "Stop and remove Docker Compose environments.",
+	Long:  "Deletes Docker Compose environments with the given names.",
+	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		name := args[0]
+		name := args[0:]
 
 		err := dockercore.Delete(dockercore.DeleteOpts{
 			Name: name,
 		})
 		if err != nil {
 			display.Error("%v", err)
-			return
+			os.Exit(1)
 		}
 	},
 }

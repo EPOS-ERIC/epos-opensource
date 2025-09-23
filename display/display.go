@@ -24,7 +24,7 @@ const (
 	yellow    = "\033[33m"
 	blue      = "\033[34m"
 	cyan      = "\033[36m"
-	copyright = "Copyright (C) 2023  EPOS ERIC"
+	copyright = "Copyright (C) 2025  EPOS ERIC"
 	logo      = `
                                                  *************                              
 &&&&&&&&&&&&&&&&&& *&&&&&&&%&&&%               *****************               &&&&&&/      

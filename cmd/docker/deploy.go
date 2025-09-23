@@ -2,6 +2,7 @@ package docker
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
 	"github.com/epos-eu/epos-opensource/display"
@@ -11,7 +12,7 @@ import (
 
 var DeployCmd = &cobra.Command{
 	Use:   "deploy [env-name]",
-	Short: "Create a new environment using Docker Compose",
+	Short: "Create a new environment using Docker Compose.",
 	Long:  "Deploy a new Docker Compose environment with the specified name.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -27,7 +28,7 @@ var DeployCmd = &cobra.Command{
 		})
 		if err != nil {
 			display.Error("%v", err)
-			return
+			os.Exit(1)
 		}
 
 		display.Urls(docker.GuiUrl, docker.ApiUrl, docker.BackofficeUrl, fmt.Sprintf("epos-opensource docker deploy %s", name))
@@ -39,5 +40,5 @@ func init() {
 	DeployCmd.Flags().StringVarP(&path, "path", "p", "", "Location for the environment files")
 	DeployCmd.Flags().StringVarP(&composeFile, "compose-file", "c", "", "Path to the Docker Compose file")
 	DeployCmd.Flags().BoolVarP(&pullImages, "update-images", "u", false, "Download Docker images before starting")
-	DeployCmd.Flags().StringVar(&host, "host", "", "host (either IP or hostname) to use for exposing the environment. If not set the nginx ingress controller IP is used by default")
+	DeployCmd.Flags().StringVar(&host, "host", "", "Host (either IP or hostname) to use for exposing the environment")
 }

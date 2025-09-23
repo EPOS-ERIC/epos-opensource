@@ -8,7 +8,7 @@ import (
 
 var dockerCmd = &cobra.Command{
 	Use:   "docker",
-	Short: "Manage local Docker Compose environments",
+	Short: "Manage local Docker Compose environments.",
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = cmd.Help()
 	},
@@ -21,5 +21,6 @@ func init() {
 	dockerCmd.AddCommand(docker.PopulateCmd)
 	dockerCmd.AddCommand(docker.ExportCmd)
 	dockerCmd.AddCommand(docker.ListCmd)
+	dockerCmd.AddCommand(docker.CleanCmd)
 	rootCmd.AddCommand(dockerCmd)
 }
