@@ -21,33 +21,33 @@ func Delete(opts DeleteOpts) error {
 	}
 	var eg errgroup.Group
 	eg.SetLimit(20)
-	for _, podName := range opts.Name {
+	for _, envName := range opts.Name {
 		eg.Go(func() error {
-			display.Step("Deleting environment: %s", podName)
+			display.Step("Deleting environment: %s", envName)
 
-			env, err := db.GetKubernetesByName(podName)
+			env, err := db.GetKubernetesByName(envName)
 			if err != nil {
-				return fmt.Errorf("error getting kubernetes environment from db called '%s': %w", podName, err)
+				return fmt.Errorf("error getting kubernetes environment from db called '%s': %w", envName, err)
 			}
 
 			display.Step("Deleting namespace")
 
-			if err := deleteNamespace(podName, env.Context); err != nil {
-				return fmt.Errorf("error deleting namespace %s, %w", podName, err)
+			if err := deleteNamespace(envName, env.Context); err != nil {
+				return fmt.Errorf("error deleting namespace %s, %w", envName, err)
 			}
 
-			display.Done("Deleted namespace %s", podName)
+			display.Done("Deleted namespace %s", envName)
 
 			if err := common.RemoveEnvDir(env.Directory); err != nil {
 				return fmt.Errorf("failed to remove directory %s: %w", env.Directory, err)
 			}
 
-			err = db.DeleteKubernetes(podName)
+			err = db.DeleteKubernetes(envName)
 			if err != nil {
-				return fmt.Errorf("failed to delete kubernetes %s (dir: %s) in db: %w", podName, env.Directory, err)
+				return fmt.Errorf("failed to delete kubernetes %s (dir: %s) in db: %w", envName, env.Directory, err)
 			}
 
-			display.Done("Deleted environment: %s", podName)
+			display.Done("Deleted environment: %s", envName)
 			return nil
 		})
 	}
@@ -59,8 +59,8 @@ func Delete(opts DeleteOpts) error {
 }
 
 func (d *DeleteOpts) Validate() error {
-	for _, podName := range d.Name {
-		if err := validate.EnvironmentExistsK8s(podName); err != nil {
+	for _, envName := range d.Name {
+		if err := validate.EnvironmentExistsK8s(envName); err != nil {
 			return fmt.Errorf("invalid name for environment: %w", err)
 		}
 	}
