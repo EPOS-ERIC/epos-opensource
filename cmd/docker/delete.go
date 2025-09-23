@@ -11,7 +11,7 @@ import (
 )
 
 var DeleteCmd = &cobra.Command{
-	Use:   "delete [env-name] [env-name]...",
+	Use:   "delete [env-name...]",
 	Short: "Stop and remove Docker Compose environments.",
 	Long:  "Deletes Docker Compose environments with the given names.",
 	Args:  cobra.MinimumNArgs(1),
@@ -19,16 +19,11 @@ var DeleteCmd = &cobra.Command{
 		name := args[0:]
 
 		err := dockercore.Delete(dockercore.DeleteOpts{
-			Name:     name,
-			Parallel: parallel,
+			Name: name,
 		})
 		if err != nil {
 			display.Error("%v", err)
 			os.Exit(1)
 		}
 	},
-}
-
-func init() {
-	DeleteCmd.Flags().IntVarP(&parallel, "parallel", "p", 1, "Number of Environments being deleted in Parallel")
 }
