@@ -78,7 +78,7 @@ func Deploy(opts DeployOpts) (*sqlc.Kubernetes, error) {
 		return handleFailure("deploy failed: %w", err)
 	}
 
-	portalURL, gatewayURL, backofficeURL, err := buildEnvURLs(dir, opts.Context, opts.Protocol, host)
+	portalURL, gatewayURL, backofficeURL, err := buildEnvURLs(dir, opts.Protocol, host)
 	if err != nil {
 		display.Error("error building env urls for the environment: %v", err)
 		return handleFailure("error building env urls for environment '%s': %w", fmt.Errorf("%s: %w", dir, err))
@@ -88,9 +88,28 @@ func Deploy(opts DeployOpts) (*sqlc.Kubernetes, error) {
 	display.Info("Generated URL for gateway: %s", gatewayURL)
 	display.Info("Generated URL for backoffice: %s", backofficeURL)
 
-	if err := common.PopulateOntologies(gatewayURL); err != nil {
-		display.Error("error initializing the ontologies in the environment: %v", err)
-		return handleFailure("error initializing the ontologies: %w", err)
+	display.Step("Starting port-forward to gateway pod for ontologies")
+
+	localPort, err := common.FindFreePort()
+	if err != nil {
+		return handleFailure("could not find free port: %w", err)
+	}
+
+	err = ForwardAndRun(opts.Name, "ingestor-service", localPort, 8080, opts.Context, func(host string, port int) error {
+		url := fmt.Sprintf("http://%s:%d/api/ingestor-service/v1/", host, port)
+		if err := common.PopulateOntologies(url); err != nil {
+			return fmt.Errorf("error populating ontologies through port-forward: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		display.Warn("error initializing the ontologies in the environment, trying with direct URL: %s. error: %v", gatewayURL, err)
+
+		err := common.PopulateOntologies(gatewayURL)
+		if err != nil {
+			display.Error("error initializing the ontologies in the environment: %v", err)
+			return handleFailure("error initializing the ontologies: %w", err)
+		}
 	}
 
 	kube, err := db.InsertKubernetes(opts.Name, dir, opts.Context, gatewayURL, portalURL, backofficeURL, opts.Protocol)

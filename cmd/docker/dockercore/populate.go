@@ -5,10 +5,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
 	"github.com/epos-eu/epos-opensource/db/sqlc"
 	"github.com/epos-eu/epos-opensource/display"
-	"github.com/epos-eu/epos-opensource/metadataserver"
 	"github.com/epos-eu/epos-opensource/validate"
 )
 
@@ -39,27 +39,7 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 			return nil, fmt.Errorf("error finding absolute path for given metadata path '%s': %w", p, err)
 		}
 
-		var metadataServer *metadataserver.MetadataServer
-
-		metadataServer, err = metadataserver.New(p, opts.Parallel)
-		if err != nil {
-			return nil, fmt.Errorf("creating metadata server for dir %q: %w", p, err)
-		}
-
-		if err = metadataServer.Start(); err != nil {
-			return nil, fmt.Errorf("error starting metadata server: %w", err)
-		}
-
-		defer func(env string) {
-			display.Step("Stopping metadata server for path: %s", p)
-			if err := metadataServer.Stop(); err != nil {
-				display.Error("Error while removing metadata server deployment: %v. You might have to remove it manually.", err)
-			} else {
-				display.Done("Metadata server stopped successfully")
-			}
-		}(opts.Name)
-
-		err = metadataServer.PostFiles(docker.ApiUrl, "http")
+		err := common.PopulateEnv(p, docker.ApiUrl, opts.Parallel)
 		if err != nil {
 			return nil, fmt.Errorf("error populating environment: %w", err)
 		}

@@ -115,7 +115,7 @@ func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name, cont
 		}
 	}
 
-	if err := loadEnvAndExpandManifests(envPath, name, context, protocol, host); err != nil {
+	if err := loadEnvAndExpandManifests(envPath, name, protocol, host); err != nil {
 		return "", fmt.Errorf("failed to process environment variables: %w", err)
 	}
 
@@ -176,7 +176,7 @@ func getAPIHost(context string) (string, error) {
 	return ip, nil
 }
 
-func loadEnvAndExpandManifests(envPath, name, context, protocol, host string) error {
+func loadEnvAndExpandManifests(envPath, name, protocol, host string) error {
 	envFilePath := path.Join(envPath, ".env")
 	if err := godotenv.Load(envFilePath); err != nil {
 		return fmt.Errorf("failed to load environment file %q: %w", envFilePath, err)
@@ -186,7 +186,7 @@ func loadEnvAndExpandManifests(envPath, name, context, protocol, host string) er
 	if err != nil {
 		return fmt.Errorf("failed to set 'NAMESPACE' environment variable: %w", err)
 	}
-	_, apiURL, _, err := buildEnvURLs(envPath, context, protocol, host)
+	_, apiURL, _, err := buildEnvURLs(envPath, protocol, host)
 	if err != nil {
 		return fmt.Errorf("error building API URL: %w", err)
 	}
@@ -373,7 +373,7 @@ func deleteNamespace(name, context string) error {
 
 // buildEnvURLs returns the base urls for the dataportal and the gateway.
 // It tries to get the ip of the ingress of the cluster, and if there is an error it returns the localIP
-func buildEnvURLs(dir, context, protocol, host string) (portalURL, gatewayURL, backofficeURL string, err error) {
+func buildEnvURLs(dir, protocol, host string) (portalURL, gatewayURL, backofficeURL string, err error) {
 	env, err := godotenv.Read(filepath.Join(dir, ".env"))
 	if err != nil {
 		return "", "", "", fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
