@@ -78,7 +78,7 @@ func TestDeploy(t *testing.T) {
 			}
 
 			t.Cleanup(func() {
-				if delErr := dockercore.Delete(dockercore.DeleteOpts{Name: tt.opts.Name}); delErr != nil {
+				if delErr := dockercore.Delete(dockercore.DeleteOpts{Name: []string{tt.opts.Name}}); delErr != nil {
 					t.Fatalf("cleanup failed: %v", delErr)
 				}
 			})

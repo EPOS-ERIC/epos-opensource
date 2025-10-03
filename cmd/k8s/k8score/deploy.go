@@ -78,7 +78,7 @@ func Deploy(opts DeployOpts) (*sqlc.Kubernetes, error) {
 		return handleFailure("deploy failed: %w", err)
 	}
 
-	portalURL, gatewayURL, backofficeURL, err := buildEnvURLs(dir, opts.Context, opts.Protocol, host)
+	portalURL, gatewayURL, backofficeURL, err := buildEnvURLs(dir, opts.Protocol, host)
 	if err != nil {
 		display.Error("error building env urls for the environment: %v", err)
 		return handleFailure("error building env urls for environment '%s': %w", fmt.Errorf("%s: %w", dir, err))
