@@ -107,43 +107,63 @@ make build
 
 ---
 
-## Discovering All Commands
+## Commands
 
-The CLI has many commands and options. To see everything you can do, use the built-in help:
+The CLI is organized into two main commands: `docker` and `kubernetes`. Each has its own set of subcommands for managing environments.
 
-```bash
+### Docker Commands
+
+| Command | Description |
+| :--- | :--- |
+| `deploy` | Create a new environment using Docker Compose. |
+| `populate` | Ingest TTL files from directories or files into an environment. |
+| `clean` | Clean the data of an environment. |
+| `delete` | Stop and remove Docker Compose environments. |
+| `export` | Export the default environment files to a directory. |
+| `list` | List installed Docker environments. |
+| `update` | Recreate an environment with new settings. |
+
+**Example:**
+
+```shell
+# Deploy a new Docker environment named "my-test"
+epos-opensource docker deploy my-test
+
+# Populate it with data
+epos-opensource docker populate my-test /path/to/my/data
+```
+
+### Kubernetes Commands
+
+| Command | Description |
+| :--- | :--- |
+| `deploy` | Create and deploy a new Kubernetes environment in a dedicated namespace. |
+| `populate` | Ingest TTL files from directories or files into an environment. |
+| `delete` | Removes Kubernetes environmentas and all their namespaces. |
+| `export` | Export default environment files and manifests. |
+| `list` | List installed Kubernetes environments. |
+| `update` | Update and redeploy an existing Kubernetes environment. |
+
+**Example:**
+
+```shell
+# Deploy a new Kubernetes environment named "my-cluster"
+epos-opensource kubernetes deploy my-cluster
+
+# Populate it with data
+epos-opensource kubernetes populate my-cluster /path/to/my/data
+```
+
+### Getting Help
+
+For more details on any command, use the `--help` flag:
+
+```shell
 epos-opensource --help
 epos-opensource docker --help
-epos-opensource kubernetes --help
-epos-opensource docker deploy --help
+epos-opensource kubernetes deploy --help
 ```
 
-This will always show the most up-to-date list of commands and flags.
-
----
-
-## Usage Examples
-
-### List available commands
-
-```shell
-epos-opensource --help
-```
-
-### Docker example: Deploy and populate an environment
-
-```shell
-epos-opensource docker deploy myenv
-epos-opensource docker populate myenv /path/to/ttl-files
-```
-
-After deploying, the CLI will print the URLs for:
-
-- EPOS Data Portal
-- EPOS API Gateway
-- EPOS Backoffice
-
-Look for these in your terminal output.
 
 ---
 
@@ -232,3 +252,4 @@ After submitting:
 - Update your branch until it is approved and merged.
 
 Thank you for your contribution!
+
