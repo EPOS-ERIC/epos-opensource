@@ -69,8 +69,6 @@ func Populate(opts PopulateOpts) (*sqlc.Kubernetes, error) {
 
 		// start a port forward locally to the ingestor service and use that to do the populate posts
 		err = ForwardAndRun(opts.Name, "ingestor-service", port, 8080, kube.Context, func(host string, port int) error {
-			display.Done("Port forward started successfully")
-			// here we use http because we are accessing the apis in the pod itself, through the port forward
 			url := fmt.Sprintf("http://%s:%d/api/ingestor-service/v1/", host, port)
 
 			err = metadataServer.PostFiles(url, kube.Protocol)
@@ -81,7 +79,7 @@ func Populate(opts PopulateOpts) (*sqlc.Kubernetes, error) {
 			return nil
 		})
 		if err != nil {
-			display.Warn("error populating environment through port-forward, trying with direct IP. error: %v", err)
+			display.Warn("error populating environment through port-forward, trying with direct URL: %s. error: %v", kube.ApiUrl, err)
 
 			err = metadataServer.PostFiles(kube.ApiUrl, kube.Protocol)
 			if err != nil {

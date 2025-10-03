@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/epos-eu/epos-opensource/command"
+	"github.com/epos-eu/epos-opensource/display"
 )
 
 // ForwardAndRun spins up kubectl port-forward, runs fn, then cleans up.
@@ -41,6 +42,8 @@ func ForwardAndRun(namespace, deployment string, localPort, remotePort int, cont
 	if err := waitForForward(stdout, stderr, 30*time.Second); err != nil {
 		return fmt.Errorf("error waiting for port-forward: %w", err)
 	}
+
+	display.Done("Port forward started successfully")
 
 	if err := fn("127.0.0.1", localPort); err != nil {
 		return err

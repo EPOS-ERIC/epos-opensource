@@ -133,6 +133,10 @@ func (ms *MetadataServer) PostFiles(gatewayURL, protocol string) error {
 	var eg errgroup.Group
 	eg.SetLimit(ms.parallel)
 
+	client := http.Client{
+		Timeout: 20 * time.Second,
+	}
+
 	err = filepath.WalkDir(ms.dir, func(path string, d fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			display.Error("Error while walking directory: %v", walkErr)
@@ -182,7 +186,7 @@ func (ms *MetadataServer) PostFiles(gatewayURL, protocol string) error {
 
 			r.Header.Add("accept", "*/*")
 
-			res, err := http.DefaultClient.Do(r)
+			res, err := client.Do(r)
 			if err != nil {
 				display.Error("Error ingesting file '%s' in database: %v", d.Name(), err)
 				return fmt.Errorf("error ingesting file '%s' in database: %w", d.Name(), err)
