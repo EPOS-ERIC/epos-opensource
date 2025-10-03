@@ -94,7 +94,7 @@ func Urls(portalURL, gatewayURL, backofficeURL, title string) {
 	// Add content
 	t.AppendRow(table.Row{logo, logo}, merge)
 	t.AppendSeparator()
-	t.AppendRow(table.Row{"EPOS Data Portal", portalURL})
+	t.AppendRow(table.Row{"EPOS Platform Interface", portalURL})
 	t.AppendSeparator()
 	t.AppendRow(table.Row{"EPOS API Gateway", gatewayURL})
 	t.AppendSeparator()

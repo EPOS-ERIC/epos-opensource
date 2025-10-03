@@ -12,6 +12,7 @@
 # 4. Compare versions and check for breaking changes (a major version increase).
 # 5. If a breaking change is detected, it will ask for user confirmation before proceeding.
 # 6. Download the appropriate binary and place it in a common PATH directory.
+# 7. Remove old installation if updating from a different directory.
 # ------------------------------------------------------------------------------
 
 # --- Configuration ---
@@ -89,6 +90,16 @@ get_platform_and_arch() {
     esac
 }
 
+# get_current_install_path returns the full path to the currently installed binary.
+# Returns an empty string if not found.
+get_current_install_path() {
+    if command -v "${BINARY_NAME}" &>/dev/null; then
+        command -v "${BINARY_NAME}"
+    else
+        echo ""
+    fi
+}
+
 # get_local_version checks for an existing installation of the binary and extracts its version.
 # Returns a semantic version string (e.g., "1.2.3"), a DEV_BUILD prefixed string for
 # non-standard versions, or an empty string if not found.
@@ -160,6 +171,38 @@ get_install_dir() {
     echo "${HOME}/.local/bin"
 }
 
+# remove_old_installation removes the old binary if it exists in a different location
+# than the new installation directory.
+remove_old_installation() {
+    local old_path=$1
+    local new_install_dir=$2
+    local new_install_path="${new_install_dir}/${BINARY_NAME}"
+
+    # Don't remove if it's the same location
+    if [ "${old_path}" = "${new_install_path}" ]; then
+        return
+    fi
+
+    log_info "Removing old installation from: ${old_path}"
+    
+    local old_dir
+    old_dir=$(dirname "${old_path}")
+    
+    if [ ! -w "${old_dir}" ]; then
+        if command -v sudo &>/dev/null; then
+            sudo rm -f "${old_path}"
+        else
+            log_warn "Could not remove old installation at ${old_path} (no sudo available)"
+            log_warn "You may want to manually remove it later"
+            return
+        fi
+    else
+        rm -f "${old_path}"
+    fi
+    
+    log_info "Old installation removed successfully"
+}
+
 # provide_path_instructions detects the user's shell and gives specific
 # instructions on how to add the installation directory to the PATH.
 provide_path_instructions() {
@@ -208,8 +251,15 @@ main() {
     get_platform_and_arch
     log_info "Detected Platform: ${OS}-${ARCH}"
 
+    local current_install_path
+    current_install_path=$(get_current_install_path)
+    
     local local_version
     local_version=$(get_local_version)
+    
+    if [ -n "${current_install_path}" ]; then
+        log_info "Found existing installation at: ${current_install_path}"
+    fi
     
     log_info "Fetching latest release from GitHub..."
     get_latest_release_info # This sets LATEST_VERSION and DOWNLOAD_URL
@@ -289,8 +339,17 @@ main() {
             ;;
     esac
 
-    # 4. Download and install
-    log_step "Step 4: Downloading and Installing..."
+    # 4. Remove old installation if it exists in a different location
+    if [ -n "${current_install_path}" ]; then
+        local new_install_path="${install_dir}/${BINARY_NAME}"
+        if [ "${current_install_path}" != "${new_install_path}" ]; then
+            log_step "Step 4: Cleaning up old installation..."
+            remove_old_installation "${current_install_path}" "${install_dir}"
+        fi
+    fi
+
+    # 5. Download and install
+    log_step "Step 5: Downloading and Installing..."
     local temp_file
     temp_file=$(mktemp)
     local install_path="${install_dir}/${BINARY_NAME}"
