@@ -27,15 +27,15 @@ import (
 //   - parallel: Maximum number of concurrent file ingestions (use 1 for sequential processing)
 //
 // Returns an error if any file fails to ingest or if the path is invalid.
-func PopulateEnv(ttlPath, gatewayURL string, parallel int) error {
+func PopulateEnv(ttlPath, endpointURL string, parallel int) error {
 	if parallel == 0 {
 		return fmt.Errorf("invalid parallel value: %d", parallel)
 	}
 
-	gatewayURL = strings.TrimSuffix(gatewayURL, "/ui")
-	postURL, err := url.Parse(gatewayURL)
+	endpointURL = strings.TrimSuffix(endpointURL, "/ui")
+	postURL, err := url.Parse(endpointURL)
 	if err != nil {
-		return fmt.Errorf("invalid gateway URL '%s': %w", gatewayURL, err)
+		return fmt.Errorf("invalid endpoint URL '%s': %w", endpointURL, err)
 	}
 	postURL = postURL.JoinPath("/populate")
 
@@ -104,24 +104,33 @@ var client = http.Client{
 }
 
 func postFile(path string, url url.URL) error {
+	file, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("failed to read file '%s': %w", filepath.Base(path), err)
+	}
+	return postRequest(path, url, bytes.NewReader(file), false)
+}
+
+func postURL(path string, url url.URL) error {
+	return postRequest(path, url, nil, true)
+}
+
+func postRequest(path string, url url.URL, body io.Reader, setPathQuery bool) error {
 	q := url.Query()
 	// TODO: remove securityCode once it's removed from the ingestor
 	q.Set("securityCode", "changeme")
 	q.Set("type", "single")
 	q.Set("model", "EPOS-DCAT-AP-V1")
 	q.Set("mapping", "EDM-TO-DCAT-AP")
+	if setPathQuery {
+		q.Set("path", path)
+	}
 	url.RawQuery = q.Encode()
 
-	file, err := os.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("failed to read file '%s': %w", filepath.Base(path), err)
-	}
-
-	r, err := http.NewRequest("POST", url.String(), bytes.NewReader(file))
+	r, err := http.NewRequest("POST", url.String(), body)
 	if err != nil {
 		return fmt.Errorf("failed to create HTTP request for '%s': %w", filepath.Base(path), err)
 	}
-
 	r.Header.Add("accept", "*/*")
 	r.Header.Add("Content-Type", "text/turtle")
 
@@ -138,6 +147,48 @@ func postFile(path string, url url.URL) error {
 		}
 		return fmt.Errorf("server rejected '%s' with status %d: %s", filepath.Base(path), res.StatusCode, string(body))
 	}
+	return nil
+}
 
+func PopulateExample(endpointURL string, parallel int) error {
+	if parallel == 0 {
+		return fmt.Errorf("invalid parallel value: %d", parallel)
+	}
+
+	examples := map[string]string{
+		"EPOS GeoJSON": "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/test-geojson/static/examples/epos-geo-json.ttl",
+		// "Coverage JSON": "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/test-geojson/static/examples/epos-geo-json.ttl",
+		// "WMS":           "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/test-geojson/static/examples/epos-geo-json.ttl",
+		// "WFS":           "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/test-geojson/static/examples/epos-geo-json.ttl",
+	}
+
+	endpointURL = strings.TrimSuffix(endpointURL, "/ui")
+	populateURL, err := url.Parse(endpointURL)
+	if err != nil {
+		return fmt.Errorf("invalid endpoint URL '%s': %w", endpointURL, err)
+	}
+	populateURL = populateURL.JoinPath("/populate")
+
+	display.Step("Starting ingestion of %d example file(s)", len(examples))
+
+	var eg errgroup.Group
+	eg.SetLimit(parallel)
+
+	for name, exampleURL := range examples {
+		eg.Go(func() error {
+			display.Step("Ingesting example: %s", name)
+			if err := postURL(exampleURL, *populateURL); err != nil {
+				display.Error("Failed to ingest example '%s': %v", name, err)
+				return err
+			}
+			return nil
+		})
+	}
+
+	if err := eg.Wait(); err != nil {
+		return fmt.Errorf("one or more examples failed to ingest: %w", err)
+	}
+
+	display.Done("Successfully ingested all example files")
 	return nil
 }

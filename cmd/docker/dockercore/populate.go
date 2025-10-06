@@ -19,6 +19,8 @@ type PopulateOpts struct {
 	Name string
 	// Optional. number of parallel uploads to use. If not set the default will be 1. Max is 20
 	Parallel int
+	// Optional. weather to populate the examples or not
+	PopulateExamples bool
 }
 
 func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
@@ -31,6 +33,13 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 	docker, err := db.GetDockerByName(opts.Name)
 	if err != nil {
 		return nil, fmt.Errorf("error getting docker environment from db called '%s': %w", opts.Name, err)
+	}
+
+	if opts.PopulateExamples {
+		err := common.PopulateExample(docker.ApiUrl, opts.Parallel)
+		if err != nil {
+			return nil, fmt.Errorf("error populating environment with examples: %w", err)
+		}
 	}
 
 	for _, p := range opts.TTLDirs {
