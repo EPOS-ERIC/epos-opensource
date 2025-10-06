@@ -3,7 +3,7 @@
 # Installer for the epos-opensource CLI.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/epos-eu/epos-opensource/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/EPOS-ERIC/epos-opensource/main/install.sh | bash
 #
 # The script will:
 # 1. Detect the user's OS and architecture.
@@ -20,7 +20,7 @@
 set -euo pipefail
 
 # GitHub repository for the CLI tool.
-readonly REPO="epos-eu/epos-opensource"
+readonly REPO="EPOS-ERIC/epos-opensource"
 # The name of the binary to be installed.
 readonly BINARY_NAME="epos-opensource"
 # GitHub API URL for the latest release.
