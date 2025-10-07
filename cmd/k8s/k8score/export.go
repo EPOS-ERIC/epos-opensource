@@ -15,15 +15,16 @@ func Export(opts ExportOpts) error {
 	if err != nil {
 		return err
 	}
+	display.Done("Exported file: %s", ".env")
 
 	for name, content := range EmbeddedManifestContents {
 		err = common.Export(opts.Path, name, []byte(content))
 		if err != nil {
 			return err
 		}
-		display.Done("Exported %s", name)
+		display.Done("Exported file: %s", name)
 	}
 
-	display.Done("Successfully exported default environment files in %s", opts.Path)
+	display.Done("All files exported to %s", opts.Path)
 	return nil
 }
