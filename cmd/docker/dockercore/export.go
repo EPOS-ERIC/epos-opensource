@@ -15,14 +15,14 @@ func Export(opts ExportOpts) error {
 	if err != nil {
 		return err
 	}
-	display.Done("Exported %s", ".env")
+	display.Done("Exported file: %s", ".env")
 
 	err = common.Export(opts.Path, "docker-compose.yaml", []byte(ComposeFile))
 	if err != nil {
 		return err
 	}
-	display.Done("Exported %s", "docker-compose.yaml")
+	display.Done("Exported file: %s", "docker-compose.yaml")
 
-	display.Done("Successfully exported default environment files in %s", opts)
+	display.Done("All files exported to %s", opts.Path)
 	return nil
 }

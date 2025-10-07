@@ -71,8 +71,17 @@ func Done(format string, a ...any) {
 
 // Urls prints the URLs for the data portal, API gateway, and backoffice for a specific environment
 func Urls(portalURL, gatewayURL, backofficeURL, title string) {
-	gatewayURL, _ = url.JoinPath(gatewayURL, "ui")
-	backofficeURL, _ = url.JoinPath(backofficeURL, "home")
+	if newGatewayURL, err := url.JoinPath(gatewayURL, "ui"); err != nil {
+		Warn("Could not construct gateway URL: %v", err)
+	} else {
+		gatewayURL = newGatewayURL
+	}
+
+	if newBackofficeURL, err := url.JoinPath(backofficeURL, "home"); err != nil {
+		Warn("Could not construct backoffice URL: %v", err)
+	} else {
+		backofficeURL = newBackofficeURL
+	}
 
 	t := table.NewWriter()
 	t.SetTitle(title)
