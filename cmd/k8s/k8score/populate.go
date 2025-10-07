@@ -19,6 +19,8 @@ type PopulateOpts struct {
 	TTLDirs []string
 	// Optional. number of parallel uploads to do to the default is 1
 	Parallel int
+	// Optional. weather to populate the examples or not
+	PopulateExamples bool
 }
 
 func Populate(opts PopulateOpts) (*sqlc.Kubernetes, error) {
@@ -32,36 +34,44 @@ func Populate(opts PopulateOpts) (*sqlc.Kubernetes, error) {
 		return nil, fmt.Errorf("error getting kubernetes environment from db called '%s': %w", opts.Name, err)
 	}
 
-	for _, path := range opts.TTLDirs {
-		path, err = filepath.Abs(path)
-		if err != nil {
-			return nil, fmt.Errorf("error finding absolute path for given metadata path '%s': %w", path, err)
-		}
-
+	port, err := common.FindFreePort()
+	if err != nil {
+		return nil, fmt.Errorf("error getting free port: %w", err)
+	}
+	// start a port forward locally to the ingestor service and use that to do the populate posts
+	err = ForwardAndRun(opts.Name, "ingestor-service", port, 8080, kube.Context, func(host string, port int) error {
 		display.Step("Starting port-forward to ingestor-service pod")
 
-		port, err := common.FindFreePort()
-		if err != nil {
-			return nil, fmt.Errorf("error getting free port: %w", err)
+		url := fmt.Sprintf("http://%s:%d/api/ingestor-service/v1/", host, port)
+
+		if opts.PopulateExamples {
+			err := common.PopulateExample(url, opts.Parallel)
+			if err != nil {
+				display.Warn("error populating environment with examples through port-forward: %v. Trying with direct URL: %s", err, kube.ApiUrl)
+				if err := common.PopulateExample(kube.ApiUrl, opts.Parallel); err != nil {
+					return fmt.Errorf("error populating environment with examples with direct URL: %w", err)
+				}
+			}
 		}
 
-		// start a port forward locally to the ingestor service and use that to do the populate posts
-		err = ForwardAndRun(opts.Name, "ingestor-service", port, 8080, kube.Context, func(host string, port int) error {
-			url := fmt.Sprintf("http://%s:%d/api/ingestor-service/v1/", host, port)
+		for _, path := range opts.TTLDirs {
+			path, err = filepath.Abs(path)
+			if err != nil {
+				return fmt.Errorf("error finding absolute path for given metadata path '%s': %w", path, err)
+			}
 
 			if err = common.PopulateEnv(path, url, opts.Parallel); err != nil {
-				return fmt.Errorf("error populating environment: %w", err)
+				display.Warn("error populating environment through port-forward: %v. Trying with direct URL: %s", err, kube.ApiUrl)
+				if err = common.PopulateEnv(path, kube.ApiUrl, opts.Parallel); err != nil {
+					return fmt.Errorf("error populating environment with direct URL: %w", err)
+				}
 			}
 
-			return nil
-		})
-		if err != nil {
-			display.Warn("error populating environment through port-forward, trying with direct URL: %s. error: %v", kube.ApiUrl, err)
-
-			if err = common.PopulateEnv(path, kube.ApiUrl, opts.Parallel); err != nil {
-				return nil, fmt.Errorf("error populating environment: %w", err)
-			}
 		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error populating environment: %w", err)
 	}
 
 	display.Done("Finished populating environment with ttl files from %d directories", len(opts.TTLDirs))
