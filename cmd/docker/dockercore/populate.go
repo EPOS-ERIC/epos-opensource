@@ -43,19 +43,18 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 	}
 
 	for _, p := range opts.TTLDirs {
-		p, err = filepath.Abs(p)
+		absPath, err := filepath.Abs(p)
 		if err != nil {
 			return nil, fmt.Errorf("error finding absolute path for given metadata path '%s': %w", p, err)
 		}
 
-		err := common.PopulateEnv(p, docker.ApiUrl, opts.Parallel)
-		if err != nil {
+		if err := common.PopulateEnv(absPath, docker.ApiUrl, opts.Parallel); err != nil {
 			return nil, fmt.Errorf("error populating environment: %w", err)
 		}
 	}
 
 	display.Done("Finished populating environment with ttl files from %d path(s)", len(opts.TTLDirs))
-	return docker, err
+	return docker, nil
 }
 
 func (p *PopulateOpts) Validate() error {
