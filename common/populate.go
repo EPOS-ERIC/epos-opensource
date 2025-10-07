@@ -156,10 +156,10 @@ func PopulateExample(endpointURL string, parallel int) error {
 	}
 
 	examples := map[string]string{
-		"EPOS GeoJSON": "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/test-geojson/static/examples/epos-geo-json.ttl",
-		// "Coverage JSON": "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/test-geojson/static/examples/epos-geo-json.ttl",
-		// "WMS":           "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/test-geojson/static/examples/epos-geo-json.ttl",
-		// "WFS":           "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/test-geojson/static/examples/epos-geo-json.ttl",
+		"EPOS GeoJSON":  "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/main/static/examples/example-geojson.ttl",
+		"Coverage JSON": "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/main/static/examples/example-covjson.ttl",
+		"WMS":           "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/main/static/examples/ogc-wms.ttl",
+		"WFS":           "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/main/static/examples/ogc-wfs.ttl",
 	}
 
 	endpointURL = strings.TrimSuffix(endpointURL, "/ui")
