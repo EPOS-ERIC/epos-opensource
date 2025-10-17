@@ -8,4 +8,6 @@ var (
 	host             string
 	parallel         int
 	populateExamples bool
+	cleanForce       bool
+	deleteForce      bool
 )

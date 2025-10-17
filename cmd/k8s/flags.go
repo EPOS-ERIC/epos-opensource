@@ -9,4 +9,5 @@ var (
 	host             string
 	parallel         int
 	populateExamples bool
+	deleteForce      bool
 )
