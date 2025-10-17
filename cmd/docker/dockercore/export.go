@@ -11,13 +11,18 @@ type ExportOpts struct {
 }
 
 func Export(opts ExportOpts) error {
-	err := common.Export(opts.Path, ".env", []byte(EnvFile))
+	header := common.GenerateExportHeader()
+
+	envContent := header + EnvFile
+	composeContent := header + ComposeFile
+
+	err := common.Export(opts.Path, ".env", []byte(envContent))
 	if err != nil {
 		return err
 	}
 	display.Done("Exported file: %s", ".env")
 
-	err = common.Export(opts.Path, "docker-compose.yaml", []byte(ComposeFile))
+	err = common.Export(opts.Path, "docker-compose.yaml", []byte(composeContent))
 	if err != nil {
 		return err
 	}

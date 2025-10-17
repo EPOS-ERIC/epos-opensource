@@ -4,25 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"runtime/debug"
 	"time"
 
+	"github.com/epos-eu/epos-opensource/common"
 	"github.com/google/go-github/v72/github"
 	"github.com/spf13/cobra"
 )
-
-var Version = "dev"
-
-func getVersion() string {
-	if Version != "" && Version != "dev" {
-		return Version
-	}
-
-	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "(devel)" {
-		return info.Main.Version
-	}
-	return "dev"
-}
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -38,7 +25,7 @@ groups to deploy, populate, update, or delete an environment.`,
 			_ = cmd.Help()
 		}
 	},
-	Version: getVersion(),
+	Version: common.GetVersion(),
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
