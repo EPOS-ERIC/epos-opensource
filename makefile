@@ -4,7 +4,7 @@ GOOS?=$(shell go env GOOS)
 GOARCH?=$(shell go env GOARCH)
 EXT?=
 
-LDFLAGS=-s -w -X github.com/epos-eu/epos-opensource/cmd.Version=$(VERSION)
+LDFLAGS=-s -w -X github.com/epos-eu/epos-opensource/common.Version=$(VERSION)
 BUILDFLAGS=-trimpath
 
 .DEFAULT_GOAL := build
