@@ -159,8 +159,8 @@ func PopulateExample(endpointURL string, parallel int) error {
 		"EPOS GeoJSON":      "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/main/static/examples/example-geojson.ttl",
 		"Coverage JSON":     "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/main/static/examples/example-covjson.ttl",
 		"Downloadable File": "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/main/static/examples/example-downloadablefile.ttl",
-		"WMS":               "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/main/static/examples/ogc-wms.ttl",
-		"WFS":               "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/main/static/examples/ogc-wfs.ttl",
+		"OGC WMS":           "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/main/static/examples/ogc-wms.ttl",
+		"OGC WFS":           "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/main/static/examples/ogc-wfs.ttl",
 	}
 
 	endpointURL = strings.TrimSuffix(endpointURL, "/ui")
