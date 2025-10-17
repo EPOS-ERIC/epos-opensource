@@ -54,11 +54,13 @@ func DockerList(dockers []sqlc.Docker, title string) {
 	for i, d := range dockers {
 		gatewayURL, err := url.JoinPath(d.ApiUrl, "ui")
 		if err != nil {
-			panic("error building gateway url") // TODO
+			Warn("Could not construct gateway URL: %v", err)
+			gatewayURL = d.ApiUrl
 		}
 		backofficeURL, err := url.JoinPath(d.BackofficeUrl, "home")
 		if err != nil {
-			panic("error building backoffice url") // TODO
+			Warn("Could not construct backoffice URL: %v", err)
+			backofficeURL = d.BackofficeUrl
 		}
 		rows[i] = []any{d.Name, d.Directory, d.GuiUrl, backofficeURL, gatewayURL}
 	}
@@ -71,11 +73,13 @@ func KubernetesList(kubes []sqlc.Kubernetes, title string) {
 	for i, k := range kubes {
 		gatewayURL, err := url.JoinPath(k.ApiUrl, "ui")
 		if err != nil {
-			panic("error building gateway url") // TODO
+			Warn("Could not construct gateway URL: %v", err)
+			gatewayURL = k.ApiUrl
 		}
 		backofficeURL, err := url.JoinPath(k.BackofficeUrl, "home")
 		if err != nil {
-			panic("error building backoffice url") // TODO
+			Warn("Could not construct backoffice URL: %v", err)
+			backofficeURL = k.BackofficeUrl
 		}
 		rows[i] = []any{k.Name, k.Directory, k.Context, k.GuiUrl, backofficeURL, gatewayURL}
 	}
