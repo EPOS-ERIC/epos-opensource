@@ -12,20 +12,20 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 )
 
 const (
-	reset     = "\033[0m"
-	red       = "\033[31m"
-	green     = "\033[32m"
-	yellow    = "\033[33m"
-	blue      = "\033[34m"
-	cyan      = "\033[36m"
-	copyright = "Copyright (C) 2025  EPOS ERIC"
-	logo      = `
+	reset  = "\033[0m"
+	red    = "\033[31m"
+	green  = "\033[32m"
+	yellow = "\033[33m"
+	blue   = "\033[34m"
+	cyan   = "\033[36m"
+	logo   = `
                                                  *************                              
 &&&&&&&&&&&&&&&&&& *&&&&&&&%&&&%               *****************               &&&&&&/      
 &&&&&&&&&&&&&&&&&& *&&&&&&&&&&&&&&&&&       **  **********  *******       &&&&&&&&&&&&&&&&& 
@@ -69,6 +69,10 @@ func Done(format string, a ...any) {
 	printStdout(green, "DONE", format, a...)
 }
 
+func Copyright() string {
+	return fmt.Sprintf("Copyright (C) %d  EPOS ERIC", time.Now().Year())
+}
+
 // Urls prints the URLs for the data portal, API gateway, and backoffice for a specific environment
 func Urls(portalURL, gatewayURL, backofficeURL, title string) {
 	if newGatewayURL, err := url.JoinPath(gatewayURL, "ui"); err != nil {
@@ -108,7 +112,8 @@ func Urls(portalURL, gatewayURL, backofficeURL, title string) {
 	t.AppendRow(table.Row{"EPOS API Gateway", gatewayURL})
 	t.AppendSeparator()
 	t.AppendRow(table.Row{"EPOS Backoffice", backofficeURL})
-	t.AppendFooter(table.Row{copyright, copyright}, merge)
+	copyrightText := Copyright()
+	t.AppendFooter(table.Row{copyrightText, copyrightText}, merge)
 
 	// Highlight first row (logo)
 	rowIndex := -1

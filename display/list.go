@@ -40,9 +40,10 @@ func InfraList(rows [][]any, headers []string, title string) {
 		AutoMerge:      true,
 		AutoMergeAlign: text.AlignLeft,
 	}
+	copyrightText := Copyright()
 	footer := make([]any, len(headers))
 	for i := range footer {
-		footer[i] = copyright
+		footer[i] = copyrightText
 	}
 	t.AppendFooter(table.Row(footer), rowMerge)
 	fmt.Println(t.Render())
