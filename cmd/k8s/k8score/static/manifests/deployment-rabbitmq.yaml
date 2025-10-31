@@ -41,19 +41,17 @@ spec:
             exec:
               command:
                 - rabbitmq-diagnostics
-                - -q
-                - ping
-            initialDelaySeconds: 10
-            periodSeconds: 30
+                - check_running
+            initialDelaySeconds: 20
+            periodSeconds: 15
             timeoutSeconds: 5
             failureThreshold: 5
           livenessProbe:
             exec:
               command:
                 - rabbitmq-diagnostics
-                - -q
-                - ping
+                - check_running
             initialDelaySeconds: 30
-            periodSeconds: 30
+            periodSeconds: 15
             timeoutSeconds: 5
             failureThreshold: 5

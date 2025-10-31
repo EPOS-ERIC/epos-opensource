@@ -21,3 +21,19 @@ spec:
           envFrom:
             - configMapRef:
                 name: epos-env
+          readinessProbe:
+            httpGet:
+              path: /api/v1/ui
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              path: /api/v1/ui
+              port: 5000
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 5

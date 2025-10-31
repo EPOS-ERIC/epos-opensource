@@ -27,21 +27,21 @@ spec:
           readinessProbe:
             exec:
               command:
-                - pg_isready
-                - -U
-                - metadatauser
+                - sh
+                - -c
+                - pg_isready -U $POSTGRES_USER
             initialDelaySeconds: 10
-            periodSeconds: 30
+            periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 5
           livenessProbe:
             exec:
               command:
-                - pg_isready
-                - -U
-                - metadatauser
+                - sh
+                - -c
+                - pg_isready -U $POSTGRES_USER
             initialDelaySeconds: 30
-            periodSeconds: 30
+            periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 5
       volumes:

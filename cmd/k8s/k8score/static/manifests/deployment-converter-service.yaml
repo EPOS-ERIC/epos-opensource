@@ -29,10 +29,9 @@ spec:
               command:
                 - sh
                 - -c
-                - wget --quiet --tries=1 -O - http://localhost:8080/api/converter-service/v1/actuator/health \
-                  | grep -i 'healthy' || exit 1
-            initialDelaySeconds: 10
-            periodSeconds: 30
+                - wget -q -O - http://localhost:8080/api/converter-service/v1/actuator/health | grep -i 'healthy'
+            initialDelaySeconds: 30
+            periodSeconds: 15
             timeoutSeconds: 5
             failureThreshold: 5
           livenessProbe:
@@ -40,10 +39,9 @@ spec:
               command:
                 - sh
                 - -c
-                - wget --quiet --tries=1 -O - http://localhost:8080/api/converter-service/v1/actuator/health \
-                  | grep -i 'healthy' || exit 1
-            initialDelaySeconds: 10
-            periodSeconds: 30
+                - wget -q -O - http://localhost:8080/api/converter-service/v1/actuator/health | grep -i 'healthy'
+            initialDelaySeconds: 30
+            periodSeconds: 15
             timeoutSeconds: 5
             failureThreshold: 5
       volumes:
