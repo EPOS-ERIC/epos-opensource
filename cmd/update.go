@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/epos-eu/epos-opensource/common"
@@ -78,6 +79,8 @@ var updateCmd = &cobra.Command{
 				return
 			}
 		}
+
+		display.UpdateStarting(current, tag)
 
 		var platformOS, platformArch string
 		switch runtime.GOOS {
@@ -163,7 +166,11 @@ var updateCmd = &cobra.Command{
 				display.Error("Update failed and rollback failed: %v", rerr)
 				os.Exit(1)
 			}
-			display.Error("Update failed: %v", err)
+			if strings.Contains(strings.ToLower(err.Error()), "permission denied") {
+				display.Error("Update failed due to insufficient permissions. Please run with sudo: 'sudo epos-opensource update'")
+			} else {
+				display.Error("Update failed: %v", err)
+			}
 			os.Exit(1)
 		}
 

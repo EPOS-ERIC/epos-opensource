@@ -153,3 +153,25 @@ func UpdateAvailable(currentVersion, latestVersion string) {
 
 	fmt.Println(t.Render())
 }
+
+// UpdateStarting prints a table indicating the start of an update with version details
+func UpdateStarting(oldVersion, newVersion string) {
+	t := table.NewWriter()
+	t.SetTitle("Starting Update")
+	t.SetStyle(table.StyleRounded)
+
+	t.Style().Title.Align = text.AlignCenter
+	t.Style().Title.Colors = text.Colors{text.FgGreen, text.Bold}
+	t.Style().Color.Border = text.Colors{text.FgGreen}
+	t.Style().Color.Separator = text.Colors{text.FgGreen}
+	t.SetColumnConfigs([]table.ColumnConfig{
+		{Number: 1, Colors: text.Colors{text.FgCyan, text.Bold}},
+		{Number: 2, Colors: text.Colors{text.FgWhite}},
+	})
+
+	t.AppendRow(table.Row{"Current Version", oldVersion})
+	t.AppendSeparator()
+	t.AppendRow(table.Row{"Target Version", newVersion})
+
+	fmt.Println(t.Render())
+}
