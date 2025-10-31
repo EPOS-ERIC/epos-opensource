@@ -27,8 +27,8 @@ spec:
                 - sh
                 - -c
                 - curl --fail --silent http://localhost:8080/api/email-sender-service/v1/actuator/health | grep UP || exit 1
-            initialDelaySeconds: 10
-            periodSeconds: 30
+            initialDelaySeconds: 30
+            periodSeconds: 15
             timeoutSeconds: 5
             failureThreshold: 5
           livenessProbe:
@@ -38,7 +38,7 @@ spec:
                 - -c
                 - curl --fail --silent http://localhost:8080/api/email-sender-service/v1/actuator/health | grep UP || exit 1
 
-            initialDelaySeconds: 10
-            periodSeconds: 30
+            initialDelaySeconds: 30
+            periodSeconds: 15
             timeoutSeconds: 5
             failureThreshold: 5
