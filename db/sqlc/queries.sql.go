@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"time"
 )
 
 const deleteDocker = `-- name: DeleteDocker :exec
@@ -161,6 +162,23 @@ func (q *Queries) GetKubernetesByName(ctx context.Context, name string) (Kuberne
 	return i, err
 }
 
+const getLatestReleaseCache = `-- name: GetLatestReleaseCache :one
+SELECT
+    id, tag_name, fetched_at
+FROM
+    latest_release_cache
+WHERE
+    id = 1
+`
+
+// Latest release cache queries
+func (q *Queries) GetLatestReleaseCache(ctx context.Context) (LatestReleaseCache, error) {
+	row := q.db.QueryRowContext(ctx, getLatestReleaseCache)
+	var i LatestReleaseCache
+	err := row.Scan(&i.ID, &i.TagName, &i.FetchedAt)
+	return i, err
+}
+
 const insertDocker = `-- name: InsertDocker :one
 INSERT INTO
     docker (
@@ -263,4 +281,25 @@ func (q *Queries) InsertKubernetes(ctx context.Context, arg InsertKubernetesPara
 		&i.Protocol,
 	)
 	return i, err
+}
+
+const upsertLatestReleaseCache = `-- name: UpsertLatestReleaseCache :exec
+INSERT INTO
+    latest_release_cache (id, tag_name, fetched_at)
+VALUES
+    (1, ?, ?) ON CONFLICT (id) DO
+UPDATE
+SET
+    tag_name = excluded.tag_name,
+    fetched_at = excluded.fetched_at
+`
+
+type UpsertLatestReleaseCacheParams struct {
+	TagName   string
+	FetchedAt *time.Time
+}
+
+func (q *Queries) UpsertLatestReleaseCache(ctx context.Context, arg UpsertLatestReleaseCacheParams) error {
+	_, err := q.db.ExecContext(ctx, upsertLatestReleaseCache, arg.TagName, arg.FetchedAt)
+	return err
 }

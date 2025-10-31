@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/epos-eu/epos-opensource/db/sqlc"
 )
@@ -134,4 +135,33 @@ func GetAllDocker() ([]sqlc.Docker, error) {
 		return nil, fmt.Errorf("error getting all docker: %w", err)
 	}
 	return dockers, nil
+}
+
+// GetLatestReleaseCache retrieves the latest release cache from the database.
+func GetLatestReleaseCache() (sqlc.LatestReleaseCache, error) {
+	q, err := Get()
+	if err != nil {
+		return sqlc.LatestReleaseCache{}, fmt.Errorf("error getting db connection: %w", err)
+	}
+	cache, err := q.GetLatestReleaseCache(context.Background())
+	if err != nil {
+		return sqlc.LatestReleaseCache{}, fmt.Errorf("error getting latest release cache: %w", err)
+	}
+	return cache, nil
+}
+
+// UpsertLatestReleaseCache updates or inserts the latest release cache in the database.
+func UpsertLatestReleaseCache(tagName string, fetchedAt time.Time) error {
+	q, err := Get()
+	if err != nil {
+		return fmt.Errorf("error getting db connection: %w", err)
+	}
+	err = q.UpsertLatestReleaseCache(context.Background(), sqlc.UpsertLatestReleaseCacheParams{
+		TagName:   tagName,
+		FetchedAt: &fetchedAt,
+	})
+	if err != nil {
+		return fmt.Errorf("error upserting latest release cache: %w", err)
+	}
+	return nil
 }

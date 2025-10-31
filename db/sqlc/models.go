@@ -4,6 +4,10 @@
 
 package sqlc
 
+import (
+	"time"
+)
+
 type Docker struct {
 	Name           string
 	Directory      string
@@ -23,4 +27,10 @@ type Kubernetes struct {
 	GuiUrl        string
 	BackofficeUrl string
 	Protocol      string
+}
+
+type LatestReleaseCache struct {
+	ID        int64
+	TagName   string
+	FetchedAt *time.Time
 }

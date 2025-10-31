@@ -54,25 +54,48 @@ jobs:
         with:
           path: artifacts
 
-      - name: Generate checksums
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+
+      - name: Install minisign
+        run: go install aead.dev/minisign/cmd/minisign@v0.3.0
+
+      - name: Generate and Sign Checksums
+        id: sign
+        env:
+          MINISIGN_PRIVATE_KEY: ${{ secrets.MINISIGN_KEY }}
+          MINISIGN_PASSWORD: ${{ secrets.MINISIGN_PASSWORD }}
         run: |
           cd artifacts
-          find . -type f -maxdepth 2 -exec sha256sum {} \; | sort > SHA256SUMS.txt
+          find . -type f -name 'epos-opensource-*' -exec sha256sum {} + > SHA256SUMS.txt
+          echo "Generated SHA256SUMS.txt:"
           cat SHA256SUMS.txt
-
-      - name: Create GitHub Release and Upload Binaries
+          echo "$MINISIGN_PRIVATE_KEY" > minisign.key
+          echo "$MINISIGN_PASSWORD" | ~/go/bin/minisign -S -s minisign.key -m SHA256SUMS.txt
+          echo "Successfully signed checksums file."
+          for file in $(find . -type f -name 'epos-opensource-*' ! -name '*.minisig'); do
+            echo "$MINISIGN_PASSWORD" | ~/go/bin/minisign -S -s minisign.key -m "$file"
+            echo "Signed $file"
+          done
+          cd ..
+      - name: Create GitHub Release and Upload Assets
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: "${{ github.ref_name }}"
-          draft: false
-          prerelease: false
           generate_release_notes: true
           files: |
             artifacts/epos-opensource-linux/epos-opensource-linux-amd64
+            artifacts/epos-opensource-linux/epos-opensource-linux-amd64.minisig
             artifacts/epos-opensource-macos/epos-opensource-darwin-amd64
+            artifacts/epos-opensource-macos/epos-opensource-darwin-amd64.minisig
             artifacts/epos-opensource-macos-arm64/epos-opensource-darwin-arm64
+            artifacts/epos-opensource-macos-arm64/epos-opensource-darwin-arm64.minisig
             artifacts/epos-opensource-windows/epos-opensource-windows-amd64.exe
+            artifacts/epos-opensource-windows/epos-opensource-windows-amd64.exe.minisig
             artifacts/SHA256SUMS.txt
+            artifacts/SHA256SUMS.txt.minisig
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

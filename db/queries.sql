@@ -72,3 +72,21 @@ FROM
     docker
 WHERE
     name = ?;
+
+-- name: GetLatestReleaseCache :one
+SELECT
+    *
+FROM
+    latest_release_cache
+WHERE
+    id = 1;
+
+-- name: UpsertLatestReleaseCache :exec
+INSERT INTO
+    latest_release_cache (id, tag_name, fetched_at)
+VALUES
+    (1, ?, ?) ON CONFLICT (id) DO
+UPDATE
+SET
+    tag_name = excluded.tag_name,
+    fetched_at = excluded.fetched_at;

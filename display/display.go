@@ -127,3 +127,29 @@ func Urls(portalURL, gatewayURL, backofficeURL, title string) {
 
 	fmt.Println(t.Render())
 }
+
+// UpdateAvailable prints a notification when a newer version of the CLI is available
+func UpdateAvailable(currentVersion, latestVersion string) {
+	t := table.NewWriter()
+	t.SetTitle("Update Available")
+	t.SetStyle(table.StyleRounded)
+
+	// Style configuration
+	t.Style().Title.Align = text.AlignCenter
+	t.Style().Title.Colors = text.Colors{text.FgYellow, text.Bold}
+	t.Style().Color.Border = text.Colors{text.FgYellow}
+	t.Style().Color.Separator = text.Colors{text.FgYellow}
+	t.SetColumnConfigs([]table.ColumnConfig{
+		{Number: 1, Colors: text.Colors{text.FgCyan, text.Bold}},
+		{Number: 2, Colors: text.Colors{text.FgWhite}},
+	})
+
+	// Add content
+	t.AppendRow(table.Row{"Current Version", currentVersion})
+	t.AppendSeparator()
+	t.AppendRow(table.Row{"Latest Version", latestVersion})
+	t.AppendSeparator()
+	t.AppendRow(table.Row{"Update Command", "Run 'epos-opensource update' to upgrade"})
+
+	fmt.Println(t.Render())
+}

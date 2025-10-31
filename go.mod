@@ -3,10 +3,12 @@ module github.com/epos-eu/epos-opensource
 go 1.25.3
 
 require (
+	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-github/v72 v72.0.0
 	github.com/jedib0t/go-pretty/v6 v6.6.7
 	github.com/joho/godotenv v1.5.1
+	github.com/minio/selfupdate v0.6.0
 	github.com/pressly/goose/v3 v3.24.3
 	github.com/spf13/cobra v1.9.1
 	golang.org/x/sync v0.16.0
@@ -14,6 +16,7 @@ require (
 )
 
 require (
+	aead.dev/minisign v0.2.0 // indirect
 	cel.dev/expr v0.19.1 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
