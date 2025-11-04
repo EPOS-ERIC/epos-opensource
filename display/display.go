@@ -172,6 +172,8 @@ func UpdateStarting(oldVersion, newVersion string) {
 	t.AppendRow(table.Row{"Current Version", oldVersion})
 	t.AppendSeparator()
 	t.AppendRow(table.Row{"Target Version", newVersion})
+	t.AppendSeparator()
+	t.AppendRow(table.Row{"Release Notes", fmt.Sprintf("https://github.com/EPOS-ERIC/epos-opensource/releases/tag/%s", newVersion)})
 
 	fmt.Println(t.Render())
 }
