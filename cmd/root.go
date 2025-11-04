@@ -40,13 +40,13 @@ groups to deploy, populate, update, or delete an environment.`,
 
 		currentVer, err := semver.NewVersion(current)
 		if err != nil {
-			log.Println("Failed to parse current version:", err)
+			log.Printf("Failed to parse current version '%s': %v", current, err)
 			return
 		}
 
 		latestVer, err := semver.NewVersion(tag)
 		if err != nil {
-			log.Println("Failed to parse latest tag:", err)
+			log.Printf("Failed to parse latest version '%s': %v", tag, err)
 			return
 		}
 

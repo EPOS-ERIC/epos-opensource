@@ -10,6 +10,7 @@ package display
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 	"os"
 	"time"
@@ -50,6 +51,7 @@ func printStdout(color, label, format string, a ...any) {
 
 func Error(format string, a ...any) {
 	message := fmt.Sprintf(format, a...)
+	log.Printf(format, a...)
 	fmt.Fprintf(os.Stderr, "%s[%s]  %s%s\n", red, "ERROR", message, reset)
 }
 
