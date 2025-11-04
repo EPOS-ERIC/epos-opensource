@@ -171,7 +171,6 @@ WHERE
     id = 1
 `
 
-// Latest release cache queries
 func (q *Queries) GetLatestReleaseCache(ctx context.Context) (LatestReleaseCache, error) {
 	row := q.db.QueryRowContext(ctx, getLatestReleaseCache)
 	var i LatestReleaseCache

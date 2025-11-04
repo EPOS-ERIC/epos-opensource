@@ -12,10 +12,11 @@ import (
 )
 
 var CleanCmd = &cobra.Command{
-	Use:   "clean [env-name]",
-	Short: "Clean the data of an environment.",
-	Long:  "Clean the data of an environment without redeploying. After clean all custom data populated in the environment will be lost. This action is not reversible.",
-	Args:  cobra.ExactArgs(1),
+	Use:               "clean [env-name]",
+	Short:             "Clean the data of an environment.",
+	Long:              "Clean the data of an environment without redeploying. After clean all custom data populated in the environment will be lost. This action is not reversible.",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: validArgsFunction,
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 

@@ -13,10 +13,11 @@ import (
 )
 
 var DeleteCmd = &cobra.Command{
-	Use:   "delete [env-name...]",
-	Short: "Stop and remove Docker Compose environments.",
-	Long:  "Deletes Docker Compose environments with the given names. This action is irreversible.",
-	Args:  cobra.MinimumNArgs(1),
+	Use:               "delete [env-name...]",
+	Short:             "Stop and remove Docker Compose environments.",
+	Long:              "Deletes Docker Compose environments with the given names. This action is irreversible.",
+	Args:              cobra.MinimumNArgs(1),
+	ValidArgsFunction: validArgsFunction,
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0:]
 

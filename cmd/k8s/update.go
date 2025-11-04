@@ -13,10 +13,11 @@ import (
 var force bool
 
 var UpdateCmd = &cobra.Command{
-	Use:   "update [env-name]",
-	Short: "Update and redeploy an existing Kubernetes environment.",
-	Long:  "Recreates the specified environment with updated configuration or manifests. Optionally deletes and recreates the namespace if --force is used. Ensures rollback if the update fails.",
-	Args:  cobra.ExactArgs(1),
+	Use:               "update [env-name]",
+	Short:             "Update and redeploy an existing Kubernetes environment.",
+	Long:              "Recreates the specified environment with updated configuration or manifests. Optionally deletes and recreates the namespace if --force is used. Ensures rollback if the update fails.",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: validArgsFunction,
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 

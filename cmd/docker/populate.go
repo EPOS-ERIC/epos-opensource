@@ -15,6 +15,7 @@ var PopulateCmd = &cobra.Command{
 	Long: `Populate an existing environment with all *.ttl files found in the specified directories (recursively),
 or ingest the files directly if individual file paths are provided.
 Multiple directories and/or files can be provided and will be processed in order.`,
+	ValidArgsFunction: validArgsFunction,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if populateExamples {
 			if len(args) < 1 {

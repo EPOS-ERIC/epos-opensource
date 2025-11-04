@@ -16,6 +16,7 @@ var PopulateCmd = &cobra.Command{
 or ingest the files directly if individual file paths are provided.
 Multiple directories and/or files can be provided and will be processed in order.
 NOTE: To execute the population it will try to use port-forwarding to the cluster. If that fails it will retry using the external API.`,
+	ValidArgsFunction: validArgsFunction,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if populateExamples {
 			if len(args) < 1 {
