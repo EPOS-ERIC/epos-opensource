@@ -41,11 +41,13 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 
 	display.Done("Environment created in directory: %s", dir)
 
-	updates, err := common.CheckEnvForUpdates(filepath.Join(dir, ".env"))
-	if err != nil {
-		log.Printf("error checking for updates: %v", err)
+	if !opts.PullImages {
+		updates, err := common.CheckEnvForUpdates(filepath.Join(dir, ".env"))
+		if err != nil {
+			log.Printf("error checking for updates: %v", err)
+		}
+		display.ImageUpdatesAvailable(updates, opts.Name)
 	}
-	display.ImageUpdatesAvailable(updates, opts.Name)
 
 	var stackDeployed bool
 	handleFailure := func(msg string, mainErr error) (*sqlc.Docker, error) {

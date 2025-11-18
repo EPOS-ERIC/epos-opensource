@@ -42,7 +42,6 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid parameters for update command: %w", err)
 	}
-	display.Step("Updating environment: %s", opts.Name)
 
 	docker, err := db.GetDockerByName(opts.Name)
 	if err != nil {
@@ -54,17 +53,21 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 		Backoffice: int(docker.BackofficePort),
 	}
 
-	envFile := ""
-	if opts.EnvFile != "" {
-		envFile = opts.EnvFile
-	} else {
-		envFile = filepath.Join(docker.Directory, ".env")
+	if !opts.PullImages {
+		envFile := ""
+		if opts.EnvFile != "" {
+			envFile = opts.EnvFile
+		} else {
+			envFile = filepath.Join(docker.Directory, ".env")
+		}
+		updates, err := common.CheckEnvForUpdates(envFile)
+		if err != nil {
+			log.Printf("error checking for updates: %v", err)
+		}
+		display.ImageUpdatesAvailable(updates, opts.Name)
 	}
-	updates, err := common.CheckEnvForUpdates(envFile)
-	if err != nil {
-		log.Printf("error checking for updates: %v", err)
-	}
-	display.ImageUpdatesAvailable(updates, opts.Name)
+
+	display.Step("Updating environment: %s", opts.Name)
 
 	// If it exists, create a copy of it in a tmp dir
 	tmpDir, err := common.CreateTmpCopy(docker.Directory)
