@@ -19,28 +19,43 @@ import (
 	"github.com/jedib0t/go-pretty/v6/text"
 )
 
+// ImageUpdateInfo holds information about an image update.
+type ImageUpdateInfo struct {
+	Name       string
+	LastUpdate time.Time
+}
+
 const (
-	reset  = "\033[0m"
-	red    = "\033[31m"
-	green  = "\033[32m"
-	yellow = "\033[33m"
-	blue   = "\033[34m"
-	cyan   = "\033[36m"
-	logo   = `
-                                                 *************                              
-&&&&&&&&&&&&&&&&&& *&&&&&&&%&&&%               *****************               &&&&&&/      
-&&&&&&&&&&&&&&&&&& *&&&&&&&&&&&&&&&&&       **  **********  *******       &&&&&&&&&&&&&&&&& 
-&&&&&&&&&&&%&&&&&& *&&&&&&&%    &&&&&&&   ,************     *********    &&%&&&&&&&&&&&&&   
-&&&&&&             *&&&&&&        &&&&&( ************   **   ********** &&&&&&#             
-&&&&&&             *&&&&&&(       &&&&& ****** * *****  **  *********** &&&&&&&&#           
-&&&&&&&&&&&&&&&&.  *&&&&&&&&&&&&&&&&&&& *******   *   , *    *********** &&&&&&&&&&&&&&&&   
-&&&%&&&&&&&%&&&&.  *&&&&&&&%&&&&&&&%&   *******                 ,*******    &&&&&&&%&&&&&&& 
-&&&&&&             *&&&&&&               *                   , ********              &&&&&&.
-&&&&&&             *&&&&&&               .    ******  *,    ******* **    &&         &&&&&& 
-&&&&&&&&&&&&&&&&&& *&&&&&&                 ************** *         *   &&&&&&&&&&&&&&&&&&& 
-&&&&&&&&&&&%&&&&&& *&&&&&&                   ************* ,*******     &&&%&&&&&&&&&&&&    
-                                               ****************          &&&&&&&&&&&&       
-`
+	reset      = "\033[0m"
+	red        = "\033[31m"
+	green      = "\033[32m"
+	yellow     = "\033[33m"
+	blue       = "\033[34m"
+	cyan       = "\033[36m"
+	logoHollow = `⣠⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣠⣤⣶⣶⣶⣶⣶⣤⣤⣀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣤⣤⣶⣶⣦⣤⣤⣀⡀⠀⠀⠀
+⣿⣿⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⣿⣿⠛⠛⠛⠛⠛⠛⠛⠛⠿⠿⣿⣿⣷⣄⠀⠀⠀⣀⣴⣿⣿⡿⠿⠛⠛⠛⠛⠛⠻⢿⣿⣿⣦⣄⠀⠀⠀⣠⣾⣿⣿⠿⠟⠛⠛⠛⠿⠿⣿⣿⣷⣤⡀
+⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⢻⣿⣷⣀⣾⣿⡿⠛⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⢿⣿⣷⣄⣾⣿⡟⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⣻⣿⣷
+⣿⣿⠀⠀⠀⠀⢠⣤⣤⣤⣤⣤⣤⣤⣤⣿⣿⠀⠀⠀⠀⢀⣴⣶⣷⣶⣄⠀⠀⠀⢻⣿⣿⣿⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⣿⣿⣿⡟⠀⠀⠀⠀⣠⣤⣤⣤⣄⡀⣠⣾⣿⡿⠁
+⣿⣿⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⢼⣿⣟⢙⣿⣿⠀⠀⠀⠘⣿⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⣿⣿⡇⠀⠀⠀⢸⣿⣿⣿⣿⣿⣿⣿⡿⠋⠀⠀
+⣿⣿⠀⠀⠀⠀⠈⠉⠉⠉⠉⠉⠉⢹⣿⣿⣿⠀⠀⠀⠀⠘⢿⣿⣿⣿⠟⠀⠀⠀⢸⣿⡏⠀⠀⠀⠀⠀⠀⠀⣠⣶⣶⣶⣤⠀⠀⠀⠀⠀⠀⠀⢸⣿⣇⠀⠀⠀⠀⠈⠉⠙⠛⠛⠿⢿⣿⣷⣄⠀
+⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⣿⣿⡇⠀⠀⠀⠀⠀⠀⠰⣿⣿⣋⣿⣿⡇⠀⠀⠀⠀⠀⠀⢸⣿⣿⣦⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⢿⣿⣆
+⣿⣿⠀⠀⠀⠀⢰⣶⣶⣶⣶⣶⣶⣾⣿⣿⣿⠀⠀⠀⠀⣀⣀⣀⣀⣠⣤⣴⣿⣿⣿⣿⣇⠀⠀⠀⠀⠀⠀⠀⠻⣿⣿⣿⠟⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣷⣶⣶⣦⣤⡀⠀⠀⠀⢸⣿⣿
+⣿⣿⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⣿⣿⡿⠿⠿⠿⠟⠛⠁⠸⣿⣿⡄⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿⡀⠀⠀⠀⠀⠀⠀⢀⣿⣿⣿⣿⢿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⢠⣿⣿
+⣿⣿⠀⠀⠀⠀⠈⠉⠉⠉⠉⠉⠉⠉⠉⣿⣿⠀⠀⠀⠀⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠹⣿⣿⣄⠀⠀⠀⠀⠀⢸⣿⣿⣿⣇⠀⠀⠀⠀⠀⢠⣾⣿⣿⠟⠁⠀⠀⠉⠉⠉⠉⠁⠀⠀⠀⠀⣼⣿⡟
+⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⠀⠀⠀⠀⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠙⢿⣿⣷⣄⠀⠀⢀⣿⣿⠟⣿⣿⡄⠀⠀⣠⣴⣿⣿⣿⣷⣤⣀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣾⣿⡟⠁
+⣿⣿⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣿⣿⣶⣶⣶⣶⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⢿⣿⣿⣶⣾⣿⡿⠀⢻⣿⣷⣶⣿⣿⡿⠋⠁⠉⠻⢿⣿⣿⣷⣶⣶⣶⣶⣾⣿⣿⣿⠟⠋⠀⠀
+⠈⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⠛⠛⠋⠀⠀⠀⠙⠛⠛⠋⠁⠀⠀⠀⠀⠀⠀⠀⠉⠉⠛⠛⠛⠛⠋⠉⠁⠀⠀⠀⠀⠀`
+	logoFull = ` ⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⠀⠀⣤⣤⣤⣤⣤⣤⣤⣤⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⣤⣤⣤⣤⣤⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣠⣤⣤⣤⣀⣀⠀⠀⠀
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣶⡄⠀⠀⠀⠀⠀⢀⣤⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣦⡀⠀⠀⠀⠀⠀⢠⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣶⠄
+⣿⣿⣿⣿⡟⠛⠛⠛⠛⠛⠛⠛⠛⠀⠀⣿⣿⣿⣿⡿⠋⠉⠈⠉⠻⣿⣿⣿⡄⠀⠀⠀⣰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣦⠀⠀⠀⢠⣿⣿⣿⣿⠟⠛⠛⠛⠻⢿⠟⠁⠀
+⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿⣿⡃⠀⠀⠀⠀⠀⣿⣿⣿⣧⠀⠀⣼⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣧⠀⠀⢸⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⣿⣿⣿⣿⣷⣶⣶⣶⣶⣶⣶⡆⠀⠀⠀⣿⣿⣿⣿⣧⡀⠀⠀⠀⣠⣿⣿⣿⡇⠀⢰⣿⣿⣿⣿⣿⣿⣿⠟⠉⠉⠉⠛⣿⣿⣿⣿⣿⣿⣿⡇⠀⠸⣿⣿⣿⣿⣷⣶⣦⣤⣤⣀⡀⠀⠀
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠏⠀⠀⢸⣿⣿⣿⣿⣿⣿⣏⠀⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣿⡇⠀⠀⠙⠿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣦⡀
+⣿⣿⣿⣿⡏⠉⠉⠉⠉⠉⠉⠁⠀⠀⠀⣿⣿⣿⣿⠿⠿⠿⠿⠟⠛⠋⠀⠀⠀⠀⠸⣿⣿⣿⣿⣿⣿⣿⣄⠀⠀⠀⣠⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠈⠉⠉⠙⠛⢿⣿⣿⣿⡇
+⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢻⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⢿⣿⣿⣿⣿⣿⣿⡿⠀⠀⠀⠀⡀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⡟
+⣿⣿⣿⣿⣷⣶⣶⣶⣶⣶⣶⣶⣶⠀⠀⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠻⣿⣿⣿⣿⣿⡇⠀⠀⠀⠸⣿⣿⣿⣿⣿⡟⠁⠀⠀⣠⣾⣿⣿⣶⣶⣶⣶⣾⣿⣿⣿⣿⠃
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠻⣿⣿⡿⠀⠀⠀⠀⠀⢻⣿⣿⠟⠋⠀⠀⠀⠈⠛⠿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠟⠁⠀
+⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠀⠀⠉⠉⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠁⠀⠀⠀⠀⠀⠈⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠉⠉⠉⠁⠀⠀⠀⠀⠀ `
 )
 
 // printStdout formats and prints a message with color, icon and label to standard out
@@ -103,11 +118,8 @@ func Urls(portalURL, gatewayURL, backofficeURL, title string) {
 		{Number: 1, Colors: text.Colors{text.FgYellow, text.Bold}},
 	})
 
-	// Merge config for logo and footer
-	merge := table.RowConfig{AutoMerge: true, AutoMergeAlign: text.AlignLeft}
-
 	// Add content
-	t.AppendRow(table.Row{logo, logo}, merge)
+	t.AppendRow(table.Row{logoHollow, logoHollow}, table.RowConfig{AutoMerge: true, AutoMergeAlign: text.AlignCenter})
 	t.AppendSeparator()
 	t.AppendRow(table.Row{"EPOS Platform Interface", portalURL})
 	t.AppendSeparator()
@@ -115,7 +127,7 @@ func Urls(portalURL, gatewayURL, backofficeURL, title string) {
 	t.AppendSeparator()
 	t.AppendRow(table.Row{"EPOS Backoffice", backofficeURL})
 	copyrightText := Copyright()
-	t.AppendFooter(table.Row{copyrightText, copyrightText}, merge)
+	t.AppendFooter(table.Row{copyrightText, copyrightText}, table.RowConfig{AutoMerge: true, AutoMergeAlign: text.AlignLeft})
 
 	// Highlight first row (logo)
 	rowIndex := -1
@@ -176,6 +188,58 @@ func UpdateStarting(oldVersion, newVersion string) {
 	t.AppendRow(table.Row{"Target Version", newVersion})
 	t.AppendSeparator()
 	t.AppendRow(table.Row{"Release Notes", fmt.Sprintf("https://github.com/EPOS-ERIC/epos-opensource/releases/tag/%s", newVersion)})
+
+	fmt.Println(t.Render())
+}
+
+// ImageUpdatesAvailable prints a notification when Docker images have updates available
+func ImageUpdatesAvailable(updates []ImageUpdateInfo, envName string) {
+	if len(updates) == 0 {
+		return
+	}
+
+	t := table.NewWriter()
+	t.SetTitle("Image Updates Available")
+	t.SetStyle(table.StyleRounded)
+
+	// Style configuration
+	t.Style().Title.Align = text.AlignCenter
+	t.Style().Title.Colors = text.Colors{text.FgYellow, text.Bold}
+	t.Style().Color.Border = text.Colors{text.FgYellow}
+	t.Style().Color.Separator = text.Colors{text.FgYellow}
+	t.SetColumnConfigs([]table.ColumnConfig{
+		{Number: 1, Colors: text.Colors{text.FgCyan, text.Bold}},
+		{Number: 2, Colors: text.Colors{text.FgWhite}},
+		{Number: 3, Colors: text.Colors{text.FgWhite}},
+	})
+
+	t.AppendHeader(table.Row{"Image", "Status", "Latest Update"})
+
+	// Add content
+	for _, update := range updates {
+		t.AppendRow(table.Row{update.Name, "Update Available", update.LastUpdate.Format(time.RFC822)})
+		t.AppendSeparator()
+	}
+
+	// Update instruction row
+	prefix := "To update your environment with the new images, run: "
+	command := fmt.Sprintf("epos-opensource docker update %s -u", envName)
+
+	coloredPrefix := text.Colors{text.FgWhite}.Sprint(prefix)
+	coloredCommand := text.Colors{text.FgGreen, text.Bold}.Sprint(command)
+
+	instructionText := coloredPrefix + coloredCommand
+	t.AppendRow(table.Row{instructionText, instructionText, instructionText}, table.RowConfig{AutoMerge: true, AutoMergeAlign: text.AlignLeft})
+
+	// Style the instruction row
+	rowIndex := -1
+	t.SetRowPainter(func(row table.Row) text.Colors {
+		rowIndex++
+		if rowIndex == len(updates) {
+			return text.Colors{text.FgGreen}
+		}
+		return nil
+	})
 
 	fmt.Println(t.Render())
 }

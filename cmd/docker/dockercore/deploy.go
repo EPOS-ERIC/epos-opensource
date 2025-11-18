@@ -3,6 +3,8 @@ package dockercore
 import (
 	_ "embed"
 	"fmt"
+	"log"
+	"path/filepath"
 
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
@@ -38,6 +40,12 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 	}
 
 	display.Done("Environment created in directory: %s", dir)
+
+	updates, err := common.CheckEnvForUpdates(filepath.Join(dir, ".env"))
+	if err != nil {
+		log.Printf("error checking for updates: %v", err)
+	}
+	display.ImageUpdatesAvailable(updates, opts.Name)
 
 	var stackDeployed bool
 	handleFailure := func(msg string, mainErr error) (*sqlc.Docker, error) {

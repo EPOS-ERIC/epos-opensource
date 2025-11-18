@@ -4,6 +4,7 @@ package dockercore
 import (
 	_ "embed"
 	"fmt"
+	"log"
 	"path/filepath"
 
 	"github.com/epos-eu/epos-opensource/common"
@@ -52,6 +53,18 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 		API:        int(docker.ApiPort),
 		Backoffice: int(docker.BackofficePort),
 	}
+
+	envFile := ""
+	if opts.EnvFile != "" {
+		envFile = opts.EnvFile
+	} else {
+		envFile = filepath.Join(docker.Directory, ".env")
+	}
+	updates, err := common.CheckEnvForUpdates(envFile)
+	if err != nil {
+		log.Printf("error checking for updates: %v", err)
+	}
+	display.ImageUpdatesAvailable(updates, opts.Name)
 
 	// If it exists, create a copy of it in a tmp dir
 	tmpDir, err := common.CreateTmpCopy(docker.Directory)
