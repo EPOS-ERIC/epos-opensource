@@ -10,7 +10,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/epos-eu/epos-opensource/configdir"
+	"github.com/epos-eu/epos-opensource/config"
 	"github.com/epos-eu/epos-opensource/db/sqlc"
 	"github.com/pressly/goose/v3"
 	_ "modernc.org/sqlite"
@@ -33,7 +33,7 @@ func init() {
 
 // Get opens a new connection to the database, creating the database file and schema if they do not exist.
 func Get() (*sqlc.Queries, error) {
-	dbDir := configdir.GetPath()
+	dbDir := config.GetDataPath()
 	dbFile := path.Join(dbDir, dbName)
 
 	err := os.MkdirAll(dbDir, 0o750)

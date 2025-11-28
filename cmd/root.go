@@ -8,9 +8,11 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
 	"github.com/epos-eu/epos-opensource/display"
+	"github.com/epos-eu/epos-opensource/tui"
 	"github.com/google/go-github/v72/github"
 	"github.com/spf13/cobra"
 )
@@ -58,7 +60,11 @@ groups to deploy, populate, update, or delete an environment.`,
 	// If no subcommand is provided, show help.
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
-			_ = cmd.Help()
+			p := tea.NewProgram(tui.InitialModel(), tea.WithAltScreen())
+			if _, err := p.Run(); err != nil {
+				fmt.Printf("Alas, there's been an error: %v", err)
+				os.Exit(1)
+			}
 		}
 	},
 	Version: common.GetVersion(),

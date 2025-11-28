@@ -1,0 +1,5 @@
+keymaps:
+  up: ["up", "k"]
+  down: ["down", "j"]
+  select: ["enter", " "]
+  quit: ["q", "ctrl+c", "ctrl+d"]
