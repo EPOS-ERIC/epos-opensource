@@ -6,11 +6,17 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"syscall"
 
 	"github.com/epos-eu/epos-opensource/display"
+)
+
+var (
+	Stdout io.Writer = os.Stdout
+	Stderr io.Writer = os.Stderr
 )
 
 func RunCommand(cmd *exec.Cmd, interceptOut bool) (string, error) {
@@ -19,7 +25,7 @@ func RunCommand(cmd *exec.Cmd, interceptOut bool) (string, error) {
 	if interceptOut {
 		cmd.Stdout = &stdout
 	} else {
-		cmd.Stdout = os.Stdout
+		cmd.Stdout = Stdout
 	}
 	cmd.Stdin = os.Stdin
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
