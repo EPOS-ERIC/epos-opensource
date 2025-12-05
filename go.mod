@@ -1,6 +1,6 @@
 module github.com/epos-eu/epos-opensource
 
-go 1.25.4
+go 1.25.5
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0
@@ -14,6 +14,7 @@ require (
 	github.com/pressly/goose/v3 v3.24.3
 	github.com/rivo/tview v0.42.0
 	github.com/spf13/cobra v1.9.1
+	github.com/stretchr/testify v1.11.1
 	golang.org/x/sync v0.16.0
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.38.0
@@ -67,7 +68,6 @@ require (
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/sqlc-dev/sqlc v1.29.0 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
-	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/tetratelabs/wazero v1.9.0 // indirect
 	github.com/vbatts/tar-split v0.12.1 // indirect
 	github.com/wasilibs/go-pgquery v0.0.0-20250409022910-10ac41983c07 // indirect
