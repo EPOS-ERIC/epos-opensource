@@ -24,14 +24,16 @@ type UpdateOpts struct {
 	Force bool
 	// Optional. custom ip to use instead of localhost if set
 	CustomHost string
+	// Optional. reset the environment config to the embedded defaults
+	Reset bool
 }
 
 // Update logic:
 // find the old env, if it does not exist give an error
 // if it exists, create a copy of it in a tmp dir
+// if no custom env/manifests provided and not resetting, use the existing files from the tmp dir as defaults
 // if force is set delete the kubernetes namespace for the original env
-// then remove the contents of the env dir and create the updated env file and kubernetes manifests
-// if pullImages is set before deploying pull the images for the updated env
+// then remove the contents of the env dir and create the updated env file and kubernetes manifests using existing or embedded files as appropriate
 // deploy the updated manifests
 // if everything goes right, delete the tmp dir and finish
 // else restore the tmp dir, deploy the old restored env and give an error in output
@@ -52,6 +54,14 @@ func Update(opts UpdateOpts) (*sqlc.Kubernetes, error) {
 	tmpDir, err := common.CreateTmpCopy(kube.Directory)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create backup copy: %w", err)
+	}
+
+	// If no custom files provided and not resetting, use existing files from tmp dir
+	if opts.EnvFile == "" && !opts.Reset {
+		opts.EnvFile = filepath.Join(tmpDir, ".env")
+	}
+	if opts.ManifestDir == "" && !opts.Reset {
+		opts.ManifestDir = tmpDir
 	}
 
 	// Cleanup function to restore from tmp if needed
@@ -165,6 +175,10 @@ func (u *UpdateOpts) Validate() error {
 
 	if err := validate.PathExists(u.ManifestDir); err != nil {
 		return fmt.Errorf("the manifest directory path '%s' is not a valid path: %w", u.ManifestDir, err)
+	}
+
+	if u.Reset && (u.EnvFile != "" || u.ManifestDir != "") {
+		return fmt.Errorf("cannot specify custom files when Reset is true; Reset uses embedded defaults")
 	}
 
 	return nil
