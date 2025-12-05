@@ -27,13 +27,16 @@ type UpdateOpts struct {
 	Force bool
 	// Optional. custom ip to use instead of localhost if set
 	CustomHost string
+	// Optional. reset the environment config to the embedded defaults
+	Reset bool
 }
 
 // Update logic:
 // find the old env, if it does not exist give an error
 // if it exists, create a copy of it in a tmp dir
+// if no custom env/compose files provided and not resetting, use the existing files from the tmp dir as defaults
 // if force is set do a docker compose down on the original env
-// then remove the contents of the env dir and create the updated env file and docker-compose
+// then remove the contents of the env dir and create the updated env file and docker-compose using existing or embedded files as appropriate
 // if pullImages is set before deploying pull the images for the updated env
 // deploy the updated compose
 // if everything goes right, delete the tmp dir and finish
@@ -113,6 +116,14 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 
 	display.Step("Creating new environment directory")
 
+	// when updating use the same config as before unless explicitly specified
+	if opts.EnvFile == "" && !opts.Reset {
+		opts.EnvFile = filepath.Join(tmpDir, ".env")
+	}
+	if opts.ComposeFile == "" && !opts.Reset {
+		opts.ComposeFile = filepath.Join(tmpDir, "docker-compose.yaml")
+	}
+
 	// create the directory in the parent
 	path := filepath.Dir(docker.Directory)
 	dir, err := NewEnvDir(opts.EnvFile, opts.ComposeFile, path, opts.Name)
@@ -168,6 +179,10 @@ func (u *UpdateOpts) Validate() error {
 
 	if err := validate.IsFile(u.ComposeFile); err != nil {
 		return fmt.Errorf("the path to docker-compose '%s' is not a file: %w", u.ComposeFile, err)
+	}
+
+	if u.Reset && (u.EnvFile != "" || u.ComposeFile != "") {
+		return fmt.Errorf("cannot specify custom files when Reset is true; Reset uses embedded defaults")
 	}
 
 	return nil

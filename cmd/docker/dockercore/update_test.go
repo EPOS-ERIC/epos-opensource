@@ -20,6 +20,16 @@ func TestUpdateOpts_Validate(t *testing.T) {
 			opts:    UpdateOpts{Name: "test", CustomHost: "ht!tp://invalid-url"},
 			wantErr: true,
 		},
+		{
+			name:    "Reset with custom env file",
+			opts:    UpdateOpts{Name: "test", Reset: true, EnvFile: "/fake/path"},
+			wantErr: true,
+		},
+		{
+			name:    "Reset with custom compose file",
+			opts:    UpdateOpts{Name: "test", Reset: true, ComposeFile: "/fake/path"},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
