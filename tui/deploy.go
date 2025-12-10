@@ -1,104 +1,166 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
-	"sync"
 
+	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
-// TUIViewWriter captures output and routes it to the active TUI view
-type TUIViewWriter struct {
-	app    *tview.Application
-	view   *tview.TextView
-	buffer strings.Builder
-	mu     sync.Mutex
+// deployFormData holds the form field values.
+type deployFormData struct {
+	name        string
+	envFile     string
+	composeFile string
+	path        string
+	host        string
+	pullImages  bool
 }
 
-func (w *TUIViewWriter) Write(p []byte) (n int, err error) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
+// showDeployForm displays the Docker deployment form.
+func (a *App) showDeployForm() {
+	a.UpdateFooter("[New Docker Environment]", []string{"tab: next", "enter: submit", "esc: cancel"})
 
-	// Always buffer the output
-	w.buffer.Write(p)
-
-	// If we have an active view, update it
-	if w.view != nil && w.app != nil {
-		w.app.QueueUpdateDraw(func() {
-			_, _ = w.view.Write(p)
-		})
-	}
-
-	return len(p), nil
-}
-
-func (w *TUIViewWriter) SetView(app *tview.Application, view *tview.TextView) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
-	w.app = app
-	w.view = view
-	// Write any buffered content to the new view
-	if w.view != nil && w.buffer.Len() > 0 {
-		w.app.QueueUpdateDraw(func() {
-			_, _ = w.view.Write([]byte(w.buffer.String()))
-		})
-	}
-}
-
-func (w *TUIViewWriter) ClearView() {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.app = nil
-	w.view = nil
-}
-
-// DeployScreen manages the deployment interface
-type DeployScreen struct {
-	app   *tview.Application
-	pages *tview.Pages
-	// outputView   *tview.TextView
-	// statusText   *tview.TextView
-	// nameField    *tview.InputField
-	// envFileField *tview.InputField
-	// pathField    *tview.InputField
-	// composeField *tview.InputField
-	// pullCheckbox *tview.Checkbox
-	writer *TUIViewWriter
-	// isDeploying  bool
-}
-
-func (t *App) newDockerEnv() {
-	t.updateFooter("[New Docker Environment]", keyDescriptions["newDocker"])
-	screen := &DeployScreen{
-		app:    t.app,
-		pages:  t.pages,
-		writer: &TUIViewWriter{},
-	}
+	data := &deployFormData{}
 
 	form := tview.NewForm().
-		AddInputField("Name", "", 0, nil, nil)
+		AddInputField("Name *", "", 40, nil, func(text string) { data.name = text }).
+		AddInputField("Env File", "", 40, nil, func(text string) { data.envFile = text }).
+		AddInputField("Compose File", "", 40, nil, func(text string) { data.composeFile = text }).
+		AddInputField("Path", "", 40, nil, func(text string) { data.path = text }).
+		AddInputField("Host", "", 40, nil, func(text string) { data.host = text }).
+		AddCheckbox("Update Images", false, func(checked bool) { data.pullImages = checked }).
+		AddButton("Deploy", func() { a.handleDeploy(data) }).
+		AddButton("Cancel", func() { a.returnFromDeploy() })
 
-	// Add input capture for ESC
+	form.SetBorder(true).
+		SetTitle(" New Docker Environment ").
+		SetTitleColor(ColorYellow).
+		SetBorderColor(ColorGreen)
+
+	form.SetBackgroundColor(tcell.ColorDefault)
+	form.SetFieldBackgroundColor(tcell.ColorDarkSlateGray)
+	form.SetButtonBackgroundColor(ColorGreen)
+	form.SetButtonTextColor(ColorBlack)
+	form.SetButtonActivatedStyle(tcell.StyleDefault.Background(ColorYellow).Foreground(ColorGreen))
+
 	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEsc || event.Rune() == 'q' {
-			screen.returnToMain()
+		if event.Key() == tcell.KeyEsc {
+			a.returnFromDeploy()
+			return nil
+		}
+		if event.Key() == tcell.KeyEnter {
+			a.handleDeploy(data)
 			return nil
 		}
 		return event
 	})
 
-	// Add to pages
-	t.pages.AddAndSwitchToPage("deploy", form, true)
+	// Center the form with transparent background
+	innerFlex := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(nil, 0, 1, false).
+		AddItem(form, 20, 1, true).
+		AddItem(nil, 0, 1, false)
+	innerFlex.SetBackgroundColor(tcell.ColorDefault)
+
+	layout := tview.NewFlex().
+		AddItem(nil, 0, 1, false).
+		AddItem(innerFlex, 60, 1, true).
+		AddItem(nil, 0, 1, false)
+	layout.SetBackgroundColor(tcell.ColorDefault)
+
+	a.pages.AddAndSwitchToPage("deploy", layout, true)
+	a.tview.SetFocus(form)
 }
 
-// a full screen window with an header for the title
-// func newForm() {
-// }
+// handleDeploy validates the form and starts deployment.
+func (a *App) handleDeploy(data *deployFormData) {
+	if strings.TrimSpace(data.name) == "" {
+		a.ShowError("Name is required")
+		return
+	}
+	a.showDeployProgress(data)
+}
 
-func (s *DeployScreen) returnToMain() {
-	s.writer.ClearView()
-	s.pages.RemovePage("deploy")
-	s.pages.SwitchToPage("home")
+// showDeployProgress displays the deployment progress with live output.
+func (a *App) showDeployProgress(data *deployFormData) {
+	outputView := tview.NewTextView().
+		SetDynamicColors(true).
+		SetScrollable(true).
+		SetChangedFunc(func() { a.tview.Draw() })
+	outputView.SetBorder(true).
+		SetTitle(fmt.Sprintf(" Deploying: %s ", data.name)).
+		SetTitleColor(ColorYellow)
+
+	statusBar := tview.NewTextView().
+		SetDynamicColors(true).
+		SetTextAlign(tview.AlignCenter).
+		SetText("[yellow]Deploying... Press ESC to go back[-]")
+
+	layout := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(outputView, 0, 1, true).
+		AddItem(statusBar, 1, 0, false)
+
+	// Connect output writer
+	a.outputWriter.ClearBuffer()
+	a.outputWriter.SetView(a.tview, outputView)
+
+	layout.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEsc {
+			a.outputWriter.ClearView()
+			a.returnFromDeploy()
+			return nil
+		}
+		return event
+	})
+
+	a.pages.AddAndSwitchToPage("deploy-progress", layout, true)
+	a.UpdateFooter("[Deploying]", []string{"esc: back (won't stop deployment)"})
+
+	// Run deployment in background
+	go func() {
+		docker, err := dockercore.Deploy(dockercore.DeployOpts{
+			Name:        data.name,
+			EnvFile:     data.envFile,
+			ComposeFile: data.composeFile,
+			Path:        data.path,
+			PullImages:  data.pullImages,
+			CustomHost:  data.host,
+		})
+
+		a.tview.QueueUpdateDraw(func() {
+			if err != nil {
+				statusBar.SetText(fmt.Sprintf("[red]Deployment failed: %v[-]", err))
+			} else {
+				statusBar.SetText(fmt.Sprintf("[green]Deployment complete![-] GUI: %s", docker.GuiUrl))
+			}
+
+			layout.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+				if event.Key() == tcell.KeyEsc || event.Key() == tcell.KeyEnter {
+					a.outputWriter.ClearView()
+					a.returnFromDeploy()
+					return nil
+				}
+				return event
+			})
+			a.UpdateFooter("[Deploy Complete]", []string{"esc/enter: back to home"})
+		})
+	}()
+}
+
+// returnFromDeploy cleans up and returns to the home screen.
+func (a *App) returnFromDeploy() {
+	a.pages.RemovePage("deploy")
+	a.pages.RemovePage("deploy-progress")
+	a.pages.SwitchToPage("home")
+	a.refreshLists()
+
+	if a.docker.GetItemCount() > 0 {
+		a.tview.SetFocus(a.docker)
+	} else {
+		a.tview.SetFocus(a.dockerEmpty)
+	}
+	a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
 }
