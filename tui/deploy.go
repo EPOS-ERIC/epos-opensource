@@ -47,10 +47,6 @@ func (a *App) showDeployForm() {
 			a.returnFromDeploy()
 			return nil
 		}
-		if event.Key() == tcell.KeyEnter {
-			a.handleDeploy(data)
-			return nil
-		}
 		return event
 	})
 

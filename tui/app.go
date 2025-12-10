@@ -51,6 +51,7 @@ func Run() error {
 // init sets up the application state and UI components.
 func (a *App) init() {
 	a.tview = tview.NewApplication()
+	a.tview.EnableMouse(true)
 	a.pages = tview.NewPages()
 	a.outputWriter = &OutputWriter{}
 

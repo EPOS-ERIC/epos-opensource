@@ -162,6 +162,11 @@ func (a *App) setupHomeInput(envsFlex *tview.Flex) {
 				a.showDeleteConfirm()
 				return nil
 			}
+		case event.Rune() == 'c':
+			if a.currentEnv == a.dockerFlex && a.docker.GetItemCount() > 0 {
+				a.showCleanConfirm()
+				return nil
+			}
 		case event.Rune() == '?':
 			a.showHelp()
 			return nil

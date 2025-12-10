@@ -52,7 +52,7 @@ var DefaultTheme = &Theme{
 // Used by updateFooter() to show context-sensitive help.
 var KeyDescriptions = map[string][]string{
 	"docker":  {"tab: switch", "↑↓: nav", "n: new", "d: del", "c: clean", "enter: select", "?: help"},
-	"k8s":     {"tab: switch", "↑↓: nav", "n: new", "d: del", "c: clean", "enter: select", "?: help"},
+	"k8s":     {"tab: switch", "↑↓: nav", "n: new", "d: del", "enter: select", "?: help"},
 	"details": {"?: help", "q: quit"},
 }
 
