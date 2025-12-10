@@ -32,14 +32,14 @@ func (a *App) createEnvLists() *tview.Flex {
 	a.docker.SetBorderPadding(1, 1, 1, 1)
 	a.docker.SetTitle(" [::b]Docker Environments ")
 	a.docker.SetTitleColor(DefaultTheme.Secondary)
-	a.docker.SetSelectedBackgroundColor(DefaultTheme.Primary)
-	a.docker.SetSelectedTextColor(DefaultTheme.OnPrimary)
+	updateListStyle(a.docker, false)
 
 	a.dockerEmpty = tview.NewTextView()
 	a.dockerEmpty.SetBorder(true)
 	a.dockerEmpty.SetBorderPadding(1, 1, 1, 1)
 	a.dockerEmpty.SetTitle(" [::b]Docker Environments ")
 	a.dockerEmpty.SetTitleColor(DefaultTheme.Secondary)
+	updateBoxStyle(a.dockerEmpty, false)
 	a.dockerEmpty.SetTextAlign(tview.AlignCenter)
 	a.dockerEmpty.SetDynamicColors(true)
 	a.dockerEmpty.SetText(DefaultTheme.MutedTag("i") + "No Docker environments found")
@@ -52,14 +52,14 @@ func (a *App) createEnvLists() *tview.Flex {
 	a.k8s.SetBorderPadding(1, 1, 1, 1)
 	a.k8s.SetTitle(" [::b]K8s Environments ")
 	a.k8s.SetTitleColor(DefaultTheme.Secondary)
-	a.k8s.SetSelectedBackgroundColor(DefaultTheme.Primary)
-	a.k8s.SetSelectedTextColor(DefaultTheme.OnPrimary)
+	updateListStyle(a.k8s, false)
 
 	a.k8sEmpty = tview.NewTextView()
 	a.k8sEmpty.SetBorder(true)
 	a.k8sEmpty.SetBorderPadding(1, 1, 1, 1)
 	a.k8sEmpty.SetTitle(" [::b]K8s Environments ")
 	a.k8sEmpty.SetTitleColor(DefaultTheme.Secondary)
+	updateBoxStyle(a.k8sEmpty, false)
 	a.k8sEmpty.SetTextAlign(tview.AlignCenter)
 	a.k8sEmpty.SetDynamicColors(true)
 	a.k8sEmpty.SetText(DefaultTheme.MutedTag("i") + "No Kubernetes environments found")
@@ -206,57 +206,75 @@ func (a *App) setupFocusHandlers() {
 	// Docker List
 	a.docker.SetFocusFunc(func() {
 		a.currentEnv = a.dockerFlex
-		a.docker.SetBorderColor(DefaultTheme.Primary)
-		a.docker.SetSelectedBackgroundColor(DefaultTheme.Primary)
-		a.docker.SetSelectedTextColor(DefaultTheme.OnPrimary)
+		updateListStyle(a.docker, true)
 		a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
 	})
 	a.docker.SetBlurFunc(func() {
-		a.docker.SetBorderColor(DefaultTheme.Surface)
-		a.docker.SetSelectedBackgroundColor(DefaultTheme.Surface)
-		a.docker.SetSelectedTextColor(DefaultTheme.OnSurface)
+		updateListStyle(a.docker, false)
 	})
 
 	// Docker Empty
 	a.dockerEmpty.SetFocusFunc(func() {
 		a.currentEnv = a.dockerFlex
-		a.dockerEmpty.SetBorderColor(DefaultTheme.Primary)
+		updateBoxStyle(a.dockerEmpty, true)
 		a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
 	})
 	a.dockerEmpty.SetBlurFunc(func() {
-		a.dockerEmpty.SetBorderColor(DefaultTheme.Surface)
+		updateBoxStyle(a.dockerEmpty, false)
 	})
 
 	// K8s List
 	a.k8s.SetFocusFunc(func() {
 		a.currentEnv = a.k8sFlex
-		a.k8s.SetBorderColor(DefaultTheme.Primary)
-		a.k8s.SetSelectedBackgroundColor(DefaultTheme.Primary)
-		a.k8s.SetSelectedTextColor(DefaultTheme.OnPrimary)
+		updateListStyle(a.k8s, true)
 		a.UpdateFooter("[K8s Environments]", KeyDescriptions["k8s"])
 	})
 	a.k8s.SetBlurFunc(func() {
-		a.k8s.SetBorderColor(DefaultTheme.Surface)
-		a.k8s.SetSelectedBackgroundColor(DefaultTheme.Surface)
-		a.k8s.SetSelectedTextColor(DefaultTheme.OnSurface)
+		updateListStyle(a.k8s, false)
 	})
 
 	// K8s Empty
 	a.k8sEmpty.SetFocusFunc(func() {
 		a.currentEnv = a.k8sFlex
-		a.k8sEmpty.SetBorderColor(DefaultTheme.Primary)
+		updateBoxStyle(a.k8sEmpty, true)
 		a.UpdateFooter("[K8s Environments]", KeyDescriptions["k8s"])
 	})
 	a.k8sEmpty.SetBlurFunc(func() {
-		a.k8sEmpty.SetBorderColor(DefaultTheme.Surface)
+		updateBoxStyle(a.k8sEmpty, false)
 	})
 
 	// Details
 	a.details.SetFocusFunc(func() {
-		a.details.SetBorderColor(DefaultTheme.Primary)
+		updateBoxStyle(a.details, true)
 		a.UpdateFooter("[Environment Details]", KeyDescriptions["details"])
 	})
 	a.details.SetBlurFunc(func() {
-		a.details.SetBorderColor(DefaultTheme.Surface)
+		updateBoxStyle(a.details, false)
 	})
+}
+
+// boxLike checks for SetBorderColor satisfaction to support List, TextView, etc.
+type boxLike interface {
+	SetBorderColor(tcell.Color) *tview.Box
+}
+
+// updateBoxStyle sets the border color based on focus state.
+func updateBoxStyle(b boxLike, active bool) {
+	if active {
+		b.SetBorderColor(DefaultTheme.Primary)
+	} else {
+		b.SetBorderColor(DefaultTheme.Surface)
+	}
+}
+
+// updateListStyle sets border and selection colors based on focus state.
+func updateListStyle(l *tview.List, active bool) {
+	updateBoxStyle(l, active)
+	if active {
+		l.SetSelectedBackgroundColor(DefaultTheme.Primary)
+		l.SetSelectedTextColor(DefaultTheme.OnPrimary)
+	} else {
+		l.SetSelectedBackgroundColor(DefaultTheme.Surface)
+		l.SetSelectedTextColor(DefaultTheme.OnSurface)
+	}
 }
