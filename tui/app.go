@@ -71,7 +71,7 @@ func (a *App) init() {
 
 	// Wrap in frame for footer
 	a.frame = tview.NewFrame(a.pages).SetBorders(0, 0, 0, 0, 0, 0)
-	a.frame.SetBackgroundColor(ColorGreen)
+	a.frame.SetBackgroundColor(DefaultTheme.Primary)
 
 	// Set initial footer
 	a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
@@ -100,27 +100,33 @@ func (a *App) startRefreshTicker() {
 // UpdateFooter updates the frame footer with section text and available keys.
 // Called by screens when they become active.
 func (a *App) UpdateFooter(section string, keys []string) {
+	section = tview.Escape(section)
+	keyString := tview.Escape(strings.Join(keys, ", "))
 	a.frame.Clear()
-	a.frame.AddText("[::b]"+section, false, tview.AlignLeft, ColorBlack)
-	a.frame.AddText("[::b]"+strings.Join(keys, ", "), false, tview.AlignCenter, ColorBlack)
+	a.frame.AddText("[::b]"+section, false, tview.AlignLeft, DefaultTheme.OnPrimary)
+	a.frame.AddText("[::b]"+keyString, false, tview.AlignCenter, DefaultTheme.OnPrimary)
 
 	version := fmt.Sprintf("EPOS Open source [%s]", common.GetVersion())
-	gradient := CreateGradient(version, tcell.NewRGBColor(0, 255, 0), tcell.NewRGBColor(0, 0, 0))
-	a.frame.AddText(gradient, false, tview.AlignRight, tcell.ColorDefault)
+	gradient := CreateGradient(version, DefaultTheme.Secondary, DefaultTheme.OnSecondary)
+	a.frame.AddText(gradient, false, tview.AlignRight, DefaultTheme.OnBackground)
 }
 
 // ShowError displays an error modal with a message.
 // Press OK or ESC to dismiss.
 func (a *App) ShowError(message string) {
 	modal := tview.NewModal().
-		SetText(message).
+		SetText(DefaultTheme.DestructiveTag("b") + message + "[-]").
 		AddButtons([]string{"OK"}).
 		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
 			a.pages.RemovePage("error")
 		})
 
-	modal.SetBackgroundColor(tcell.ColorDarkRed)
-	modal.Box.SetBackgroundColor(tcell.ColorDarkRed)
+	modal.SetBackgroundColor(DefaultTheme.Background)
+	modal.Box.SetBackgroundColor(DefaultTheme.Surface)
+	modal.SetBorderColor(DefaultTheme.Destructive)
+	modal.SetTitle(" [::b]Error ")
+	modal.SetTitleColor(DefaultTheme.Destructive)
+	modal.SetButtonActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
 
 	a.pages.AddPage("error", modal, true, true)
 	a.tview.SetFocus(modal)

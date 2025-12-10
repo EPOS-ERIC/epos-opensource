@@ -35,16 +35,12 @@ func (a *App) showDeployForm() {
 		AddButton("Deploy", func() { a.handleDeploy(data) }).
 		AddButton("Cancel", func() { a.returnFromDeploy() })
 
-	form.SetBorder(true).
-		SetTitle(" New Docker Environment ").
-		SetTitleColor(ColorYellow).
-		SetBorderColor(ColorGreen)
-
-	form.SetBackgroundColor(tcell.ColorDefault)
-	form.SetFieldBackgroundColor(tcell.ColorDarkSlateGray)
-	form.SetButtonBackgroundColor(ColorGreen)
-	form.SetButtonTextColor(ColorBlack)
-	form.SetButtonActivatedStyle(tcell.StyleDefault.Background(ColorYellow).Foreground(ColorGreen))
+	form.SetFieldBackgroundColor(DefaultTheme.Surface)
+	form.SetFieldTextColor(DefaultTheme.Secondary)
+	form.SetLabelColor(DefaultTheme.Secondary)
+	form.SetButtonBackgroundColor(DefaultTheme.Primary)
+	form.SetButtonTextColor(DefaultTheme.OnPrimary)
+	form.SetButtonActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
 
 	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEsc {
@@ -58,27 +54,25 @@ func (a *App) showDeployForm() {
 		return event
 	})
 
-	// Center the form with transparent background
-	innerFlex := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(nil, 0, 1, false).
-		AddItem(form, 20, 1, true).
-		AddItem(nil, 0, 1, false)
-	innerFlex.SetBackgroundColor(tcell.ColorDefault)
+	// Layout
+	content := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(form, 0, 1, true)
 
-	layout := tview.NewFlex().
-		AddItem(nil, 0, 1, false).
-		AddItem(innerFlex, 60, 1, true).
-		AddItem(nil, 0, 1, false)
-	layout.SetBackgroundColor(tcell.ColorDefault)
+	content.SetBorder(true).
+		SetBorderColor(DefaultTheme.Primary).
+		SetTitle(" [::b]New Docker Environment ").
+		SetTitleColor(DefaultTheme.Secondary).
+		SetBorderPadding(1, 0, 2, 2)
 
-	a.pages.AddAndSwitchToPage("deploy", layout, true)
+	a.pages.AddPage("deploy", CenterPrimitive(content, 1, 3), true, true)
 	a.tview.SetFocus(form)
 }
 
 // handleDeploy validates the form and starts deployment.
 func (a *App) handleDeploy(data *deployFormData) {
 	if strings.TrimSpace(data.name) == "" {
-		a.ShowError("Name is required")
+		a.ShowError("Name is required!")
 		return
 	}
 	a.showDeployProgress(data)
@@ -91,13 +85,15 @@ func (a *App) showDeployProgress(data *deployFormData) {
 		SetScrollable(true).
 		SetChangedFunc(func() { a.tview.Draw() })
 	outputView.SetBorder(true).
-		SetTitle(fmt.Sprintf(" Deploying: %s ", data.name)).
-		SetTitleColor(ColorYellow)
+		SetTitle(fmt.Sprintf(" [::b]Deploying: %s ", data.name)).
+		SetTitleColor(DefaultTheme.Secondary).
+		SetBorderColor(DefaultTheme.Primary).
+		SetBorderPadding(0, 0, 2, 2)
 
 	statusBar := tview.NewTextView().
 		SetDynamicColors(true).
 		SetTextAlign(tview.AlignCenter).
-		SetText("[yellow]Deploying... Press ESC to go back[-]")
+		SetText(DefaultTheme.SecondaryTag("") + "Deploying... Press ESC to go back" + "[-]")
 
 	layout := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(outputView, 0, 1, true).
@@ -132,9 +128,9 @@ func (a *App) showDeployProgress(data *deployFormData) {
 
 		a.tview.QueueUpdateDraw(func() {
 			if err != nil {
-				statusBar.SetText(fmt.Sprintf("[red]Deployment failed: %v[-]", err))
+				statusBar.SetText(fmt.Sprintf("%sDeployment failed: %v[-]", DefaultTheme.ErrorTag(""), err))
 			} else {
-				statusBar.SetText(fmt.Sprintf("[green]Deployment complete![-] GUI: %s", docker.GuiUrl))
+				statusBar.SetText(fmt.Sprintf("%sDeployment complete![-] GUI: %s", DefaultTheme.SuccessTag(""), docker.GuiUrl))
 			}
 
 			layout.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {

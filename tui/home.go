@@ -11,8 +11,8 @@ func (a *App) createHome() *tview.Flex {
 	envsFlex := a.createEnvLists()
 	a.details = tview.NewTextArea().
 		SetBorder(true).
-		SetTitle("Environment Details").
-		SetTitleColor(ColorYellow)
+		SetTitle(" [::b]Environment Details ").
+		SetTitleColor(DefaultTheme.Secondary)
 
 	home := tview.NewFlex().
 		AddItem(envsFlex, 0, 1, true).
@@ -30,19 +30,19 @@ func (a *App) createEnvLists() *tview.Flex {
 	a.docker = tview.NewList()
 	a.docker.SetBorder(true)
 	a.docker.SetBorderPadding(1, 1, 1, 1)
-	a.docker.SetTitle("Docker Environments")
-	a.docker.SetTitleColor(ColorYellow)
-	a.docker.SetSelectedBackgroundColor(ColorGreen)
-	a.docker.SetSelectedTextColor(ColorBlack)
+	a.docker.SetTitle(" [::b]Docker Environments ")
+	a.docker.SetTitleColor(DefaultTheme.Secondary)
+	a.docker.SetSelectedBackgroundColor(DefaultTheme.Primary)
+	a.docker.SetSelectedTextColor(DefaultTheme.OnPrimary)
 
 	a.dockerEmpty = tview.NewTextView()
 	a.dockerEmpty.SetBorder(true)
 	a.dockerEmpty.SetBorderPadding(1, 1, 1, 1)
-	a.dockerEmpty.SetTitle("Docker Environments")
-	a.dockerEmpty.SetTitleColor(ColorYellow)
+	a.dockerEmpty.SetTitle(" [::b]Docker Environments ")
+	a.dockerEmpty.SetTitleColor(DefaultTheme.Secondary)
 	a.dockerEmpty.SetTextAlign(tview.AlignCenter)
 	a.dockerEmpty.SetDynamicColors(true)
-	a.dockerEmpty.SetText("[#808080::i]No Docker environments found")
+	a.dockerEmpty.SetText(DefaultTheme.MutedTag("i") + "No Docker environments found")
 
 	a.dockerFlex = tview.NewFlex()
 
@@ -50,19 +50,19 @@ func (a *App) createEnvLists() *tview.Flex {
 	a.k8s = tview.NewList()
 	a.k8s.SetBorder(true)
 	a.k8s.SetBorderPadding(1, 1, 1, 1)
-	a.k8s.SetTitle("K8s Environments")
-	a.k8s.SetTitleColor(ColorYellow)
-	a.k8s.SetSelectedBackgroundColor(ColorGreen)
-	a.k8s.SetSelectedTextColor(ColorBlack)
+	a.k8s.SetTitle(" [::b]K8s Environments ")
+	a.k8s.SetTitleColor(DefaultTheme.Secondary)
+	a.k8s.SetSelectedBackgroundColor(DefaultTheme.Primary)
+	a.k8s.SetSelectedTextColor(DefaultTheme.OnPrimary)
 
 	a.k8sEmpty = tview.NewTextView()
 	a.k8sEmpty.SetBorder(true)
 	a.k8sEmpty.SetBorderPadding(1, 1, 1, 1)
-	a.k8sEmpty.SetTitle("K8s Environments")
-	a.k8sEmpty.SetTitleColor(ColorYellow)
+	a.k8sEmpty.SetTitle(" [::b]K8s Environments ")
+	a.k8sEmpty.SetTitleColor(DefaultTheme.Secondary)
 	a.k8sEmpty.SetTextAlign(tview.AlignCenter)
 	a.k8sEmpty.SetDynamicColors(true)
-	a.k8sEmpty.SetText("[#808080::i]No Kubernetes environments found")
+	a.k8sEmpty.SetText(DefaultTheme.MutedTag("i") + "No Kubernetes environments found")
 
 	a.k8sFlex = tview.NewFlex()
 
@@ -98,7 +98,7 @@ func (a *App) refreshLists() {
 		} else {
 			a.dockerFlex.AddItem(a.docker, 0, 1, true)
 			for _, d := range dockers {
-				a.docker.AddItem("[::b] • "+d.Name+" ", "", 0, nil)
+				a.docker.AddItem("[::b] • "+d.Name+"  ", "", 0, nil)
 				a.dockerEnvs = append(a.dockerEnvs, d.Name)
 			}
 			if dockerIndex < a.docker.GetItemCount() {
@@ -201,57 +201,57 @@ func (a *App) setupFocusHandlers() {
 	// Docker List
 	a.docker.SetFocusFunc(func() {
 		a.currentEnv = a.dockerFlex
-		a.docker.SetBorderColor(ColorGreen)
-		a.docker.SetSelectedBackgroundColor(ColorGreen)
-		a.docker.SetSelectedTextColor(ColorBlack)
+		a.docker.SetBorderColor(DefaultTheme.Primary)
+		a.docker.SetSelectedBackgroundColor(DefaultTheme.Primary)
+		a.docker.SetSelectedTextColor(DefaultTheme.OnPrimary)
 		a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
 	})
 	a.docker.SetBlurFunc(func() {
-		a.docker.SetBorderColor(tcell.ColorDefault)
-		a.docker.SetSelectedBackgroundColor(tcell.ColorDefault)
-		a.docker.SetSelectedTextColor(tcell.ColorDefault)
+		a.docker.SetBorderColor(DefaultTheme.Surface)
+		a.docker.SetSelectedBackgroundColor(DefaultTheme.Surface)
+		a.docker.SetSelectedTextColor(DefaultTheme.OnSurface)
 	})
 
 	// Docker Empty
 	a.dockerEmpty.SetFocusFunc(func() {
 		a.currentEnv = a.dockerFlex
-		a.dockerEmpty.SetBorderColor(ColorGreen)
+		a.dockerEmpty.SetBorderColor(DefaultTheme.Primary)
 		a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
 	})
 	a.dockerEmpty.SetBlurFunc(func() {
-		a.dockerEmpty.SetBorderColor(tcell.ColorDefault)
+		a.dockerEmpty.SetBorderColor(DefaultTheme.Surface)
 	})
 
 	// K8s List
 	a.k8s.SetFocusFunc(func() {
 		a.currentEnv = a.k8sFlex
-		a.k8s.SetBorderColor(ColorGreen)
-		a.k8s.SetSelectedBackgroundColor(ColorGreen)
-		a.k8s.SetSelectedTextColor(ColorBlack)
+		a.k8s.SetBorderColor(DefaultTheme.Primary)
+		a.k8s.SetSelectedBackgroundColor(DefaultTheme.Primary)
+		a.k8s.SetSelectedTextColor(DefaultTheme.OnPrimary)
 		a.UpdateFooter("[K8s Environments]", KeyDescriptions["k8s"])
 	})
 	a.k8s.SetBlurFunc(func() {
-		a.k8s.SetBorderColor(tcell.ColorDefault)
-		a.k8s.SetSelectedBackgroundColor(tcell.ColorDefault)
-		a.k8s.SetSelectedTextColor(tcell.ColorDefault)
+		a.k8s.SetBorderColor(DefaultTheme.Surface)
+		a.k8s.SetSelectedBackgroundColor(DefaultTheme.Surface)
+		a.k8s.SetSelectedTextColor(DefaultTheme.OnSurface)
 	})
 
 	// K8s Empty
 	a.k8sEmpty.SetFocusFunc(func() {
 		a.currentEnv = a.k8sFlex
-		a.k8sEmpty.SetBorderColor(ColorGreen)
+		a.k8sEmpty.SetBorderColor(DefaultTheme.Primary)
 		a.UpdateFooter("[K8s Environments]", KeyDescriptions["k8s"])
 	})
 	a.k8sEmpty.SetBlurFunc(func() {
-		a.k8sEmpty.SetBorderColor(tcell.ColorDefault)
+		a.k8sEmpty.SetBorderColor(DefaultTheme.Surface)
 	})
 
 	// Details
 	a.details.SetFocusFunc(func() {
-		a.details.SetBorderColor(ColorGreen)
+		a.details.SetBorderColor(DefaultTheme.Primary)
 		a.UpdateFooter("[Environment Details]", KeyDescriptions["details"])
 	})
 	a.details.SetBlurFunc(func() {
-		a.details.SetBorderColor(tcell.ColorDefault)
+		a.details.SetBorderColor(DefaultTheme.Surface)
 	})
 }

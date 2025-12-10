@@ -24,30 +24,23 @@ func (a *App) showHelp() {
 	row++
 
 	// General section
-	table.SetCell(row, 0, tview.NewTableCell("[yellow::b]GENERAL").SetAlign(tview.AlignLeft).SetExpansion(1))
+	table.SetCell(row, 0, tview.NewTableCell(DefaultTheme.SecondaryTag("b")+"GENERAL").SetAlign(tview.AlignLeft).SetExpansion(1))
 	row++
-	table.SetCell(row, 0, tview.NewTableCell("  [green::b]?").SetAlign(tview.AlignLeft))
-	table.SetCell(row, 1, tview.NewTableCell("show this help").SetAlign(tview.AlignLeft).SetExpansion(1))
+	table.SetCell(row, 0, tview.NewTableCell("  "+DefaultTheme.PrimaryTag("b")+"?").SetAlign(tview.AlignLeft))
+	table.SetCell(row, 1, tview.NewTableCell("show this help").SetAlign(tview.AlignRight).SetExpansion(1))
 	row++
-	table.SetCell(row, 0, tview.NewTableCell("  [green::b]q").SetAlign(tview.AlignLeft))
-	table.SetCell(row, 1, tview.NewTableCell("quit application").SetAlign(tview.AlignLeft).SetExpansion(1))
-
-	// Footer
-	footer := tview.NewTextView().
-		SetDynamicColors(true).
-		SetTextAlign(tview.AlignCenter).
-		SetText("[::d]Press ESC or q to close")
+	table.SetCell(row, 0, tview.NewTableCell("  "+DefaultTheme.PrimaryTag("b")+"q").SetAlign(tview.AlignLeft))
+	table.SetCell(row, 1, tview.NewTableCell("quit application").SetAlign(tview.AlignRight).SetExpansion(1))
 
 	// Layout
 	content := tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(table, 0, 1, true).
-		AddItem(footer, 1, 0, false)
+		AddItem(table, 0, 1, true)
 
 	content.SetBorder(true).
-		SetBorderColor(ColorYellow).
-		SetTitle(" Help ").
-		SetTitleColor(ColorYellow).
+		SetBorderColor(DefaultTheme.Secondary).
+		SetTitle(" [::b]Help ").
+		SetTitleColor(DefaultTheme.Secondary).
 		SetBorderPadding(1, 0, 2, 2)
 
 	// Close handler
@@ -59,20 +52,21 @@ func (a *App) showHelp() {
 		return event
 	})
 
-	a.pages.AddPage("help", CenterPrimitive(content, 1, 1), true, true)
+	a.UpdateFooter("[Help]", []string{"esc/q: close"})
+	a.pages.AddPage("help", CenterPrimitive(content, 1, 2), true, true)
 	a.tview.SetFocus(content)
 }
 
 // addHelpSection adds a section of key descriptions to the help table.
 func addHelpSection(table *tview.Table, row int, title string, keys []string) int {
-	table.SetCell(row, 0, tview.NewTableCell("[yellow::b]"+title).SetAlign(tview.AlignLeft).SetExpansion(1))
+	table.SetCell(row, 0, tview.NewTableCell(DefaultTheme.SecondaryTag("b")+title).SetAlign(tview.AlignLeft).SetExpansion(1))
 	row++
 
 	for _, key := range keys {
 		parts := strings.Split(key, ": ")
 		if len(parts) == 2 {
-			table.SetCell(row, 0, tview.NewTableCell("  [green::b]"+parts[0]).SetAlign(tview.AlignLeft))
-			table.SetCell(row, 1, tview.NewTableCell(parts[1]).SetAlign(tview.AlignLeft).SetExpansion(1))
+			table.SetCell(row, 0, tview.NewTableCell("  "+DefaultTheme.PrimaryTag("b")+parts[0]).SetAlign(tview.AlignLeft))
+			table.SetCell(row, 1, tview.NewTableCell(parts[1]).SetAlign(tview.AlignRight).SetExpansion(1))
 		} else {
 			table.SetCell(row, 0, tview.NewTableCell("  "+key).SetAlign(tview.AlignLeft).SetExpansion(1))
 		}

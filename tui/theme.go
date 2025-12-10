@@ -8,14 +8,45 @@ import (
 	"github.com/rivo/tview"
 )
 
-// Theme colors used throughout the TUI.
-var (
-	ColorGreen  = tcell.NewRGBColor(90, 180, 105)
-	ColorYellow = tcell.NewRGBColor(229, 161, 14)
-	ColorBlack  = tcell.NewRGBColor(0, 0, 0)
-	ColorRed    = tcell.NewRGBColor(200, 60, 60)
-	ColorWhite  = tcell.NewRGBColor(255, 255, 255)
-)
+// Theme defines the color scheme for the TUI.
+type Theme struct {
+	Primary       tcell.Color
+	OnPrimary     tcell.Color
+	Secondary     tcell.Color
+	OnSecondary   tcell.Color
+	Error         tcell.Color
+	OnError       tcell.Color
+	Destructive   tcell.Color
+	OnDestructive tcell.Color
+	Success       tcell.Color
+	OnSuccess     tcell.Color
+	Background    tcell.Color
+	OnBackground  tcell.Color
+	Surface       tcell.Color
+	OnSurface     tcell.Color
+	Muted         tcell.Color
+	OnMuted       tcell.Color
+}
+
+// DefaultTheme is the default color scheme.
+var DefaultTheme = &Theme{
+	Primary:       tcell.NewRGBColor(90, 180, 105),
+	OnPrimary:     tcell.NewRGBColor(0, 0, 0),
+	Secondary:     tcell.NewRGBColor(229, 161, 14),
+	OnSecondary:   tcell.NewRGBColor(0, 0, 0),
+	Error:         tcell.NewRGBColor(200, 60, 60),
+	OnError:       tcell.NewRGBColor(255, 255, 255),
+	Destructive:   tcell.NewRGBColor(200, 60, 60),
+	OnDestructive: tcell.NewRGBColor(255, 255, 255),
+	Success:       tcell.NewRGBColor(90, 180, 105),
+	OnSuccess:     tcell.NewRGBColor(0, 0, 0),
+	Background:    tcell.ColorDefault,
+	OnBackground:  tcell.ColorDefault,
+	Surface:       tcell.NewRGBColor(60, 72, 65),
+	OnSurface:     tcell.NewRGBColor(255, 255, 255),
+	Muted:         tcell.NewRGBColor(60, 72, 65),
+	OnMuted:       tcell.ColorDefault,
+}
 
 // KeyDescriptions maps screen names to their available keyboard shortcuts.
 // Used by updateFooter() to show context-sensitive help.
@@ -28,7 +59,7 @@ var KeyDescriptions = map[string][]string{
 // InitStyles sets up global tview styles and border characters.
 // Call this once during app initialization.
 func InitStyles() {
-	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
+	tview.Styles.PrimitiveBackgroundColor = DefaultTheme.Background
 	tview.Borders.HorizontalFocus = tview.Borders.Horizontal
 	tview.Borders.VerticalFocus = tview.Borders.Vertical
 	tview.Borders.TopLeft = '╭'
@@ -71,3 +102,25 @@ func interpolateColor(start, end tcell.Color, ratio float64) tcell.Color {
 	b := uint8(float64(sb) + ratio*(float64(eb)-float64(sb)))
 	return tcell.NewRGBColor(int32(r), int32(g), int32(b))
 }
+
+// Hex returns the hex string for a color.
+func (t *Theme) Hex(color tcell.Color) string {
+	r, g, b := color.RGB()
+	return fmt.Sprintf("#%02x%02x%02x", r, g, b)
+}
+
+// Tag returns a tview color tag for a color with attributes.
+func (t *Theme) Tag(color tcell.Color, attrs string) string {
+	if attrs == "" {
+		return fmt.Sprintf("[%s]", t.Hex(color))
+	}
+	return fmt.Sprintf("[%s::%s]", t.Hex(color), attrs)
+}
+
+// Convenience methods for common tags.
+func (t *Theme) PrimaryTag(attrs string) string     { return t.Tag(t.Primary, attrs) }
+func (t *Theme) SecondaryTag(attrs string) string   { return t.Tag(t.Secondary, attrs) }
+func (t *Theme) ErrorTag(attrs string) string       { return t.Tag(t.Error, attrs) }
+func (t *Theme) SuccessTag(attrs string) string     { return t.Tag(t.Success, attrs) }
+func (t *Theme) DestructiveTag(attrs string) string { return t.Tag(t.Destructive, attrs) }
+func (t *Theme) MutedTag(attrs string) string       { return t.Tag(t.Muted, attrs) }
