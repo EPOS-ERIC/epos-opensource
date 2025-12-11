@@ -169,7 +169,7 @@ func (a *App) copyToClipboard(text string) {
 
 // openInBrowser opens the given URL in the default browser.
 func (a *App) openInBrowser(url string) {
-	url = strings.Trim(url, " ")
+	// url = strings.Trim(url, " ")
 	if err := exec.Command("open", url).Run(); err != nil {
 		a.ShowError("Failed to open in browser")
 		log.Printf("error opening in browser: %v", err)

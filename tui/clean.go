@@ -10,7 +10,7 @@ import (
 
 // showCleanConfirm displays a confirmation dialog for cleaning a Docker environment.
 func (a *App) showCleanConfirm() {
-	a.actionFromDetails = a.detailsShown
+	a.previousFocus = a.tview.GetFocus()
 	envName := a.SelectedDockerEnv()
 	if envName == "" {
 		return
@@ -58,11 +58,11 @@ func (a *App) showCleanConfirm() {
 	cancelBtn.SetInputCapture(buttonInputCapture(cleanBtn, cancelBtn))
 
 	buttonContainer := tview.NewFlex().SetDirection(tview.FlexColumn).
-		AddItem(nil, 0, 1, false).
+		AddItem(tview.NewBox(), 0, 1, false).
 		AddItem(cleanBtn, 9, 0, true). // "clean" + 4
-		AddItem(nil, 2, 0, false).
+		AddItem(tview.NewBox(), 2, 0, false).
 		AddItem(cancelBtn, 10, 0, true).
-		AddItem(nil, 0, 1, false)
+		AddItem(tview.NewBox(), 0, 1, false)
 	buttonContainer.SetBackgroundColor(tcell.ColorDefault)
 
 	// Main layout
@@ -155,16 +155,7 @@ func (a *App) returnFromClean() {
 	a.pages.SwitchToPage("home")
 	a.refreshLists()
 
-	if a.actionFromDetails {
-		a.tview.SetFocus(a.details)
-		a.UpdateFooter("[Environment Details]", KeyDescriptions["details"])
-	} else {
-		if a.docker.GetItemCount() > 0 {
-			a.tview.SetFocus(a.docker)
-		} else {
-			a.tview.SetFocus(a.dockerEmpty)
-		}
-		a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
+	if a.previousFocus != nil {
+		a.tview.SetFocus(a.previousFocus)
 	}
-	a.actionFromDetails = false
 }

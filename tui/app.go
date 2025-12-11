@@ -41,7 +41,7 @@ type App struct {
 	currentEnv         tview.Primitive
 	homeFlex           *tview.Flex
 	detailsShown       bool
-	actionFromDetails  bool
+	previousFocus      tview.Primitive
 
 	// Background tasks
 	refreshTicker *time.Ticker
@@ -126,15 +126,19 @@ func (a *App) UpdateFooter(section string, keys []string) {
 // ShowError displays an error modal with a message.
 // Press OK or ESC to dismiss.
 func (a *App) ShowError(message string) {
+	a.previousFocus = a.tview.GetFocus()
 	modal := tview.NewModal().
 		SetText(DefaultTheme.DestructiveTag("b") + message + "[-]").
 		AddButtons([]string{"OK"}).
 		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
 			a.pages.RemovePage("error")
+			if a.previousFocus != nil {
+				a.tview.SetFocus(a.previousFocus)
+			}
 		})
 
 	modal.SetBackgroundColor(DefaultTheme.Background)
-	modal.Box.SetBackgroundColor(DefaultTheme.Surface)
+	modal.Box.SetBackgroundColor(DefaultTheme.Background)
 	modal.SetBorderColor(DefaultTheme.Destructive)
 	modal.SetTitle(" [::b]Error ")
 	modal.SetTitleColor(DefaultTheme.Destructive)

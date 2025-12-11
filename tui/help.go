@@ -9,6 +9,7 @@ import (
 
 // showHelp displays a modal with keyboard shortcuts for all screens.
 func (a *App) showHelp() {
+	a.previousFocus = a.tview.GetFocus()
 	table := tview.NewTable().
 		SetBorders(false).
 		SetSelectable(false, false)
@@ -48,6 +49,9 @@ func (a *App) showHelp() {
 	content.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEsc || event.Rune() == 'q' {
 			a.pages.RemovePage("help")
+			if a.previousFocus != nil {
+				a.tview.SetFocus(a.previousFocus)
+			}
 			return nil
 		}
 		return event
