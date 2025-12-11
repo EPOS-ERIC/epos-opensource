@@ -2,8 +2,9 @@ package tui
 
 import (
 	"fmt"
+	"log"
+	"net/url"
 	"os/exec"
-	"path"
 	"strings"
 
 	"github.com/epos-eu/epos-opensource/db"
@@ -18,8 +19,9 @@ func (a *App) createHome() *tview.Flex {
 	a.detailsTable.SetBorders(true)
 	a.detailsTable.SetBordersColor(DefaultTheme.Secondary)
 	a.detailsTable.SetSelectable(true, true)
-	a.detailsTable.SetSelectedStyle(tcell.StyleDefault.Foreground(DefaultTheme.Primary))
+	a.detailsTable.SetSelectedStyle(tcell.StyleDefault.Foreground(DefaultTheme.Secondary).Background(DefaultTheme.Background))
 	a.detailsTable.Select(0, 2)
+	a.detailsTable.SetBorderPadding(1, 1, 0, 0)
 
 	// Action handler helper
 	triggerAction := func(row int) {
@@ -29,9 +31,9 @@ func (a *App) createHome() *tview.Flex {
 		value := a.detailsTable.GetCell(row, 1).Text
 		action := a.detailsTable.GetCell(row, 2).Text
 		switch action {
-		case "Copy":
+		case " Copy ":
 			a.copyToClipboard(value)
-		case "Open":
+		case " Open ":
 			a.openInBrowser(value)
 		}
 	}
@@ -100,10 +102,15 @@ func (a *App) createHome() *tview.Flex {
 	})
 
 	a.buttonsFlex = tview.NewFlex().SetDirection(tview.FlexColumn)
-	a.buttonsFlex.AddItem(a.deleteButton, 0, 1, false)
-	a.buttonsFlex.AddItem(a.cleanButton, 0, 1, false)
-	a.buttonsFlex.AddItem(a.updateButton, 0, 1, false)
-	a.buttonsFlex.AddItem(a.populateButton, 0, 1, false)
+	a.buttonsFlex.AddItem(tview.NewBox(), 0, 1, false) // Spacer
+	a.buttonsFlex.AddItem(a.populateButton, 14, 0, true)
+	a.buttonsFlex.AddItem(tview.NewBox(), 0, 1, false) // Spacer
+	a.buttonsFlex.AddItem(a.updateButton, 12, 0, false)
+	a.buttonsFlex.AddItem(tview.NewBox(), 0, 1, false) // Spacer
+	a.buttonsFlex.AddItem(a.cleanButton, 11, 0, false)
+	a.buttonsFlex.AddItem(tview.NewBox(), 0, 1, false) // Spacer
+	a.buttonsFlex.AddItem(a.deleteButton, 12, 0, false)
+	a.buttonsFlex.AddItem(tview.NewBox(), 0, 1, false) // Spacer
 
 	a.detailsList = tview.NewList()
 	a.detailsList.SetBorder(true)
@@ -125,7 +132,7 @@ func (a *App) createHome() *tview.Flex {
 	a.details.SetBorderColor(DefaultTheme.Surface)
 	a.details.SetTitle(" [::b]Environment Details ")
 	a.details.SetTitleColor(DefaultTheme.Secondary)
-	a.details.SetBorderPadding(0, 0, 1, 1)
+	a.details.SetBorderPadding(1, 0, 1, 1)
 	a.details.AddItem(a.detailsPlaceholder, 0, 1, true)
 
 	home := tview.NewFlex().
@@ -151,6 +158,7 @@ func (a *App) showPlaceholder() {
 
 // copyToClipboard copies the given text to the clipboard.
 func (a *App) copyToClipboard(text string) {
+	text = strings.Trim(text, " ")
 	cmd := exec.Command("pbcopy")
 	cmd.Stdin = strings.NewReader(text)
 	err := cmd.Run()
@@ -161,10 +169,10 @@ func (a *App) copyToClipboard(text string) {
 
 // openInBrowser opens the given URL in the default browser.
 func (a *App) openInBrowser(url string) {
-	cmd := exec.Command("open", url)
-	err := cmd.Run()
-	if err != nil {
+	url = strings.Trim(url, " ")
+	if err := exec.Command("open", url).Run(); err != nil {
 		a.ShowError("Failed to open in browser")
+		log.Printf("error opening in browser: %v", err)
 	}
 }
 
@@ -301,7 +309,8 @@ func (a *App) setupHomeInput(envsFlex *tview.Flex) {
 			return nil
 		case event.Key() == tcell.KeyTab:
 			if a.details.HasFocus() {
-				return event
+				a.cycleDetailsFocus()
+				return nil
 			}
 			a.switchEnvFocus()
 			return nil
@@ -383,74 +392,122 @@ func (a *App) switchEnvFocus() {
 	}
 }
 
+// cycleDetailsFocus cycles focus between buttons, table, and list in the details view.
+func (a *App) cycleDetailsFocus() {
+	focus := a.tview.GetFocus()
+	switch focus {
+	case a.deleteButton:
+		a.detailsTable.Select(0, 2)
+		a.tview.SetFocus(a.detailsTable)
+	case a.cleanButton:
+		a.tview.SetFocus(a.deleteButton)
+	case a.updateButton:
+		a.tview.SetFocus(a.cleanButton)
+	case a.populateButton:
+		a.tview.SetFocus(a.updateButton)
+	case a.detailsTable:
+		if rows := a.detailsTable.GetRowCount(); rows > 0 {
+			r, _ := a.detailsTable.GetSelection()
+			if r < rows-1 {
+				a.detailsTable.Select(r+1, 2)
+				return
+			}
+			if r < rows-1 {
+				a.detailsTable.Select(r+1, 2)
+				return
+			}
+		}
+		a.tview.SetFocus(a.detailsList)
+	case a.detailsList:
+		a.tview.SetFocus(a.populateButton)
+	default:
+		// If we are in details but nothing recognized is focused, start at the top
+		a.tview.SetFocus(a.populateButton)
+	}
+}
+
 // showDetails fetches and displays environment details in a table.
 func (a *App) showDetails(name, envType string) {
 	if !a.detailsShown {
 		a.details.Clear()
-		a.details.AddItem(a.buttonsFlex, 1, 0, false)
-		a.details.AddItem(a.detailsTable, 0, 3, true)
+		a.details.AddItem(a.buttonsFlex, 1, 0, true)
+		a.details.AddItem(a.detailsTable, 0, 3, false)
 		a.details.AddItem(a.detailsList, 0, 1, false)
 		a.detailsShown = true
 		updateBoxStyle(a.details, true)
 	}
 
+	padString := func(str string) string {
+		return " " + str + " "
+	}
+
 	switch envType {
 	case "docker":
 		if d, err := db.GetDockerByName(name); err == nil {
-			apiURL := path.Join(d.ApiUrl, "ui")
-			backofficeURL := path.Join(d.BackofficeUrl, "home")
-			a.detailsTable.SetCell(0, 0, tview.NewTableCell("Name").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(0, 1, tview.NewTableCell(d.Name).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(0, 2, tview.NewTableCell("Copy").SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(1, 0, tview.NewTableCell("Directory").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(1, 1, tview.NewTableCell(d.Directory).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(1, 2, tview.NewTableCell("Copy").SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(2, 0, tview.NewTableCell("API URL").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(2, 1, tview.NewTableCell(apiURL).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(2, 2, tview.NewTableCell("Open").SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(3, 0, tview.NewTableCell("GUI URL").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(3, 1, tview.NewTableCell(d.GuiUrl).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(3, 2, tview.NewTableCell("Open").SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(4, 0, tview.NewTableCell("Backoffice URL").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(4, 1, tview.NewTableCell(backofficeURL).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(4, 2, tview.NewTableCell("Open").SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(5, 0, tview.NewTableCell("API Port").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(5, 1, tview.NewTableCell(fmt.Sprintf("%d", d.ApiPort)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(5, 2, tview.NewTableCell("Copy").SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(6, 0, tview.NewTableCell("GUI Port").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(6, 1, tview.NewTableCell(fmt.Sprintf("%d", d.GuiPort)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(6, 2, tview.NewTableCell("Copy").SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(7, 0, tview.NewTableCell("Backoffice Port").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(7, 1, tview.NewTableCell(fmt.Sprintf("%d", d.BackofficePort)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(7, 2, tview.NewTableCell("Copy").SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
+			apiURL, err := url.JoinPath(d.ApiUrl, "ui")
+			if err != nil {
+				a.ShowError("error joining docker api url")
+				log.Printf("error joining docker api url: %v", err)
+				return
+			}
+			backofficeURL, err := url.JoinPath(d.BackofficeUrl, "home")
+			if err != nil {
+				a.ShowError("error joining docker backoffice url")
+				log.Printf("error joining docker backoffice url: %v", err)
+				return
+			}
+			a.detailsTable.SetCell(0, 0, tview.NewTableCell(padString("Name")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(0, 1, tview.NewTableCell(padString(d.Name)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
+			a.detailsTable.SetCell(0, 2, tview.NewTableCell(padString("Copy")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(1, 0, tview.NewTableCell(padString("Directory")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(1, 1, tview.NewTableCell(padString(d.Directory)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
+			a.detailsTable.SetCell(1, 2, tview.NewTableCell(padString("Copy")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(2, 0, tview.NewTableCell(padString("API URL")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(2, 1, tview.NewTableCell(padString(apiURL)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
+			a.detailsTable.SetCell(2, 2, tview.NewTableCell(padString("Open")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(3, 0, tview.NewTableCell(padString("GUI URL")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(3, 1, tview.NewTableCell(padString(d.GuiUrl)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
+			a.detailsTable.SetCell(3, 2, tview.NewTableCell(padString("Open")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(4, 0, tview.NewTableCell(padString("Backoffice URL")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(4, 1, tview.NewTableCell(padString(backofficeURL)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
+			a.detailsTable.SetCell(4, 2, tview.NewTableCell(padString("Open")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(5, 0, tview.NewTableCell(padString("API Port")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(5, 1, tview.NewTableCell(padString(fmt.Sprintf("%d", d.ApiPort))).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
+			a.detailsTable.SetCell(5, 2, tview.NewTableCell(padString("Copy")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(6, 0, tview.NewTableCell(padString("GUI Port")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(6, 1, tview.NewTableCell(padString(fmt.Sprintf("%d", d.GuiPort))).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
+			a.detailsTable.SetCell(6, 2, tview.NewTableCell(padString("Copy")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(7, 0, tview.NewTableCell(padString("Backoffice Port")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(7, 1, tview.NewTableCell(padString(fmt.Sprintf("%d", d.BackofficePort))).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
+			a.detailsTable.SetCell(7, 2, tview.NewTableCell(padString("Copy")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
 		} else {
-			a.detailsTable.SetCell(0, 0, tview.NewTableCell(fmt.Sprintf("Error fetching details for %s: %v", name, err)).SetTextColor(DefaultTheme.Destructive))
+			a.detailsTable.SetCell(0, 0, tview.NewTableCell(padString(fmt.Sprintf("Error fetching details for %s: %v", name, err))).SetTextColor(DefaultTheme.Destructive))
 		}
 	case "k8s":
 		if k, err := db.GetKubernetesByName(name); err == nil {
-			a.detailsTable.SetCell(0, 0, tview.NewTableCell("Name").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(0, 1, tview.NewTableCell(k.Name).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(0, 2, tview.NewTableCell("Copy").SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(1, 0, tview.NewTableCell("Directory").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(1, 1, tview.NewTableCell(k.Directory).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(1, 2, tview.NewTableCell("Copy").SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(2, 0, tview.NewTableCell("Context").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(2, 1, tview.NewTableCell(k.Context).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(2, 2, tview.NewTableCell("Copy").SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(3, 0, tview.NewTableCell("API URL").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(3, 1, tview.NewTableCell(k.ApiUrl).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(3, 2, tview.NewTableCell("Open").SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(4, 0, tview.NewTableCell("GUI URL").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(4, 1, tview.NewTableCell(k.GuiUrl).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(4, 2, tview.NewTableCell("Open").SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(5, 0, tview.NewTableCell("Backoffice URL").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(5, 1, tview.NewTableCell(k.BackofficeUrl).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(5, 2, tview.NewTableCell("Open").SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(6, 0, tview.NewTableCell("Protocol").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(6, 1, tview.NewTableCell(k.Protocol).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(6, 2, tview.NewTableCell("Copy").SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(0, 0, tview.NewTableCell(padString("Name")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(0, 1, tview.NewTableCell(padString(k.Name)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
+			a.detailsTable.SetCell(0, 2, tview.NewTableCell(padString("Copy")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(1, 0, tview.NewTableCell(padString("Directory")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(1, 1, tview.NewTableCell(padString(k.Directory)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
+			a.detailsTable.SetCell(1, 2, tview.NewTableCell(padString("Copy")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(2, 0, tview.NewTableCell(padString("Context")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(2, 1, tview.NewTableCell(padString(k.Context)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
+			a.detailsTable.SetCell(2, 2, tview.NewTableCell(padString("Copy")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(3, 0, tview.NewTableCell(padString("API URL")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(3, 1, tview.NewTableCell(padString(k.ApiUrl)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
+			a.detailsTable.SetCell(3, 2, tview.NewTableCell(padString("Open")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(4, 0, tview.NewTableCell(padString("GUI URL")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(4, 1, tview.NewTableCell(padString(k.GuiUrl)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
+			a.detailsTable.SetCell(4, 2, tview.NewTableCell(padString("Open")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(5, 0, tview.NewTableCell(padString("Backoffice URL")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(5, 1, tview.NewTableCell(padString(k.BackofficeUrl)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
+			a.detailsTable.SetCell(5, 2, tview.NewTableCell(padString("Open")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(6, 0, tview.NewTableCell(padString("Protocol")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
+			a.detailsTable.SetCell(6, 1, tview.NewTableCell(padString(k.Protocol)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
+			a.detailsTable.SetCell(6, 2, tview.NewTableCell(padString("Copy")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
 		} else {
-			a.detailsTable.SetCell(0, 0, tview.NewTableCell(fmt.Sprintf("Error fetching details for %s: %v", name, err)).SetTextColor(DefaultTheme.Destructive))
+			a.detailsTable.SetCell(0, 0, tview.NewTableCell(padString(fmt.Sprintf("Error fetching details for %s: %v", name, err))).SetTextColor(DefaultTheme.Destructive))
 		}
 	}
 
@@ -511,6 +568,14 @@ func (a *App) setupFocusHandlers() {
 		} else {
 			updateBoxStyle(a.details, false)
 		}
+	})
+
+	// Details Table
+	a.detailsTable.SetFocusFunc(func() {
+		a.detailsTable.SetSelectedStyle(tcell.StyleDefault.Foreground(DefaultTheme.Primary))
+	})
+	a.detailsTable.SetBlurFunc(func() {
+		a.detailsTable.SetSelectedStyle(tcell.StyleDefault.Foreground(DefaultTheme.Secondary).Background(DefaultTheme.Background))
 	})
 }
 
