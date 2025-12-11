@@ -21,27 +21,27 @@ type App struct {
 	frame *tview.Frame
 
 	// Home screen components
-	docker             *tview.List
-	dockerEmpty        *tview.TextView
-	dockerFlex         *tview.Flex
-	dockerEnvs         []string // Environment names for docker list (lookup by index)
-	k8s                *tview.List
-	k8sEmpty           *tview.TextView
-	k8sFlex            *tview.Flex
-	k8sEnvs            []string // Environment names for k8s list (lookup by index)
-	details            *tview.Flex
-	detailsTable       *tview.Table
-	buttonsFlex        *tview.Flex
-	deleteButton       *tview.Button
-	cleanButton        *tview.Button
-	updateButton       *tview.Button
-	populateButton     *tview.Button
-	detailsList        *tview.List
-	detailsPlaceholder *tview.TextView
-	currentEnv         tview.Primitive
-	homeFlex           *tview.Flex
-	detailsShown       bool
-	previousFocus      tview.Primitive
+	docker         *tview.List
+	dockerEmpty    *tview.TextView
+	dockerFlex     *tview.Flex
+	dockerEnvs     []string // Environment names for docker list (lookup by index)
+	k8s            *tview.List
+	k8sEmpty       *tview.TextView
+	k8sFlex        *tview.Flex
+	k8sEnvs        []string // Environment names for k8s list (lookup by index)
+	details        *tview.Flex
+	detailsTable   *tview.Table
+	buttonsFlex    *tview.Flex
+	deleteButton   *tview.Button
+	cleanButton    *tview.Button
+	updateButton   *tview.Button
+	populateButton *tview.Button
+	detailsList    *tview.List
+	detailsEmpty   *tview.TextView
+	currentEnv     tview.Primitive
+	homeFlex       *tview.Flex
+	detailsShown   bool
+	previousFocus  tview.Primitive
 
 	// Background tasks
 	refreshTicker *time.Ticker
@@ -118,7 +118,7 @@ func (a *App) UpdateFooter(section string, keys []string) {
 	a.frame.AddText("[::b]"+section, false, tview.AlignLeft, DefaultTheme.OnPrimary)
 	a.frame.AddText("[::b]"+keyString, false, tview.AlignCenter, DefaultTheme.OnPrimary)
 
-	version := fmt.Sprintf("EPOS Open source [%s]", common.GetVersion())
+	version := fmt.Sprintf("epos-opensource [%s]", common.GetVersion())
 	gradient := CreateGradient(version, DefaultTheme.Secondary, DefaultTheme.OnSecondary)
 	a.frame.AddText(gradient, false, tview.AlignRight, DefaultTheme.OnBackground)
 }

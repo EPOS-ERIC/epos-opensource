@@ -121,11 +121,11 @@ func (a *App) createHome() *tview.Flex {
 	a.detailsList.AddItem("Mock Service 2", "", 0, nil)
 	a.detailsList.AddItem("Mock Service 3", "", 0, nil)
 
-	a.detailsPlaceholder = tview.NewTextView()
-	a.detailsPlaceholder.SetText(DefaultTheme.MutedTag("i") + "\nSelect an environment to view details")
-	a.detailsPlaceholder.SetTextAlign(tview.AlignCenter)
-	a.detailsPlaceholder.SetDynamicColors(true)
-	a.detailsPlaceholder.SetTextColor(DefaultTheme.OnSurface)
+	a.detailsEmpty = tview.NewTextView()
+	a.detailsEmpty.SetText(DefaultTheme.MutedTag("i") + "\nSelect an environment to view details")
+	a.detailsEmpty.SetTextAlign(tview.AlignCenter)
+	a.detailsEmpty.SetDynamicColors(true)
+	a.detailsEmpty.SetTextColor(DefaultTheme.OnSurface)
 
 	a.details = tview.NewFlex().SetDirection(tview.FlexRow)
 	a.details.SetBorder(true)
@@ -133,7 +133,7 @@ func (a *App) createHome() *tview.Flex {
 	a.details.SetTitle(" [::b]Environment Details ")
 	a.details.SetTitleColor(DefaultTheme.Secondary)
 	a.details.SetBorderPadding(1, 0, 1, 1)
-	a.details.AddItem(a.detailsPlaceholder, 0, 1, true)
+	a.details.AddItem(a.detailsEmpty, 0, 1, true)
 
 	home := tview.NewFlex().
 		AddItem(envsFlex, 0, 1, true).
@@ -146,11 +146,11 @@ func (a *App) createHome() *tview.Flex {
 	return home
 }
 
-// showPlaceholder shows the placeholder text in the details panel.
-func (a *App) showPlaceholder() {
+// clearDetailsPanel shows the placeholder text in the details panel.
+func (a *App) clearDetailsPanel() {
 	if a.detailsShown {
 		a.details.Clear()
-		a.details.AddItem(a.detailsPlaceholder, 0, 1, true)
+		a.details.AddItem(a.detailsEmpty, 0, 1, true)
 		a.detailsShown = false
 		updateBoxStyle(a.details, false)
 	}
@@ -169,7 +169,7 @@ func (a *App) copyToClipboard(text string) {
 
 // openInBrowser opens the given URL in the default browser.
 func (a *App) openInBrowser(url string) {
-	// url = strings.Trim(url, " ")
+	url = strings.Trim(url, " ")
 	if err := exec.Command("open", url).Run(); err != nil {
 		a.ShowError("Failed to open in browser")
 		log.Printf("error opening in browser: %v", err)
@@ -298,18 +298,27 @@ func (a *App) SelectedK8sEnv() string {
 }
 
 // setupHomeInput configures keyboard handlers for the home screen.
+//
+//nolint:gocyclo
 func (a *App) setupHomeInput(envsFlex *tview.Flex) {
 	handler := func(event *tcell.EventKey) *tcell.EventKey {
 		switch {
 		case event.Key() == tcell.KeyEsc:
 			if a.details.HasFocus() {
-				a.showPlaceholder()
+				a.clearDetailsPanel()
 				a.tview.SetFocus(a.currentEnv)
 			}
 			return nil
 		case event.Key() == tcell.KeyTab:
 			if a.details.HasFocus() {
 				a.cycleDetailsFocus()
+				return nil
+			}
+			a.switchEnvFocus()
+			return nil
+		case event.Key() == tcell.KeyBacktab:
+			if a.details.HasFocus() {
+				a.cycleDetailsFocusBackward()
 				return nil
 			}
 			a.switchEnvFocus()
@@ -412,10 +421,6 @@ func (a *App) cycleDetailsFocus() {
 				a.detailsTable.Select(r+1, 2)
 				return
 			}
-			if r < rows-1 {
-				a.detailsTable.Select(r+1, 2)
-				return
-			}
 		}
 		a.tview.SetFocus(a.detailsList)
 	case a.detailsList:
@@ -423,6 +428,38 @@ func (a *App) cycleDetailsFocus() {
 	default:
 		// If we are in details but nothing recognized is focused, start at the top
 		a.tview.SetFocus(a.populateButton)
+	}
+}
+
+// cycleDetailsFocusBackward cycles focus backward between buttons, table, and list in the details view.
+func (a *App) cycleDetailsFocusBackward() {
+	focus := a.tview.GetFocus()
+	switch focus {
+	case a.detailsList:
+		if rows := a.detailsTable.GetRowCount(); rows > 0 {
+			a.detailsTable.Select(rows-1, 2)
+			a.tview.SetFocus(a.detailsTable)
+		} else {
+			a.tview.SetFocus(a.deleteButton)
+		}
+	case a.detailsTable:
+		r, _ := a.detailsTable.GetSelection()
+		if r > 0 {
+			a.detailsTable.Select(r-1, 2)
+		} else {
+			a.tview.SetFocus(a.deleteButton)
+		}
+	case a.deleteButton:
+		a.tview.SetFocus(a.cleanButton)
+	case a.cleanButton:
+		a.tview.SetFocus(a.updateButton)
+	case a.updateButton:
+		a.tview.SetFocus(a.populateButton)
+	case a.populateButton:
+		a.tview.SetFocus(a.detailsList)
+	default:
+		// If we are in details but nothing recognized is focused, start at the end
+		a.tview.SetFocus(a.detailsList)
 	}
 }
 

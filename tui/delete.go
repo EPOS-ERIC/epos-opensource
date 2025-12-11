@@ -154,8 +154,6 @@ func (a *App) returnFromDelete() {
 	a.pages.RemovePage("delete-progress")
 	a.pages.SwitchToPage("home")
 	a.refreshLists()
-
-	if a.previousFocus != nil {
-		a.tview.SetFocus(a.previousFocus)
-	}
+	a.clearDetailsPanel()
+	a.tview.SetFocus(a.currentEnv)
 }
