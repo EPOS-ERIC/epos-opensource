@@ -41,6 +41,7 @@ func (a *App) showDeployForm() {
 	form.SetButtonBackgroundColor(DefaultTheme.Primary)
 	form.SetButtonTextColor(DefaultTheme.OnPrimary)
 	form.SetButtonActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
+	form.SetBorderPadding(1, 0, 2, 2)
 
 	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEsc {
@@ -58,8 +59,7 @@ func (a *App) showDeployForm() {
 	content.SetBorder(true).
 		SetBorderColor(DefaultTheme.Primary).
 		SetTitle(" [::b]New Docker Environment ").
-		SetTitleColor(DefaultTheme.Secondary).
-		SetBorderPadding(1, 0, 2, 2)
+		SetTitleColor(DefaultTheme.Secondary)
 
 	a.pages.AddPage("deploy", CenterPrimitive(content, 1, 3), true, true)
 	a.tview.SetFocus(form)

@@ -12,6 +12,7 @@ func (a *App) showHelp() {
 	table := tview.NewTable().
 		SetBorders(false).
 		SetSelectable(false, false)
+	table.SetBorderPadding(1, 0, 2, 2)
 
 	row := 0
 
@@ -40,8 +41,8 @@ func (a *App) showHelp() {
 	content.SetBorder(true).
 		SetBorderColor(DefaultTheme.Secondary).
 		SetTitle(" [::b]Help ").
-		SetTitleColor(DefaultTheme.Secondary).
-		SetBorderPadding(1, 0, 2, 2)
+		SetTitleColor(DefaultTheme.Secondary)
+		// SetBorderPadding(1, 0, 2, 2)
 
 	// Close handler
 	content.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
@@ -52,7 +53,7 @@ func (a *App) showHelp() {
 		return event
 	})
 
-	a.UpdateFooter("[Help]", []string{"esc/q: close"})
+	a.UpdateFooter("[Help]", []string{"↑↓: nav", "esc/q: close"})
 	a.pages.AddPage("help", CenterPrimitive(content, 1, 2), true, true)
 	a.tview.SetFocus(content)
 }

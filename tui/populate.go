@@ -8,8 +8,8 @@ import (
 	"github.com/rivo/tview"
 )
 
-// showCleanConfirm displays a confirmation dialog for cleaning a Docker environment.
-func (a *App) showCleanConfirm() {
+// showPopulateForm displays a confirmation dialog for populating a Docker environment.
+func (a *App) showPopulateForm() {
 	envName := a.SelectedDockerEnv()
 	if envName == "" {
 		return
@@ -17,21 +17,21 @@ func (a *App) showCleanConfirm() {
 
 	// Create text view for message
 	textView := tview.NewTextView().
-		SetText("This will permanently delete all data in environment '" + envName + "'.\n\n" + DefaultTheme.DestructiveTag("b") + "This action cannot be undone." + "[-]").
+		SetText("This will ingest example data into the environment.\n\nThis may take some time depending on the data size.").
 		SetDynamicColors(true).
 		SetTextAlign(tview.AlignCenter)
 	textView.SetBorderPadding(1, 0, 1, 1)
 
 	// Create explicit buttons with styling
-	cleanBtn := tview.NewButton("Clean").SetSelectedFunc(func() {
-		a.pages.RemovePage("clean-confirm")
-		a.showCleanProgress(envName)
+	populateBtn := tview.NewButton("Populate").SetSelectedFunc(func() {
+		a.pages.RemovePage("populate-confirm")
+		a.showPopulateProgress(envName)
 	})
-	cleanBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Destructive).Foreground(DefaultTheme.OnDestructive))
-	cleanBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Destructive))
+	populateBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary))
+	populateBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
 
 	cancelBtn := tview.NewButton("Cancel").SetSelectedFunc(func() {
-		a.returnFromClean()
+		a.returnFromPopulate()
 	})
 	cancelBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary))
 	cancelBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
@@ -47,18 +47,18 @@ func (a *App) showCleanConfirm() {
 				a.tview.SetFocus(rightBtn)
 				return nil
 			case tcell.KeyEsc:
-				a.returnFromClean()
+				a.returnFromPopulate()
 				return nil
 			}
 			return event
 		}
 	}
-	cleanBtn.SetInputCapture(buttonInputCapture(cleanBtn, cancelBtn))
-	cancelBtn.SetInputCapture(buttonInputCapture(cleanBtn, cancelBtn))
+	populateBtn.SetInputCapture(buttonInputCapture(populateBtn, cancelBtn))
+	cancelBtn.SetInputCapture(buttonInputCapture(populateBtn, cancelBtn))
 
 	buttonContainer := tview.NewFlex().SetDirection(tview.FlexColumn).
 		AddItem(nil, 0, 1, false).
-		AddItem(cleanBtn, 9, 0, true). // "clean" + 4
+		AddItem(populateBtn, 10, 0, true).
 		AddItem(nil, 2, 0, false).
 		AddItem(cancelBtn, 10, 0, true).
 		AddItem(nil, 0, 1, false)
@@ -69,9 +69,9 @@ func (a *App) showCleanConfirm() {
 		AddItem(textView, 0, 1, false).
 		AddItem(buttonContainer, 1, 0, true)
 	layout.SetBorder(true).
-		SetTitle(" [::b]Clean Environment ").
+		SetTitle(" [::b]Populate Environment ").
 		SetTitleColor(DefaultTheme.Secondary).
-		SetBorderColor(DefaultTheme.Secondary).
+		SetBorderColor(DefaultTheme.Primary).
 		SetBackgroundColor(DefaultTheme.Background)
 
 	// Center the layout
@@ -87,27 +87,27 @@ func (a *App) showCleanConfirm() {
 		AddItem(nil, 0, 1, false)
 	outerLayout.SetBackgroundColor(DefaultTheme.Background)
 
-	a.pages.AddPage("clean-confirm", outerLayout, true, true)
-	a.tview.SetFocus(cleanBtn)
-	a.UpdateFooter("[Clean Environment]", []string{"←→: switch", "enter: confirm", "esc: cancel"})
+	a.pages.AddPage("populate-confirm", outerLayout, true, true)
+	a.tview.SetFocus(populateBtn)
+	a.UpdateFooter("[Populate Environment]", []string{"←→: switch", "enter: confirm", "esc: cancel"})
 }
 
-// showCleanProgress displays the cleaning progress with live output.
-func (a *App) showCleanProgress(envName string) {
+// showPopulateProgress displays the populate progress with live output.
+func (a *App) showPopulateProgress(envName string) {
 	outputView := tview.NewTextView().
 		SetDynamicColors(true).
 		SetScrollable(true).
 		SetChangedFunc(func() { a.tview.Draw() })
 	outputView.SetBorder(true).
-		SetTitle(fmt.Sprintf(" [::b]Cleaning: %s ", envName)).
+		SetTitle(fmt.Sprintf(" [::b]Populating: %s ", envName)).
 		SetTitleColor(DefaultTheme.Secondary).
-		SetBorderColor(DefaultTheme.Secondary).
+		SetBorderColor(DefaultTheme.Primary).
 		SetBorderPadding(0, 0, 2, 2)
 
 	statusBar := tview.NewTextView().
 		SetDynamicColors(true).
 		SetTextAlign(tview.AlignCenter).
-		SetText(DefaultTheme.SecondaryTag("") + "Cleaning... Please wait" + "[-]")
+		SetText(DefaultTheme.SecondaryTag("") + "Populating... Please wait" + "[-]")
 
 	layout := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(outputView, 0, 1, true).
@@ -118,39 +118,40 @@ func (a *App) showCleanProgress(envName string) {
 	a.outputWriter.ClearBuffer()
 	a.outputWriter.SetView(a.tview, outputView)
 
-	a.pages.AddAndSwitchToPage("clean-progress", layout, true)
-	a.UpdateFooter("[Cleaning]", []string{"please wait..."})
+	a.pages.AddAndSwitchToPage("populate-progress", layout, true)
+	a.UpdateFooter("[Populating]", []string{"please wait..."})
 
-	// Run cleaning in background
+	// Run populate in background
 	go func() {
-		docker, err := dockercore.Clean(dockercore.CleanOpts{
-			Name: envName,
+		_, err := dockercore.Populate(dockercore.PopulateOpts{
+			Name:             envName,
+			PopulateExamples: true,
 		})
 
 		a.tview.QueueUpdateDraw(func() {
 			if err != nil {
-				statusBar.SetText(fmt.Sprintf("%sClean failed: %v[-]", DefaultTheme.ErrorTag(""), err))
+				statusBar.SetText(fmt.Sprintf("%sPopulate failed: %v[-]", DefaultTheme.ErrorTag(""), err))
 			} else {
-				statusBar.SetText(fmt.Sprintf("%sEnvironment cleaned successfully![-] GUI: %s", DefaultTheme.SuccessTag(""), docker.GuiUrl))
+				statusBar.SetText(DefaultTheme.SuccessTag("") + "Environment populated successfully!" + "[-]")
 			}
 
 			layout.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 				if event.Key() == tcell.KeyEsc || event.Key() == tcell.KeyEnter {
 					a.outputWriter.ClearView()
-					a.returnFromClean()
+					a.returnFromPopulate()
 					return nil
 				}
 				return event
 			})
-			a.UpdateFooter("[Clean Complete]", []string{"esc/enter: back to home"})
+			a.UpdateFooter("[Populate Complete]", []string{"esc/enter: back to home"})
 		})
 	}()
 }
 
-// returnFromClean cleans up and returns to the home screen.
-func (a *App) returnFromClean() {
-	a.pages.RemovePage("clean-confirm")
-	a.pages.RemovePage("clean-progress")
+// returnFromPopulate cleans up and returns to the home screen.
+func (a *App) returnFromPopulate() {
+	a.pages.RemovePage("populate-confirm")
+	a.pages.RemovePage("populate-progress")
 	a.pages.SwitchToPage("home")
 	a.refreshLists()
 

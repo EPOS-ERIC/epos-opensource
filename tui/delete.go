@@ -20,6 +20,7 @@ func (a *App) showDeleteConfirm() {
 		SetText("This will permanently remove all containers, volumes, and associated resources.\n\n" + DefaultTheme.DestructiveTag("b") + "This action cannot be undone." + "[-]").
 		SetDynamicColors(true).
 		SetTextAlign(tview.AlignCenter)
+	textView.SetBorderPadding(1, 0, 1, 1)
 
 	// Create explicit buttons with styling
 	deleteBtn := tview.NewButton("Delete").SetSelectedFunc(func() {
@@ -71,8 +72,7 @@ func (a *App) showDeleteConfirm() {
 		SetTitle(" [::b]Delete Environment ").
 		SetTitleColor(DefaultTheme.Secondary).
 		SetBorderColor(DefaultTheme.Destructive).
-		SetBackgroundColor(DefaultTheme.Background).
-		SetBorderPadding(1, 1, 1, 1)
+		SetBackgroundColor(DefaultTheme.Background)
 
 	// Center the layout
 	innerFlex := tview.NewFlex().SetDirection(tview.FlexRow).

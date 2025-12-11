@@ -51,9 +51,9 @@ var DefaultTheme = &Theme{
 // KeyDescriptions maps screen names to their available keyboard shortcuts.
 // Used by updateFooter() to show context-sensitive help.
 var KeyDescriptions = map[string][]string{
-	"docker":  {"tab: switch", "↑↓: nav", "n: new", "d: del", "c: clean", "enter: select", "?: help"},
-	"k8s":     {"tab: switch", "↑↓: nav", "n: new", "d: del", "enter: select", "?: help"},
-	"details": {"?: help", "q: quit"},
+	"docker":  {"tab: switch", "↑↓: nav", "n: new", "d: del", "c: clean", "enter: details", "?: help"},
+	"k8s":     {"tab: switch", "↑↓: nav", "n: new", "d: del", "enter: details", "?: help"},
+	"details": {"esc: back", "tab: cycle", "?: help", "q: quit"},
 }
 
 // InitStyles sets up global tview styles and border characters.
