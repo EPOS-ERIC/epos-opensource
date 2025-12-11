@@ -10,6 +10,7 @@ import (
 
 // showDeleteConfirm displays a confirmation dialog for deleting a Docker environment.
 func (a *App) showDeleteConfirm() {
+	a.actionFromDetails = a.detailsShown
 	envName := a.SelectedDockerEnv()
 	if envName == "" {
 		return
@@ -89,7 +90,7 @@ func (a *App) showDeleteConfirm() {
 
 	a.pages.AddPage("delete-confirm", outerLayout, true, true)
 	a.tview.SetFocus(deleteBtn)
-	a.UpdateFooter("[Delete Environment]", []string{"←→: switch", "enter: confirm", "esc: cancel"})
+	a.UpdateFooter("[Delete Environment]", KeyDescriptions["delete-confirm"])
 }
 
 // showDeleteProgress displays the deletion progress with live output.
@@ -119,7 +120,7 @@ func (a *App) showDeleteProgress(envName string) {
 	a.outputWriter.SetView(a.tview, outputView)
 
 	a.pages.AddAndSwitchToPage("delete-progress", layout, true)
-	a.UpdateFooter("[Deleting]", []string{"please wait..."})
+	a.UpdateFooter("[Deleting]", KeyDescriptions["deleting"])
 
 	// Run deletion in background
 	go func() {
@@ -142,7 +143,7 @@ func (a *App) showDeleteProgress(envName string) {
 				}
 				return event
 			})
-			a.UpdateFooter("[Delete Complete]", []string{"esc/enter: back to home"})
+			a.UpdateFooter("[Delete Complete]", KeyDescriptions["delete-complete"])
 		})
 	}()
 }
@@ -154,10 +155,16 @@ func (a *App) returnFromDelete() {
 	a.pages.SwitchToPage("home")
 	a.refreshLists()
 
-	if a.docker.GetItemCount() > 0 {
-		a.tview.SetFocus(a.docker)
+	if a.actionFromDetails {
+		a.tview.SetFocus(a.details)
+		a.UpdateFooter("[Environment Details]", KeyDescriptions["details"])
 	} else {
-		a.tview.SetFocus(a.dockerEmpty)
+		if a.docker.GetItemCount() > 0 {
+			a.tview.SetFocus(a.docker)
+		} else {
+			a.tview.SetFocus(a.dockerEmpty)
+		}
+		a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
 	}
-	a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
+	a.actionFromDetails = false
 }

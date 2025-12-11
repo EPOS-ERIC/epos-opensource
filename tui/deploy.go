@@ -21,7 +21,7 @@ type deployFormData struct {
 
 // showDeployForm displays the Docker deployment form.
 func (a *App) showDeployForm() {
-	a.UpdateFooter("[New Docker Environment]", []string{"tab: next", "enter: submit", "esc: cancel"})
+	a.UpdateFooter("[New Docker Environment]", KeyDescriptions["deploy-form"])
 
 	data := &deployFormData{}
 
@@ -109,7 +109,7 @@ func (a *App) showDeployProgress(data *deployFormData) {
 	})
 
 	a.pages.AddAndSwitchToPage("deploy-progress", layout, true)
-	a.UpdateFooter("[Deploying]", []string{"esc: back (won't stop deployment)"})
+	a.UpdateFooter("[Deploying]", KeyDescriptions["deploying"])
 
 	// Run deployment in background
 	go func() {
@@ -137,7 +137,7 @@ func (a *App) showDeployProgress(data *deployFormData) {
 				}
 				return event
 			})
-			a.UpdateFooter("[Deploy Complete]", []string{"esc/enter: back to home"})
+			a.UpdateFooter("[Deploy Complete]", KeyDescriptions["deploy-complete"])
 		})
 	}()
 }

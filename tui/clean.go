@@ -10,6 +10,7 @@ import (
 
 // showCleanConfirm displays a confirmation dialog for cleaning a Docker environment.
 func (a *App) showCleanConfirm() {
+	a.actionFromDetails = a.detailsShown
 	envName := a.SelectedDockerEnv()
 	if envName == "" {
 		return
@@ -89,7 +90,7 @@ func (a *App) showCleanConfirm() {
 
 	a.pages.AddPage("clean-confirm", outerLayout, true, true)
 	a.tview.SetFocus(cleanBtn)
-	a.UpdateFooter("[Clean Environment]", []string{"←→: switch", "enter: confirm", "esc: cancel"})
+	a.UpdateFooter("[Clean Environment]", KeyDescriptions["clean-confirm"])
 }
 
 // showCleanProgress displays the cleaning progress with live output.
@@ -119,7 +120,7 @@ func (a *App) showCleanProgress(envName string) {
 	a.outputWriter.SetView(a.tview, outputView)
 
 	a.pages.AddAndSwitchToPage("clean-progress", layout, true)
-	a.UpdateFooter("[Cleaning]", []string{"please wait..."})
+	a.UpdateFooter("[Cleaning]", KeyDescriptions["cleaning"])
 
 	// Run cleaning in background
 	go func() {
@@ -142,7 +143,7 @@ func (a *App) showCleanProgress(envName string) {
 				}
 				return event
 			})
-			a.UpdateFooter("[Clean Complete]", []string{"esc/enter: back to home"})
+			a.UpdateFooter("[Clean Complete]", KeyDescriptions["clean-complete"])
 		})
 	}()
 }
@@ -154,10 +155,16 @@ func (a *App) returnFromClean() {
 	a.pages.SwitchToPage("home")
 	a.refreshLists()
 
-	if a.docker.GetItemCount() > 0 {
-		a.tview.SetFocus(a.docker)
+	if a.actionFromDetails {
+		a.tview.SetFocus(a.details)
+		a.UpdateFooter("[Environment Details]", KeyDescriptions["details"])
 	} else {
-		a.tview.SetFocus(a.dockerEmpty)
+		if a.docker.GetItemCount() > 0 {
+			a.tview.SetFocus(a.docker)
+		} else {
+			a.tview.SetFocus(a.dockerEmpty)
+		}
+		a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
 	}
-	a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
+	a.actionFromDetails = false
 }

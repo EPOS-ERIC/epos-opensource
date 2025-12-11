@@ -53,7 +53,7 @@ func (a *App) showHelp() {
 		return event
 	})
 
-	a.UpdateFooter("[Help]", []string{"↑↓: nav", "esc/q: close"})
+	a.UpdateFooter("[Help]", KeyDescriptions["help"])
 	a.pages.AddPage("help", CenterPrimitive(content, 1, 2), true, true)
 	a.tview.SetFocus(content)
 }

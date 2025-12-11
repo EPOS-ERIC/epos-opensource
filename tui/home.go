@@ -338,6 +338,16 @@ func (a *App) setupHomeInput(envsFlex *tview.Flex) {
 				a.showCleanConfirm()
 				return nil
 			}
+		case event.Rune() == 'u':
+			if a.currentEnv == a.dockerFlex && a.docker.GetItemCount() > 0 {
+				a.showUpdateForm()
+				return nil
+			}
+		case event.Rune() == 'p':
+			if a.currentEnv == a.dockerFlex && a.docker.GetItemCount() > 0 {
+				a.showPopulateForm()
+				return nil
+			}
 		case event.Rune() == '?':
 			a.showHelp()
 			return nil
@@ -445,6 +455,7 @@ func (a *App) showDetails(name, envType string) {
 	}
 
 	a.tview.SetFocus(a.details)
+	a.UpdateFooter("[Environment Details]", KeyDescriptions["details"])
 }
 
 // setupFocusHandlers configures visual feedback when components gain/lose focus.

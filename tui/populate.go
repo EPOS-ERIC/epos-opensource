@@ -10,6 +10,7 @@ import (
 
 // showPopulateForm displays a confirmation dialog for populating a Docker environment.
 func (a *App) showPopulateForm() {
+	a.actionFromDetails = a.detailsShown
 	envName := a.SelectedDockerEnv()
 	if envName == "" {
 		return
@@ -89,7 +90,7 @@ func (a *App) showPopulateForm() {
 
 	a.pages.AddPage("populate-confirm", outerLayout, true, true)
 	a.tview.SetFocus(populateBtn)
-	a.UpdateFooter("[Populate Environment]", []string{"←→: switch", "enter: confirm", "esc: cancel"})
+	a.UpdateFooter("[Populate Environment]", KeyDescriptions["populate-confirm"])
 }
 
 // showPopulateProgress displays the populate progress with live output.
@@ -119,7 +120,7 @@ func (a *App) showPopulateProgress(envName string) {
 	a.outputWriter.SetView(a.tview, outputView)
 
 	a.pages.AddAndSwitchToPage("populate-progress", layout, true)
-	a.UpdateFooter("[Populating]", []string{"please wait..."})
+	a.UpdateFooter("[Populating]", KeyDescriptions["populating"])
 
 	// Run populate in background
 	go func() {
@@ -143,7 +144,7 @@ func (a *App) showPopulateProgress(envName string) {
 				}
 				return event
 			})
-			a.UpdateFooter("[Populate Complete]", []string{"esc/enter: back to home"})
+			a.UpdateFooter("[Populate Complete]", KeyDescriptions["populate-complete"])
 		})
 	}()
 }
@@ -155,10 +156,16 @@ func (a *App) returnFromPopulate() {
 	a.pages.SwitchToPage("home")
 	a.refreshLists()
 
-	if a.docker.GetItemCount() > 0 {
-		a.tview.SetFocus(a.docker)
+	if a.actionFromDetails {
+		a.tview.SetFocus(a.details)
+		a.UpdateFooter("[Environment Details]", KeyDescriptions["details"])
 	} else {
-		a.tview.SetFocus(a.dockerEmpty)
+		if a.docker.GetItemCount() > 0 {
+			a.tview.SetFocus(a.docker)
+		} else {
+			a.tview.SetFocus(a.dockerEmpty)
+		}
+		a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
 	}
-	a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
+	a.actionFromDetails = false
 }

@@ -51,9 +51,25 @@ var DefaultTheme = &Theme{
 // KeyDescriptions maps screen names to their available keyboard shortcuts.
 // Used by updateFooter() to show context-sensitive help.
 var KeyDescriptions = map[string][]string{
-	"docker":  {"tab: switch", "↑↓: nav", "n: new", "d: del", "c: clean", "enter: details", "?: help"},
-	"k8s":     {"tab: switch", "↑↓: nav", "n: new", "d: del", "enter: details", "?: help"},
-	"details": {"esc: back", "tab: cycle", "?: help", "q: quit"},
+	"docker":            {"tab: switch", "↑↓: nav", "n: new", "d: del", "c: clean", "enter: details", "?: help"},
+	"k8s":               {"tab: switch", "↑↓: nav", "n: new", "d: del", "enter: details", "?: help"},
+	"details":           {"esc: back", "tab: cycle", "d: del", "c: clean", "u: update", "p: populate", "?: help"},
+	"delete-confirm":    {"←→: switch", "enter: confirm", "esc: cancel"},
+	"deleting":          {"please wait..."},
+	"delete-complete":   {"esc/enter: back"},
+	"clean-confirm":     {"←→: switch", "enter: confirm", "esc: cancel"},
+	"cleaning":          {"please wait..."},
+	"clean-complete":    {"esc/enter: back"},
+	"update-confirm":    {"←→: switch", "enter: confirm", "esc: cancel"},
+	"updating":          {"please wait..."},
+	"update-complete":   {"esc/enter: back"},
+	"populate-confirm":  {"←→: switch", "enter: confirm", "esc: cancel"},
+	"populating":        {"please wait..."},
+	"populate-complete": {"esc/enter: back"},
+	"deploy-form":       {"tab: next", "enter: submit", "esc: cancel"},
+	"deploying":         {"esc: back (won't stop deployment)"},
+	"deploy-complete":   {"esc/enter: back"},
+	"help":              {"↑↓: nav", "esc/q: close"},
 }
 
 // InitStyles sets up global tview styles and border characters.
@@ -118,6 +134,7 @@ func (t *Theme) Tag(color tcell.Color, attrs string) string {
 }
 
 // Convenience methods for common tags.
+
 func (t *Theme) PrimaryTag(attrs string) string     { return t.Tag(t.Primary, attrs) }
 func (t *Theme) SecondaryTag(attrs string) string   { return t.Tag(t.Secondary, attrs) }
 func (t *Theme) ErrorTag(attrs string) string       { return t.Tag(t.Error, attrs) }

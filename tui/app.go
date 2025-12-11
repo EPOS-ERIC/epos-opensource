@@ -41,6 +41,7 @@ type App struct {
 	currentEnv         tview.Primitive
 	homeFlex           *tview.Flex
 	detailsShown       bool
+	actionFromDetails  bool
 
 	// Background tasks
 	refreshTicker *time.Ticker

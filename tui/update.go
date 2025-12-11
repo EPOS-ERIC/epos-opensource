@@ -10,6 +10,7 @@ import (
 
 // showUpdateForm displays a confirmation dialog for updating a Docker environment.
 func (a *App) showUpdateForm() {
+	a.actionFromDetails = a.detailsShown
 	envName := a.SelectedDockerEnv()
 	if envName == "" {
 		return
@@ -88,7 +89,7 @@ func (a *App) showUpdateForm() {
 
 	a.pages.AddPage("update-confirm", outerLayout, true, true)
 	a.tview.SetFocus(updateBtn)
-	a.UpdateFooter("[Update Environment]", []string{"←→: switch", "enter: confirm", "esc: cancel"})
+	a.UpdateFooter("[Update Environment]", KeyDescriptions["update-confirm"])
 }
 
 // showUpdateProgress displays the update progress with live output.
@@ -118,7 +119,7 @@ func (a *App) showUpdateProgress(envName string) {
 	a.outputWriter.SetView(a.tview, outputView)
 
 	a.pages.AddAndSwitchToPage("update-progress", layout, true)
-	a.UpdateFooter("[Updating]", []string{"please wait..."})
+	a.UpdateFooter("[Updating]", KeyDescriptions["updating"])
 
 	// Run update in background
 	go func() {
@@ -141,7 +142,7 @@ func (a *App) showUpdateProgress(envName string) {
 				}
 				return event
 			})
-			a.UpdateFooter("[Update Complete]", []string{"esc/enter: back to home"})
+			a.UpdateFooter("[Update Complete]", KeyDescriptions["update-complete"])
 		})
 	}()
 }
@@ -153,10 +154,16 @@ func (a *App) returnFromUpdate() {
 	a.pages.SwitchToPage("home")
 	a.refreshLists()
 
-	if a.docker.GetItemCount() > 0 {
-		a.tview.SetFocus(a.docker)
+	if a.actionFromDetails {
+		a.tview.SetFocus(a.details)
+		a.UpdateFooter("[Environment Details]", KeyDescriptions["details"])
 	} else {
-		a.tview.SetFocus(a.dockerEmpty)
+		if a.docker.GetItemCount() > 0 {
+			a.tview.SetFocus(a.docker)
+		} else {
+			a.tview.SetFocus(a.dockerEmpty)
+		}
+		a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
 	}
-	a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
+	a.actionFromDetails = false
 }
