@@ -11,10 +11,11 @@ import (
 
 // populateState holds the state of the populate form.
 type populateState struct {
-	paths    []string
-	examples bool
-	inputs   []*tview.InputField
-	buttons  []*tview.Button
+	paths     []string
+	examples  bool
+	inputs    []*tview.InputField
+	buttons   []*tview.Button // Legacy, unused for per-row
+	browseBtn *tview.Button
 }
 
 // showPopulateForm displays the dynamic populate form.
@@ -30,18 +31,13 @@ func (a *App) showPopulateForm() {
 	// Initial state with one empty path
 	state := &populateState{
 		paths:    []string{""},
-		examples: true,
+		examples: false,
 	}
 
-	// Container for the dynamic form
+	// Container for the dynamic form with border and styling
 	formFlex := tview.NewFlex().SetDirection(tview.FlexRow)
 
-	// Wrapper to center and style
-	container := tview.NewFlex().
-		SetDirection(tview.FlexRow).
-		AddItem(formFlex, 0, 1, true)
-
-	container.SetBorder(true).
+	formFlex.SetBorder(true).
 		SetBorderColor(DefaultTheme.Primary).
 		SetTitle(fmt.Sprintf(" [::b]Populate: %s ", envName)).
 		SetTitleColor(DefaultTheme.Secondary)
@@ -60,50 +56,32 @@ func (a *App) showPopulateForm() {
 			input := tview.NewInputField().
 				SetLabel(fmt.Sprintf("Path %d ", i+1)).
 				SetText(path).
-				SetFieldWidth(40).
+				SetFieldWidth(0).
 				SetChangedFunc(func(text string) {
 					if idx < len(state.paths) {
 						state.paths[idx] = text
 					}
 				})
 			input.SetFieldBackgroundColor(DefaultTheme.Surface).
-				SetFieldTextColor(DefaultTheme.Secondary).
-				SetLabelColor(DefaultTheme.Secondary)
+				SetFieldTextColor(DefaultTheme.Secondary)
+			if i == 0 {
+				input.SetLabelColor(DefaultTheme.Secondary).SetBorderPadding(1, 0, 1, 1)
+			} else {
+				input.SetLabelColor(DefaultTheme.Secondary).SetBorderPadding(0, 0, 1, 1)
+			}
 
-			browseBtn := tview.NewButton("Browse").SetSelectedFunc(func() {
-				a.showFilePicker(state.paths[idx], func(selectedPaths []string) {
-					if len(selectedPaths) == 0 {
-						return
-					}
-					// Update current input with first path
-					state.paths[idx] = selectedPaths[0]
-
-					// Add remaining paths as new rows
-					if len(selectedPaths) > 1 {
-						state.paths = append(state.paths, selectedPaths[1:]...)
-					}
-
-					rebuildUI()
-
-					// Restore focus to the input of the row we just modified
-					if idx < len(state.inputs) {
-						a.tview.SetFocus(state.inputs[idx])
-					}
-				})
-			})
-			browseBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary))
-			browseBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
-
+			// Row with just input
 			row := tview.NewFlex().SetDirection(tview.FlexColumn).
-				AddItem(input, 0, 1, true).
-				AddItem(tview.NewBox(), 1, 0, false).
-				AddItem(browseBtn, 10, 0, false)
+				AddItem(input, 0, 1, true)
 
-			formFlex.AddItem(row, 1, 0, true).
+			size := 1
+			if i == 0 {
+				size = 2
+			}
+			formFlex.AddItem(row, size, 0, true).
 				AddItem(tview.NewBox(), 1, 0, false)
 
 			state.inputs = append(state.inputs, input)
-			state.buttons = append(state.buttons, browseBtn) // Only browse buttons here
 		}
 
 		// 2. Add Path Button
@@ -116,6 +94,36 @@ func (a *App) showPopulateForm() {
 			}
 		})
 		addPathBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Surface).Foreground(DefaultTheme.Secondary))
+		addPathBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
+
+		// 3. Browse Files Button
+		browseBtn := tview.NewButton("Browse Files").SetSelectedFunc(func() {
+			// Gather non-empty paths to pre-select, or allow empty path list
+			var currentPaths []string
+			for _, p := range state.paths {
+				if strings.TrimSpace(p) != "" {
+					currentPaths = append(currentPaths, p)
+				}
+			}
+
+			a.showFilePicker(currentPaths, func(selectedPaths []string) {
+				// We replace state.paths with selection.
+				// If selection is empty, maybe keep one empty row?
+				state.paths = selectedPaths
+				if len(state.paths) == 0 {
+					state.paths = []string{""}
+				}
+				rebuildUI()
+
+				// Restore focus to the browse button
+				if state.browseBtn != nil {
+					a.tview.SetFocus(state.browseBtn)
+				}
+			})
+		})
+		browseBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Surface).Foreground(DefaultTheme.Secondary))
+		browseBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
+		state.browseBtn = browseBtn
 
 		// 3. Examples Checkbox
 		checkbox := tview.NewCheckbox().
@@ -126,7 +134,8 @@ func (a *App) showPopulateForm() {
 			})
 		checkbox.SetLabelColor(DefaultTheme.Secondary).
 			SetFieldBackgroundColor(DefaultTheme.Surface).
-			SetFieldTextColor(DefaultTheme.Secondary)
+			SetFieldTextColor(DefaultTheme.Secondary).
+			SetBorderPadding(0, 0, 1, 1)
 
 		// 4. Action Buttons
 		populateBtn := tview.NewButton("Populate").SetSelectedFunc(func() {
@@ -141,16 +150,22 @@ func (a *App) showPopulateForm() {
 		cancelBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary))
 		cancelBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
 
-		// Layout for controls
 		controls := tview.NewFlex().SetDirection(tview.FlexRow).
-			AddItem(addPathBtn, 1, 0, false).
+			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
+				AddItem(tview.NewBox(), 0, 1, false).
+				AddItem(browseBtn, 16, 1, false).
+				AddItem(tview.NewBox(), 0, 1, false).
+				AddItem(addPathBtn, 12, 1, false).
+				AddItem(tview.NewBox(), 0, 1, false), 1, 0, false).
 			AddItem(tview.NewBox(), 1, 0, false).
 			AddItem(checkbox, 1, 0, false).
-			AddItem(tview.NewBox(), 1, 0, false).
+			AddItem(tview.NewBox(), 0, 1, false).
 			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
-				AddItem(populateBtn, 0, 1, false).
-				AddItem(tview.NewBox(), 1, 0, false).
-				AddItem(cancelBtn, 0, 1, false), 1, 0, false)
+				AddItem(tview.NewBox(), 0, 1, false).
+				AddItem(populateBtn, 12, 1, false).
+				AddItem(tview.NewBox(), 2, 0, false).
+				AddItem(cancelBtn, 10, 1, false).
+				AddItem(tview.NewBox(), 0, 1, false), 1, 0, false)
 
 		formFlex.AddItem(controls, 0, 1, false)
 
@@ -158,13 +173,13 @@ func (a *App) showPopulateForm() {
 		var allFocusable []tview.Primitive
 		for i := range state.inputs {
 			allFocusable = append(allFocusable, state.inputs[i])
-			if i < len(state.buttons) { // state.buttons now only contains browse buttons
+			if i < len(state.buttons) {
 				allFocusable = append(allFocusable, state.buttons[i])
 			}
 		}
-		allFocusable = append(allFocusable, addPathBtn, checkbox, populateBtn, cancelBtn)
+		allFocusable = append(allFocusable, browseBtn, addPathBtn, checkbox, populateBtn, cancelBtn)
 
-		container.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		formFlex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 			if event.Key() == tcell.KeyEsc {
 				a.returnFromPopulate()
 				return nil
@@ -206,18 +221,7 @@ func (a *App) showPopulateForm() {
 
 	rebuildUI()
 
-	// Center the layout manually (fixed size 60x20)
-	innerFlex := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(nil, 0, 1, false).
-		AddItem(container, 20, 1, true).
-		AddItem(nil, 0, 1, false)
-
-	outerLayout := tview.NewFlex().
-		AddItem(nil, 0, 1, false).
-		AddItem(innerFlex, 60, 1, true).
-		AddItem(nil, 0, 1, false)
-
-	a.pages.AddPage("populate-confirm", outerLayout, true, true)
+	a.pages.AddPage("populate-confirm", CenterPrimitive(formFlex, 1, 2), true, true)
 	if len(state.inputs) > 0 {
 		a.tview.SetFocus(state.inputs[0])
 	}
@@ -231,12 +235,6 @@ func (a *App) handlePopulate(envName string, state *populateState) {
 		if trimmed := strings.TrimSpace(p); trimmed != "" {
 			validPaths = append(validPaths, trimmed)
 		}
-	}
-
-	// Validation: At least one path or examples must be selected
-	if len(validPaths) == 0 && !state.examples {
-		a.ShowError("You must provide at least one path OR enable examples.")
-		return
 	}
 
 	a.pages.RemovePage("populate-confirm")
@@ -265,7 +263,6 @@ func (a *App) showPopulateProgress(envName string, paths []string, examples bool
 		AddItem(statusBar, 1, 0, false)
 	layout.SetBackgroundColor(DefaultTheme.Background)
 
-	// Connect output writer
 	a.outputWriter.ClearBuffer()
 	a.outputWriter.SetView(a.tview, outputView)
 
@@ -278,7 +275,7 @@ func (a *App) showPopulateProgress(envName string, paths []string, examples bool
 			Name:             envName,
 			TTLDirs:          paths,
 			PopulateExamples: examples,
-			Parallel:         1, // Default to 1 as per TUI simplicity
+			Parallel:         1,
 		})
 
 		a.tview.QueueUpdateDraw(func() {

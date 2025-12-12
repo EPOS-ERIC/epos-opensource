@@ -19,7 +19,7 @@ type FilePicker struct {
 }
 
 // newFilePicker creates a new file picker.
-func newFilePicker(initialPath string) *FilePicker {
+func newFilePicker(initialPath string, selectedPaths []string) *FilePicker {
 	rootPath := "/"
 
 	rootNode := tview.NewTreeNode(rootPath).
@@ -31,6 +31,11 @@ func newFilePicker(initialPath string) *FilePicker {
 		root:   rootNode,
 		marked: make(map[string]bool),
 	}
+	picker.view.SetBorderPadding(0, 0, 3, 3)
+
+	for _, p := range selectedPaths {
+		picker.marked[p] = true
+	}
 
 	// Helper to format text
 	updateText := func(n *tview.TreeNode, path string) {
@@ -40,9 +45,9 @@ func newFilePicker(initialPath string) *FilePicker {
 		}
 		pColor := DefaultTheme.Hex(DefaultTheme.Primary)
 		sColor := DefaultTheme.Hex(DefaultTheme.Success)
-		box := fmt.Sprintf("[%s][ ][-]", pColor)
+		box := fmt.Sprintf("[%s]%s[-]", pColor, tview.Escape("[ ]"))
 		if picker.marked[path] {
-			box = fmt.Sprintf("[%s][x][-]", sColor)
+			box = fmt.Sprintf("[%s]%s[-]", sColor, tview.Escape("[✓]"))
 		}
 		n.SetText(box + " " + name)
 	}
@@ -51,32 +56,61 @@ func newFilePicker(initialPath string) *FilePicker {
 
 	picker.addNodes(rootNode, rootPath)
 
+	// Logic to expand directories to a specific path
+	expandToPath := func(path string) {
+		pathElements := strings.Split(path, string(os.PathSeparator))
+		currentNode := rootNode
+
+		for _, elem := range pathElements {
+			if elem == "" {
+				continue
+			}
+
+			// Find child matching this element (ignoring prefix in comparison)
+			var foundNode *tview.TreeNode
+			for _, child := range currentNode.GetChildren() {
+				ref := child.GetReference()
+				if ref != nil && filepath.Base(ref.(string)) == elem {
+					foundNode = child
+					break
+				}
+			}
+
+			if foundNode != nil {
+				fullPath := foundNode.GetReference().(string)
+				picker.addNodes(foundNode, fullPath)
+				foundNode.SetExpanded(true)
+				currentNode = foundNode
+			} else {
+				break
+			}
+		}
+	}
+
 	// Auto-expand to initialPath
+	expandToPath(initialPath)
+
+	// Auto-expand to all selected paths to ensure they are visible
+	for _, p := range selectedPaths {
+		expandToPath(p)
+	}
+
+	// Set selection to initial path if simpler, or first selected?
+	// Let's stick to initialPath logic for finding current node context
+	// Re-traverse for initialPath to set CurrentNode
+	// (or just capture the last node from expandToPath if we cared, but re-traversal is cheap for deep paths)
 	pathElements := strings.Split(initialPath, string(os.PathSeparator))
 	currentNode := rootNode
-
 	for _, elem := range pathElements {
 		if elem == "" {
 			continue
 		}
-
-		// Find child matching this element (ignoring prefix in comparison)
-		var foundNode *tview.TreeNode
 		for _, child := range currentNode.GetChildren() {
 			ref := child.GetReference()
 			if ref != nil && filepath.Base(ref.(string)) == elem {
-				foundNode = child
+				currentNode = child
 				break
 			}
-		}
-
-		if foundNode != nil {
-			fullPath := foundNode.GetReference().(string)
-			picker.addNodes(foundNode, fullPath)
-			foundNode.SetExpanded(true)
-			currentNode = foundNode
-		} else {
-			break
 		}
 	}
 	picker.view.SetCurrentNode(currentNode)
@@ -131,9 +165,9 @@ func (f *FilePicker) addNodes(target *tview.TreeNode, path string) {
 		name := file.Name()
 		pColor := DefaultTheme.Hex(DefaultTheme.Primary)
 		sColor := DefaultTheme.Hex(DefaultTheme.Success)
-		box := fmt.Sprintf("[%s][ ][-]", pColor)
+		box := fmt.Sprintf("[%s]%s[-]", pColor, tview.Escape("[ ]"))
 		if f.marked[fullPath] {
-			box = fmt.Sprintf("[%s][x][-]", sColor)
+			box = fmt.Sprintf("[%s]%s[-]", sColor, tview.Escape("[✓]"))
 		}
 		node.SetText(box + " " + name)
 
@@ -150,7 +184,20 @@ func (f *FilePicker) addNodes(target *tview.TreeNode, path string) {
 }
 
 // showFilePicker displays the file picker modal.
-func (a *App) showFilePicker(startPath string, onSelect func([]string)) {
+func (a *App) showFilePicker(initialPaths []string, onSelect func([]string)) {
+	startPath := ""
+	// Use directory of first path if available, or CWD
+	if len(initialPaths) > 0 && initialPaths[0] != "" {
+		info, err := os.Stat(initialPaths[0])
+		if err == nil {
+			if info.IsDir() {
+				startPath = initialPaths[0]
+			} else {
+				startPath = filepath.Dir(initialPaths[0])
+			}
+		}
+	}
+
 	if startPath == "" {
 		cwd, err := os.Getwd()
 		if err == nil {
@@ -164,7 +211,7 @@ func (a *App) showFilePicker(startPath string, onSelect func([]string)) {
 		absPath = "/"
 	}
 
-	picker := newFilePicker(absPath)
+	picker := newFilePicker(absPath, initialPaths)
 
 	// Update footer for file picker
 	a.UpdateFooter("[File Picker]", KeyDescriptions["file-picker"])
@@ -275,8 +322,7 @@ func (a *App) showFilePicker(startPath string, onSelect func([]string)) {
 		SetBorderColor(DefaultTheme.Primary).
 		SetTitle(" [::b]Select Files ").
 		SetTitleColor(DefaultTheme.Secondary).
-		SetBorderColor(DefaultTheme.Primary).
-		SetBorderPadding(0, 0, 1, 1)
+		SetBorderColor(DefaultTheme.Primary)
 
 	var lastSearch string
 

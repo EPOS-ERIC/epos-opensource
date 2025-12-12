@@ -26,11 +26,11 @@ func (a *App) showDeployForm() {
 	data := &deployFormData{}
 
 	form := tview.NewForm().
-		AddInputField("Name *", "", 40, nil, func(text string) { data.name = text }).
-		AddInputField("Env File", "", 40, nil, func(text string) { data.envFile = text }).
-		AddInputField("Compose File", "", 40, nil, func(text string) { data.composeFile = text }).
-		AddInputField("Path", "", 40, nil, func(text string) { data.path = text }).
-		AddInputField("Host", "", 40, nil, func(text string) { data.host = text }).
+		AddInputField("Name *", "", 0, nil, func(text string) { data.name = text }).
+		AddInputField("Env File", "", 0, nil, func(text string) { data.envFile = text }).
+		AddInputField("Compose File", "", 0, nil, func(text string) { data.composeFile = text }).
+		AddInputField("Path", "", 0, nil, func(text string) { data.path = text }).
+		AddInputField("Host", "", 0, nil, func(text string) { data.host = text }).
 		AddCheckbox("Update Images", false, func(checked bool) { data.pullImages = checked }).
 		AddButton("Deploy", func() { a.handleDeploy(data) }).
 		AddButton("Cancel", func() { a.returnFromDeploy() })
@@ -61,7 +61,7 @@ func (a *App) showDeployForm() {
 		SetTitle(" [::b]New Docker Environment ").
 		SetTitleColor(DefaultTheme.Secondary)
 
-	a.pages.AddPage("deploy", CenterPrimitive(content, 1, 3), true, true)
+	a.pages.AddPage("deploy", CenterPrimitive(content, 2, 3), true, true)
 	a.tview.SetFocus(form)
 }
 

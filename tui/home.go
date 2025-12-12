@@ -136,8 +136,8 @@ func (a *App) createHome() *tview.Flex {
 	a.details.AddItem(a.detailsEmpty, 0, 1, true)
 
 	home := tview.NewFlex().
-		AddItem(envsFlex, 0, 1, true).
-		AddItem(a.details, 0, 4, false)
+		AddItem(envsFlex, 0, 3, true).
+		AddItem(a.details, 0, 7, false)
 
 	a.homeFlex = home
 	a.setupHomeInput(envsFlex)
@@ -547,7 +547,7 @@ func (a *App) showDetails(name, envType string) {
 	}
 
 	a.tview.SetFocus(a.details)
-	a.UpdateFooter("[Environment Details]", KeyDescriptions["details"])
+	a.UpdateFooter("[Environment Details]", KeyDescriptions["details-"+envType])
 }
 
 // setupFocusHandlers configures visual feedback when components gain/lose focus.
@@ -595,7 +595,11 @@ func (a *App) setupFocusHandlers() {
 	// Details
 	a.details.SetFocusFunc(func() {
 		updateBoxStyle(a.details, true)
-		a.UpdateFooter("[Environment Details]", KeyDescriptions["details"])
+		key := "details-k8s"
+		if a.currentEnv == a.dockerFlex {
+			key = "details-docker"
+		}
+		a.UpdateFooter("[Environment Details]", KeyDescriptions[key])
 	})
 	a.details.SetBlurFunc(func() {
 		if a.detailsShown {

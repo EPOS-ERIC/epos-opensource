@@ -51,9 +51,10 @@ var DefaultTheme = &Theme{
 // KeyDescriptions maps screen names to their available keyboard shortcuts.
 // Used by updateFooter() to show context-sensitive help.
 var KeyDescriptions = map[string][]string{
-	"docker":            {"tab: switch", "↑↓: nav", "n: new", "d: del", "c: clean", "enter: details", "?: help"},
-	"k8s":               {"tab: switch", "↑↓: nav", "n: new", "d: del", "enter: details", "?: help"},
-	"details":           {"esc: back", "tab: cycle", "d: del", "c: clean", "u: update", "p: populate", "?: help"},
+	"docker":            {"tab: switch", "↑↓: nav", "n: new", "d: del", "c: clean", "u: update", "p: populate", "enter: details", "?: help", "q: quit"},
+	"k8s":               {"tab: switch", "↑↓: nav", "enter: details", "?: help", "q: quit"},
+	"details-docker":    {"esc: back", "tab: cycle", "d: del", "c: clean", "u: update", "p: populate", "?: help"},
+	"details-k8s":       {"esc: back", "tab: cycle", "?: help"},
 	"delete-confirm":    {"←→: switch", "enter: confirm", "esc: cancel"},
 	"deleting":          {"please wait..."},
 	"delete-complete":   {"esc/enter: back"},
@@ -66,9 +67,9 @@ var KeyDescriptions = map[string][]string{
 	"populate-confirm":  {"←→: switch", "enter: confirm", "esc: cancel"},
 	"populating":        {"please wait..."},
 	"populate-complete": {"esc/enter: back"},
-	"populate-form":     {"tab: next", "enter: submit", "esc: cancel"},
-	"file-picker":       {"↑↓←→: nav", "space: mark", "ctrl+s: submit", "esc: cancel"},
-	"deploy-form":       {"tab: next", "enter: submit", "esc: cancel"},
+	"populate-form":     {"tab: next", "S-tab: prev", "enter: submit", "esc: cancel"},
+	"file-picker":       {"↑↓←→: nav", "/: search", "space: mark", "enter: submit", "esc: cancel"},
+	"deploy-form":       {"tab: next", "S-tab: prev", "enter: submit", "esc: cancel"},
 	"deploying":         {"esc: back (won't stop deployment)"},
 	"deploy-complete":   {"esc/enter: back"},
 	"help":              {"↑↓: nav", "esc/q: close"},
