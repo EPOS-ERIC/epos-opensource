@@ -298,8 +298,6 @@ func (a *App) SelectedK8sEnv() string {
 }
 
 // setupHomeInput configures keyboard handlers for the home screen.
-//
-//nolint:gocyclo
 func (a *App) setupHomeInput(envsFlex *tview.Flex) {
 	handler := func(event *tcell.EventKey) *tcell.EventKey {
 		switch {

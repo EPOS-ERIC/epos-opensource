@@ -66,6 +66,8 @@ var KeyDescriptions = map[string][]string{
 	"populate-confirm":  {"←→: switch", "enter: confirm", "esc: cancel"},
 	"populating":        {"please wait..."},
 	"populate-complete": {"esc/enter: back"},
+	"populate-form":     {"tab: next", "enter: submit", "esc: cancel"},
+	"file-picker":       {"↑↓←→: nav", "space: mark", "ctrl+s: submit", "esc: cancel"},
 	"deploy-form":       {"tab: next", "enter: submit", "esc: cancel"},
 	"deploying":         {"esc: back (won't stop deployment)"},
 	"deploy-complete":   {"esc/enter: back"},
@@ -78,14 +80,10 @@ func InitStyles() {
 	tview.Styles.PrimitiveBackgroundColor = DefaultTheme.Background
 	tview.Borders.HorizontalFocus = tview.Borders.Horizontal
 	tview.Borders.VerticalFocus = tview.Borders.Vertical
-	tview.Borders.TopLeft = '╭'
-	tview.Borders.TopRight = '╮'
-	tview.Borders.BottomLeft = '╰'
-	tview.Borders.BottomRight = '╯'
-	tview.Borders.TopLeftFocus = '╭'
-	tview.Borders.TopRightFocus = '╮'
-	tview.Borders.BottomLeftFocus = '╰'
-	tview.Borders.BottomRightFocus = '╯'
+	tview.Borders.TopLeftFocus = tview.Borders.TopLeft
+	tview.Borders.TopRightFocus = tview.Borders.TopRight
+	tview.Borders.BottomLeftFocus = tview.Borders.BottomLeft
+	tview.Borders.BottomRightFocus = tview.Borders.BottomRight
 }
 
 // CreateGradient creates a gradient text string from start to end color.
