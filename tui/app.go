@@ -31,6 +31,7 @@ type App struct {
 	k8sEnvs        []string // Environment names for k8s list (lookup by index)
 	details        *tview.Flex
 	detailsTable   *tview.Table
+	nameDirTable   *tview.Table
 	buttonsFlex    *tview.Flex
 	deleteButton   *tview.Button
 	cleanButton    *tview.Button
