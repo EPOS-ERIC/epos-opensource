@@ -4,6 +4,7 @@ go 1.25.5
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0
+	github.com/creack/pty v1.1.24
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-containerregistry v0.20.6

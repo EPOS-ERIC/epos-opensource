@@ -12,7 +12,7 @@ var initConfigCmd = &cobra.Command{
 	Use:   "init-config",
 	Short: "Initialize the default configuration file",
 	Long: `Creates the default configuration file at the standard location if it doesn't exist.
-This allows users to customize settings like keymaps.`,
+This allows users to customize settings like open commands for URLs, directories, and files.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := config.DefaultConfig()
 		err := config.SaveConfig(cfg)

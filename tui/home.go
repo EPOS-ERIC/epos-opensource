@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"log"
 	"net/url"
-	"os/exec"
+	"os"
 	"strings"
 
+	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -135,35 +136,6 @@ func (a *App) clearDetailsPanel() {
 		updateBoxStyle(a.details, false)
 		a.nameDirGrid.Clear()
 		a.nameDirButtons = nil
-	}
-}
-
-// copyToClipboard copies the given text to the clipboard.
-func (a *App) copyToClipboard(text string) {
-	text = strings.Trim(text, " ")
-	cmd := exec.Command("pbcopy")
-	cmd.Stdin = strings.NewReader(text)
-	err := cmd.Run()
-	if err != nil {
-		a.ShowError("Failed to copy to clipboard")
-	}
-}
-
-// openInBrowser opens the given URL in the default browser.
-func (a *App) openInBrowser(url string) {
-	url = strings.Trim(url, " ")
-	if err := exec.Command("open", url).Run(); err != nil {
-		a.ShowError("Failed to open in browser")
-		log.Printf("error opening in browser: %v", err)
-	}
-}
-
-// openDirectory opens the given directory path using the default file manager.
-func (a *App) openDirectory(dir string) {
-	dir = strings.Trim(dir, " ")
-	if err := exec.Command("open", dir).Run(); err != nil {
-		a.ShowError("Failed to open directory")
-		log.Printf("error opening directory: %v", err)
 	}
 }
 
@@ -484,7 +456,11 @@ func (a *App) createGridRows(grid *tview.Grid, rows []DetailRow, buttons *[]*tvi
 		copyBtn := tview.NewButton("Copy").
 			SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary)).
 			SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
-		copyBtn.SetSelectedFunc(func() { a.copyToClipboard(row.Value) })
+		copyBtn.SetSelectedFunc(func() {
+			if err := common.CopyToClipboard(row.Value); err != nil {
+				a.ShowError("Failed to copy to clipboard")
+			}
+		})
 
 		grid.AddItem(labelTV, rowIndex+i, 0, 1, 1, 0, 0, false)
 		grid.AddItem(valueTV, rowIndex+i, 1, 1, 1, 0, 0, false)
@@ -496,11 +472,29 @@ func (a *App) createGridRows(grid *tview.Grid, rows []DetailRow, buttons *[]*tvi
 		if row.IncludeOpen {
 			openBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary)).
 				SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
-			if strings.HasPrefix(row.Value, "http://") || strings.HasPrefix(row.Value, "https://") {
-				openBtn.SetSelectedFunc(func() { a.openInBrowser(row.Value) })
-			} else {
-				openBtn.SetSelectedFunc(func() { a.openDirectory(row.Value) })
-			}
+			openBtn.SetSelectedFunc(func() {
+				var cmd string
+				if strings.HasPrefix(row.Value, "http://") || strings.HasPrefix(row.Value, "https://") {
+					cmd = a.config.TUI.OpenUrlCommand
+				} else {
+					if info, err := os.Stat(row.Value); err == nil && info.IsDir() {
+						cmd = a.config.TUI.OpenDirectoryCommand
+					} else {
+						cmd = a.config.TUI.OpenFileCommand
+					}
+				}
+				if cmd != "" {
+					a.tview.Suspend(func() {
+						if err := common.OpenWithCommand(cmd, row.Value); err != nil {
+							log.Printf("Failed to open: %v", err)
+						}
+					})
+				} else {
+					if err := common.OpenWithCommand(cmd, row.Value); err != nil {
+						a.ShowError("Failed to open")
+					}
+				}
+			})
 			*buttons = append(*buttons, openBtn)
 		} else {
 			openBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Surface).Foreground(DefaultTheme.OnSurface))
@@ -549,9 +543,9 @@ func (a *App) showDetails(name, envType string) {
 			}
 			a.createGridRows(a.nameDirGrid, nameDirRows, &a.nameDirButtons, "Basic Information")
 			rows := []DetailRow{
-				{Label: "API URL", Value: apiURL, IncludeOpen: true},
-				{Label: "GUI URL", Value: d.GuiUrl, IncludeOpen: true},
-				{Label: "Backoffice URL", Value: backofficeURL, IncludeOpen: true},
+				{Label: "Platform", Value: d.GuiUrl, IncludeOpen: true},
+				{Label: "Backoffice", Value: backofficeURL, IncludeOpen: true},
+				{Label: "API", Value: apiURL, IncludeOpen: true},
 			}
 			a.createDetailsRows(rows)
 		} else {
@@ -570,9 +564,9 @@ func (a *App) showDetails(name, envType string) {
 			}
 			a.createGridRows(a.nameDirGrid, nameDirRows, &a.nameDirButtons, "Basic Information")
 			rows := []DetailRow{
-				{Label: "API URL", Value: k.ApiUrl, IncludeOpen: true},
-				{Label: "GUI URL", Value: k.GuiUrl, IncludeOpen: true},
-				{Label: "Backoffice URL", Value: k.BackofficeUrl, IncludeOpen: true},
+				{Label: "Platform", Value: k.GuiUrl, IncludeOpen: true},
+				{Label: "Backoffice", Value: k.BackofficeUrl, IncludeOpen: true},
+				{Label: "API", Value: k.ApiUrl, IncludeOpen: true},
 			}
 			a.createDetailsRows(rows)
 		} else {

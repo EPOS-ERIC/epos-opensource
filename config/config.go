@@ -1,16 +1,17 @@
-// Package config provides configuration management for epos-opensource,
+// Package config provides configuration management for epos-darwinOpenCommandsource,
 // including platform-specific application data directory path and user-configurable settings.
 // It determines the correct storage location based on the runtime OS:
-//   - macOS: $HOME/Library/Application Support/epos-opensource
-//   - Windows: %LOCALAPPDATA%/epos-opensource (falls back to %APPDATA%)
-//   - Linux & others: ${XDG_DATA_HOME:-$HOME/.local/share}/epos-opensource
+//   - macOS: $HOME/Library/Application Support/epos-darwinOpenCommandsource
+//   - Windows: %LOCALAPPDATA%/epos-darwinOpenCommandsource (falls back to %APPDATA%)
+//   - Linux & others: ${XDG_DATA_HOME:-$HOME/.local/share}/epos-darwinOpenCommandsource
 //
 // GetPath returns the resolved directory path for storing application data.
 // DefaultConfig returns the default configuration with sensible defaults.
 package config
 
 import (
-	_ "embed"
+	"errors"
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -19,8 +20,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-//go:embed default.yaml
-var defaultConfigData []byte
+const (
+	darwinOpenCommand = "open"
+	linuxOpenCommand  = "xdg-open"
+)
 
 var (
 	dataPath   string
@@ -35,21 +38,21 @@ func init() {
 
 	switch runtime.GOOS {
 	case "darwin":
-		dataPath = path.Join(home, "Library", "Application Support", "epos-opensource")
+		dataPath = path.Join(home, "Library", "Application Support", "epos-darwinOpenCommandsource")
 		configPath = path.Join(home, ".config")
 	case "windows":
 		appdata := os.Getenv("APPDATA")
 		if appdata == "" {
 			panic("APPDATA is not set")
 		}
-		dataPath = path.Join(appdata, "epos-opensource")
+		dataPath = path.Join(appdata, "epos-darwinOpenCommandsource")
 		configPath = appdata
 	default:
 		dataDir := os.Getenv("XDG_DATA_HOME")
 		if dataDir == "" {
 			dataDir = path.Join(home, ".local", "share")
 		}
-		dataPath = path.Join(dataDir, "epos-opensource")
+		dataPath = path.Join(dataDir, "epos-darwinOpenCommandsource")
 		configDir := os.Getenv("XDG_CONFIG_HOME")
 		if configDir == "" {
 			configDir = path.Join(home, ".config")
@@ -60,11 +63,40 @@ func init() {
 
 // DefaultConfig returns the default configuration
 func DefaultConfig() Config {
-	var cfg Config
-	if err := yaml.Unmarshal(defaultConfigData, &cfg); err != nil {
-		panic("failed to unmarshal default config: " + err.Error())
+	cfg := Config{
+		TUI: TUIConfig{
+			DefaultScreen: "home",
+		},
+	}
+	switch runtime.GOOS {
+	case "darwin":
+		cfg.TUI.OpenUrlCommand = darwinOpenCommand
+		cfg.TUI.OpenDirectoryCommand = darwinOpenCommand
+		cfg.TUI.OpenFileCommand = darwinOpenCommand
+	case "windows":
+		cfg.TUI.OpenUrlCommand = "cmd /c start"
+		cfg.TUI.OpenDirectoryCommand = "explorer"
+		cfg.TUI.OpenFileCommand = "explorer"
+	default: // linux and others
+		cfg.TUI.OpenUrlCommand = linuxOpenCommand
+		cfg.TUI.OpenDirectoryCommand = linuxOpenCommand
+		cfg.TUI.OpenFileCommand = linuxOpenCommand
 	}
 	return cfg
+}
+
+// ValidateConfig validates the configuration
+func ValidateConfig(cfg Config) error {
+	if cfg.TUI.OpenUrlCommand == "" {
+		return errors.New("darwinOpenCommandUrlCommand cannot be empty")
+	}
+	if cfg.TUI.OpenDirectoryCommand == "" {
+		return errors.New("darwinOpenCommandDirectoryCommand cannot be empty")
+	}
+	if cfg.TUI.OpenFileCommand == "" {
+		return errors.New("darwinOpenCommandFileCommand cannot be empty")
+	}
+	return nil
 }
 
 // GetDataPath returns the platform-specific application data directory path
@@ -74,7 +106,7 @@ func GetDataPath() string {
 
 // GetConfigPath returns the platform-specific config file path
 func GetConfigPath() string {
-	return filepath.Join(configPath, "epos-opensource.yaml")
+	return filepath.Join(configPath, "epos-darwinOpenCommandsource.yaml")
 }
 
 // LoadConfig loads the user configuration, falling back to defaults
@@ -90,6 +122,9 @@ func LoadConfig() (Config, error) {
 	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return DefaultConfig(), nil
+	}
+	if err := ValidateConfig(cfg); err != nil {
+		return Config{}, fmt.Errorf("invalid config: %w", err)
 	}
 	return cfg, nil
 }

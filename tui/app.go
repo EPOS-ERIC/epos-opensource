@@ -2,12 +2,14 @@ package tui
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/epos-eu/epos-opensource/command"
 	"github.com/epos-eu/epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/config"
 	"github.com/epos-eu/epos-opensource/display"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -16,9 +18,10 @@ import (
 // App holds the main TUI application state.
 // All screens access shared state through this struct.
 type App struct {
-	tview *tview.Application
-	pages *tview.Pages
-	frame *tview.Frame
+	tview  *tview.Application
+	pages  *tview.Pages
+	frame  *tview.Frame
+	config config.Config
 
 	// Home screen components
 	docker         *tview.List
@@ -64,6 +67,14 @@ func Run() error {
 
 // init sets up the application state and UI components.
 func (a *App) init() {
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		// Log error and use defaults
+		log.Printf("config error: %v, using defaults", err)
+		cfg = config.DefaultConfig()
+	}
+	a.config = cfg
+
 	a.tview = tview.NewApplication()
 	a.tview.EnableMouse(true)
 	a.tview.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
