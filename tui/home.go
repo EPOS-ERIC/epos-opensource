@@ -304,87 +304,12 @@ func (a *App) SelectedK8sEnv() string {
 
 // setupHomeInput configures keyboard handlers for the home screen.
 func (a *App) setupHomeInput(envsFlex *tview.Flex) {
-	handler := func(event *tcell.EventKey) *tcell.EventKey {
-		switch {
-		case event.Key() == tcell.KeyEsc:
-			if a.details.HasFocus() {
-				a.clearDetailsPanel()
-				a.tview.SetFocus(a.currentEnv)
-			}
-			return nil
-		case event.Key() == tcell.KeyTab:
-			if a.details.HasFocus() {
-				a.cycleDetailsFocus()
-				return nil
-			}
-			a.switchEnvFocus()
-			return nil
-		case event.Key() == tcell.KeyBacktab:
-			if a.details.HasFocus() {
-				a.cycleDetailsFocusBackward()
-				return nil
-			}
-			a.switchEnvFocus()
-			return nil
-		case event.Key() == tcell.KeyEnter:
-			if a.details.HasFocus() {
-				return event // Let the table handle the Enter key via SetSelectedFunc
-			}
-			if a.currentEnv == a.dockerFlex && a.docker.GetItemCount() > 0 {
-				name := a.SelectedDockerEnv()
-				if name != "" {
-					a.showDetails(name, "docker")
-				}
-				return nil
-			}
-			if a.currentEnv == a.k8sFlex && a.k8s.GetItemCount() > 0 {
-				name := a.SelectedK8sEnv()
-				if name != "" {
-					a.showDetails(name, "k8s")
-				}
-				return nil
-			}
-		case event.Rune() == 'n':
-			if a.currentEnv == a.dockerFlex {
-				a.showDeployForm()
-				return nil
-			}
-		case event.Rune() == 'd':
-			if a.currentEnv == a.dockerFlex && a.docker.GetItemCount() > 0 {
-				a.showDeleteConfirm()
-				return nil
-			}
-		case event.Rune() == 'c':
-			if a.currentEnv == a.dockerFlex && a.docker.GetItemCount() > 0 {
-				a.showCleanConfirm()
-				return nil
-			}
-		case event.Rune() == 'u':
-			if a.currentEnv == a.dockerFlex && a.docker.GetItemCount() > 0 {
-				a.showUpdateForm()
-				return nil
-			}
-		case event.Rune() == 'p':
-			if a.currentEnv == a.dockerFlex && a.docker.GetItemCount() > 0 {
-				a.showPopulateForm()
-				return nil
-			}
-		case event.Rune() == '?':
-			a.showHelp()
-			return nil
-		case event.Rune() == 'q':
-			a.Quit()
-			return nil
-		}
-		return event
-	}
-
-	envsFlex.SetInputCapture(handler)
-	a.docker.SetInputCapture(handler)
-	a.dockerEmpty.SetInputCapture(handler)
-	a.k8s.SetInputCapture(handler)
-	a.k8sEmpty.SetInputCapture(handler)
-	a.details.SetInputCapture(handler)
+	a.setupRootInput(envsFlex)
+	a.setupListInput(a.docker, true)
+	a.setupListInput(a.k8s, false)
+	a.setupEmptyInput(a.dockerEmpty)
+	a.setupEmptyInput(a.k8sEmpty)
+	a.setupDetailsInput(a.details)
 }
 
 // switchEnvFocus toggles focus between Docker and K8s lists.
@@ -545,6 +470,105 @@ func (a *App) showDetails(name, envType string) {
 
 	a.tview.SetFocus(a.details)
 	a.UpdateFooter("[Environment Details]", KeyDescriptions["details-"+envType])
+}
+
+// setupRootInput configures global key handlers for the home screen root.
+func (a *App) setupRootInput(envsFlex *tview.Flex) {
+	handler := func(event *tcell.EventKey) *tcell.EventKey {
+		switch {
+		case event.Key() == tcell.KeyTab, event.Key() == tcell.KeyBacktab:
+			a.switchEnvFocus()
+			return nil
+		case event.Rune() == 'q':
+			a.Quit()
+			return nil
+		case event.Rune() == '?':
+			a.showHelp()
+			return nil
+		case event.Rune() == 'n':
+			if a.currentEnv == a.dockerFlex {
+				a.showDeployForm()
+				return nil
+			}
+		case event.Rune() == 'd':
+			if a.currentEnv == a.dockerFlex && a.docker.GetItemCount() > 0 {
+				a.showDeleteConfirm()
+				return nil
+			}
+		case event.Rune() == 'c':
+			if a.currentEnv == a.dockerFlex && a.docker.GetItemCount() > 0 {
+				a.showCleanConfirm()
+				return nil
+			}
+		case event.Rune() == 'u':
+			if a.currentEnv == a.dockerFlex && a.docker.GetItemCount() > 0 {
+				a.showUpdateForm()
+				return nil
+			}
+		case event.Rune() == 'p':
+			if a.currentEnv == a.dockerFlex && a.docker.GetItemCount() > 0 {
+				a.showPopulateForm()
+				return nil
+			}
+		}
+		return event
+	}
+	envsFlex.SetInputCapture(handler)
+}
+
+// setupDetailsInput configures key handlers for the details panel.
+func (a *App) setupDetailsInput(details *tview.Flex) {
+	handler := func(event *tcell.EventKey) *tcell.EventKey {
+		switch {
+		case event.Key() == tcell.KeyEsc:
+			a.clearDetailsPanel()
+			a.tview.SetFocus(a.currentEnv)
+			return nil
+		case event.Key() == tcell.KeyTab:
+			a.cycleDetailsFocus()
+			return nil
+		case event.Key() == tcell.KeyBacktab:
+			a.cycleDetailsFocusBackward()
+			return nil
+		case event.Key() == tcell.KeyEnter:
+			return event // Let the table handle via SetSelectedFunc
+		}
+		return event
+	}
+	details.SetInputCapture(handler)
+}
+
+// setupListInput configures key handlers for environment lists.
+func (a *App) setupListInput(list *tview.List, isDocker bool) {
+	handler := func(event *tcell.EventKey) *tcell.EventKey {
+		switch {
+		case event.Key() == tcell.KeyEnter:
+			if isDocker && list.GetItemCount() > 0 {
+				name := a.SelectedDockerEnv()
+				if name != "" {
+					a.showDetails(name, "docker")
+				}
+				return nil
+			}
+			if !isDocker && a.k8s.GetItemCount() > 0 {
+				name := a.SelectedK8sEnv()
+				if name != "" {
+					a.showDetails(name, "k8s")
+				}
+				return nil
+			}
+		}
+		return event
+	}
+	list.SetInputCapture(handler)
+}
+
+// setupEmptyInput configures key handlers for empty state views (bubbles unhandled keys).
+func (a *App) setupEmptyInput(empty *tview.TextView) {
+	handler := func(event *tcell.EventKey) *tcell.EventKey {
+		return event
+	}
+	empty.SetInputCapture(handler)
 }
 
 // setupFocusHandlers configures visual feedback when components gain/lose focus.

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
+	"golang.org/x/term"
 
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
@@ -25,7 +26,12 @@ var rootCmd = &cobra.Command{
 using Docker Compose or Kubernetes. Use the "docker" and "kubernetes" command
 groups to deploy, populate, update, or delete an environment.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		if cmd.Name() == "update" {
+		if cmd.Name() == "update" || cmd.Name() == "completion" {
+			return
+		}
+
+		// Skip update check if stdout is not a terminal (e.g., completion, piping)
+		if !term.IsTerminal(int(os.Stdout.Fd())) {
 			return
 		}
 

@@ -8,17 +8,57 @@ import (
 )
 
 func validArgsFunction(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	docker, err := db.GetAllKubernetes()
-	if err != nil {
+	if strings.Contains(cmd.Use, "populate") {
+		if len(args) == 0 {
+			docker, err := db.GetAllKubernetes()
+			if err != nil {
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			}
+
+			var matches []string
+			for _, k := range docker {
+				if strings.HasPrefix(k.Name, toComplete) {
+					matches = append(matches, k.Name)
+				}
+			}
+
+			return matches, cobra.ShellCompDirectiveNoFileComp
+		} else {
+			return nil, cobra.ShellCompDirectiveDefault
+		}
+	} else if strings.Contains(cmd.Use, "delete") {
+		if len(args) == 0 {
+			docker, err := db.GetAllKubernetes()
+			if err != nil {
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			}
+
+			var matches []string
+			for _, k := range docker {
+				if strings.HasPrefix(k.Name, toComplete) {
+					matches = append(matches, k.Name)
+				}
+			}
+
+			return matches, cobra.ShellCompDirectiveNoFileComp
+		} else {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+	} else if strings.Contains(cmd.Use, "clean") {
+		docker, err := db.GetAllKubernetes()
+		if err != nil {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+
+		var matches []string
+		for _, k := range docker {
+			if strings.HasPrefix(k.Name, toComplete) {
+				matches = append(matches, k.Name)
+			}
+		}
+
+		return matches, cobra.ShellCompDirectiveNoFileComp
+	} else {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-
-	var matches []string
-	for _, k := range docker {
-		if strings.HasPrefix(k.Name, toComplete) {
-			matches = append(matches, k.Name)
-		}
-	}
-
-	return matches, cobra.ShellCompDirectiveNoFileComp
 }
