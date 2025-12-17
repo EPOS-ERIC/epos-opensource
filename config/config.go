@@ -64,21 +64,19 @@ func init() {
 // DefaultConfig returns the default configuration
 func DefaultConfig() Config {
 	cfg := Config{
-		TUI: TUIConfig{
-			DefaultScreen: "home",
-		},
+		TUI: TUIConfig{},
 	}
 	switch runtime.GOOS {
 	case "darwin":
-		cfg.TUI.OpenUrlCommand = darwinOpenCommand
+		cfg.TUI.OpenURLCommand = darwinOpenCommand
 		cfg.TUI.OpenDirectoryCommand = darwinOpenCommand
 		cfg.TUI.OpenFileCommand = darwinOpenCommand
 	case "windows":
-		cfg.TUI.OpenUrlCommand = "cmd /c start"
+		cfg.TUI.OpenURLCommand = "cmd /c start"
 		cfg.TUI.OpenDirectoryCommand = "explorer"
 		cfg.TUI.OpenFileCommand = "explorer"
 	default: // linux and others
-		cfg.TUI.OpenUrlCommand = linuxOpenCommand
+		cfg.TUI.OpenURLCommand = linuxOpenCommand
 		cfg.TUI.OpenDirectoryCommand = linuxOpenCommand
 		cfg.TUI.OpenFileCommand = linuxOpenCommand
 	}
@@ -87,7 +85,7 @@ func DefaultConfig() Config {
 
 // ValidateConfig validates the configuration
 func ValidateConfig(cfg Config) error {
-	if cfg.TUI.OpenUrlCommand == "" {
+	if cfg.TUI.OpenURLCommand == "" {
 		return errors.New("darwinOpenCommandUrlCommand cannot be empty")
 	}
 	if cfg.TUI.OpenDirectoryCommand == "" {

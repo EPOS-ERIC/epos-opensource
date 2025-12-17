@@ -475,7 +475,7 @@ func (a *App) createGridRows(grid *tview.Grid, rows []DetailRow, buttons *[]*tvi
 			openBtn.SetSelectedFunc(func() {
 				var cmd string
 				if strings.HasPrefix(row.Value, "http://") || strings.HasPrefix(row.Value, "https://") {
-					cmd = a.config.TUI.OpenUrlCommand
+					cmd = a.config.TUI.OpenURLCommand
 				} else {
 					if info, err := os.Stat(row.Value); err == nil && info.IsDir() {
 						cmd = a.config.TUI.OpenDirectoryCommand
