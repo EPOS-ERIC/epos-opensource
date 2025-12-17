@@ -7,8 +7,10 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
+	"log"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/epos-eu/epos-opensource/config"
 	"github.com/epos-eu/epos-opensource/db/sqlc"
@@ -23,12 +25,27 @@ var embedMigrations embed.FS
 
 const dbName = "db.db"
 
+type gooseLogger struct{}
+
+func (g *gooseLogger) Printf(format string, v ...interface{}) {
+	msg := fmt.Sprintf(format, v...)
+	if strings.Contains(msg, "no migrations to run") {
+		return
+	}
+	log.Printf(format, v...)
+}
+
+func (g *gooseLogger) Fatalf(format string, v ...interface{}) {
+	log.Fatalf(format, v...)
+}
+
 func init() {
 	goose.SetBaseFS(embedMigrations)
 	err := goose.SetDialect("sqlite")
 	if err != nil {
 		panic("if you see this error please open an issue on github: " + err.Error())
 	}
+	goose.SetLogger(&gooseLogger{})
 }
 
 // Get opens a new connection to the database, creating the database file and schema if they do not exist.
