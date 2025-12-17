@@ -35,11 +35,14 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 		return nil, fmt.Errorf("error getting docker environment from db called '%s': %w", opts.Name, err)
 	}
 
+	var allSuccessfulFiles []string
+
 	if opts.PopulateExamples {
-		err := common.PopulateExample(docker.ApiUrl, opts.Parallel)
+		successfulExamples, err := common.PopulateExample(docker.ApiUrl, opts.Parallel)
 		if err != nil {
 			return nil, fmt.Errorf("error populating environment with examples: %w", err)
 		}
+		allSuccessfulFiles = append(allSuccessfulFiles, successfulExamples...)
 	}
 
 	for _, p := range opts.TTLDirs {
@@ -48,8 +51,17 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 			return nil, fmt.Errorf("error finding absolute path for given metadata path '%s': %w", p, err)
 		}
 
-		if err := common.PopulateEnv(absPath, docker.ApiUrl, opts.Parallel); err != nil {
+		successfulFiles, err := common.PopulateEnv(absPath, docker.ApiUrl, opts.Parallel)
+		if err != nil {
 			return nil, fmt.Errorf("error populating environment: %w", err)
+		}
+		allSuccessfulFiles = append(allSuccessfulFiles, successfulFiles...)
+	}
+
+	// Insert ingested files into database
+	for _, filePath := range allSuccessfulFiles {
+		if err := db.InsertIngestedFile("docker", opts.Name, filePath); err != nil {
+			return nil, fmt.Errorf("error inserting ingested file record: %w", err)
 		}
 	}
 

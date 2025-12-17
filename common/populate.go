@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/epos-eu/epos-opensource/display"
@@ -26,28 +27,30 @@ import (
 //   - gatewayURL: Base URL of the EPOS gateway (e.g., "https://gateway.example.com")
 //   - parallel: Maximum number of concurrent file ingestions (use 1 for sequential processing)
 //
-// Returns an error if any file fails to ingest or if the path is invalid.
-func PopulateEnv(ttlPath, endpointURL string, parallel int) error {
+// Returns a list of successfully ingested file paths and an error if any file fails to ingest or if the path is invalid.
+func PopulateEnv(ttlPath, endpointURL string, parallel int) ([]string, error) {
 	if parallel == 0 {
-		return fmt.Errorf("invalid parallel value: %d", parallel)
+		return nil, fmt.Errorf("invalid parallel value: %d", parallel)
 	}
 
 	endpointURL = strings.TrimSuffix(endpointURL, "/ui")
 	postURL, err := url.Parse(endpointURL)
 	if err != nil {
-		return fmt.Errorf("invalid endpoint URL '%s': %w", endpointURL, err)
+		return nil, fmt.Errorf("invalid endpoint URL '%s': %w", endpointURL, err)
 	}
 	postURL = postURL.JoinPath("/populate")
 
 	absPath, err := filepath.Abs(ttlPath)
 	if err != nil {
-		return fmt.Errorf("failed to resolve absolute path: %w", err)
+		return nil, fmt.Errorf("failed to resolve absolute path: %w", err)
 	}
 
 	fi, err := os.Stat(absPath)
 	if err != nil {
-		return fmt.Errorf("cannot access path '%s': %w", ttlPath, err)
+		return nil, fmt.Errorf("cannot access path '%s': %w", ttlPath, err)
 	}
+
+	var successfulFiles []string
 
 	if fi.IsDir() {
 		display.Step("Starting ingestion of *.ttl files from directory '%s'", ttlPath)
@@ -55,6 +58,7 @@ func PopulateEnv(ttlPath, endpointURL string, parallel int) error {
 		walkError := false
 		var eg errgroup.Group
 		eg.SetLimit(parallel)
+		var mu sync.Mutex
 
 		err = filepath.WalkDir(ttlPath, func(path string, d fs.DirEntry, walkErr error) error {
 			if walkErr != nil {
@@ -72,18 +76,21 @@ func PopulateEnv(ttlPath, endpointURL string, parallel int) error {
 					display.Error("Failed to ingest '%s': %v", d.Name(), err)
 					return err
 				}
+				mu.Lock()
+				successfulFiles = append(successfulFiles, path)
+				mu.Unlock()
 				return nil
 			})
 			return nil
 		})
 		if err != nil {
-			return fmt.Errorf("directory traversal failed for '%s': %w", ttlPath, err)
+			return nil, fmt.Errorf("directory traversal failed for '%s': %w", ttlPath, err)
 		}
 		if walkError {
-			return fmt.Errorf("encountered errors while traversing directory '%s'", ttlPath)
+			return nil, fmt.Errorf("encountered errors while traversing directory '%s'", ttlPath)
 		}
 		if err := eg.Wait(); err != nil {
-			return fmt.Errorf("one or more files failed to ingest in directory '%s': %w", ttlPath, err)
+			return nil, fmt.Errorf("one or more files failed to ingest in directory '%s': %w", ttlPath, err)
 		}
 
 		display.Done("Successfully ingested all *.ttl files from directory '%s'", ttlPath)
@@ -91,12 +98,13 @@ func PopulateEnv(ttlPath, endpointURL string, parallel int) error {
 		display.Step("Ingesting single file: %s", filepath.Base(ttlPath))
 		err := postFile(absPath, *postURL)
 		if err != nil {
-			return fmt.Errorf("failed to ingest file '%s': %w", filepath.Base(ttlPath), err)
+			return nil, fmt.Errorf("failed to ingest file '%s': %w", filepath.Base(ttlPath), err)
 		}
 		display.Done("Successfully ingested '%s'", filepath.Base(ttlPath))
+		successfulFiles = append(successfulFiles, absPath)
 	}
 
-	return nil
+	return successfulFiles, nil
 }
 
 var client = http.Client{
@@ -150,9 +158,9 @@ func postRequest(path string, url url.URL, body io.Reader, setPathQuery bool) er
 	return nil
 }
 
-func PopulateExample(endpointURL string, parallel int) error {
+func PopulateExample(endpointURL string, parallel int) ([]string, error) {
 	if parallel == 0 {
-		return fmt.Errorf("invalid parallel value: %d", parallel)
+		return nil, fmt.Errorf("invalid parallel value: %d", parallel)
 	}
 
 	examples := map[string]string{
@@ -166,7 +174,7 @@ func PopulateExample(endpointURL string, parallel int) error {
 	endpointURL = strings.TrimSuffix(endpointURL, "/ui")
 	populateURL, err := url.Parse(endpointURL)
 	if err != nil {
-		return fmt.Errorf("invalid endpoint URL '%s': %w", endpointURL, err)
+		return nil, fmt.Errorf("invalid endpoint URL '%s': %w", endpointURL, err)
 	}
 	populateURL = populateURL.JoinPath("/populate")
 
@@ -174,6 +182,8 @@ func PopulateExample(endpointURL string, parallel int) error {
 
 	var eg errgroup.Group
 	eg.SetLimit(parallel)
+	var mu sync.Mutex
+	var successfulExamples []string
 
 	for name, exampleURL := range examples {
 		eg.Go(func() error {
@@ -182,14 +192,17 @@ func PopulateExample(endpointURL string, parallel int) error {
 				display.Error("Failed to ingest example '%s': %v", name, err)
 				return err
 			}
+			mu.Lock()
+			successfulExamples = append(successfulExamples, exampleURL)
+			mu.Unlock()
 			return nil
 		})
 	}
 
 	if err := eg.Wait(); err != nil {
-		return fmt.Errorf("one or more examples failed to ingest: %w", err)
+		return nil, fmt.Errorf("one or more examples failed to ingest: %w", err)
 	}
 
 	display.Done("Successfully ingested all example files")
-	return nil
+	return successfulExamples, nil
 }

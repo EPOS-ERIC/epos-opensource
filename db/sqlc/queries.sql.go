@@ -22,6 +22,21 @@ func (q *Queries) DeleteDocker(ctx context.Context, name string) error {
 	return err
 }
 
+const deleteIngestedFilesByEnvironment = `-- name: DeleteIngestedFilesByEnvironment :exec
+DELETE FROM ingested_files
+WHERE environment_type = ? AND environment_name = ?
+`
+
+type DeleteIngestedFilesByEnvironmentParams struct {
+	EnvironmentType string
+	EnvironmentName string
+}
+
+func (q *Queries) DeleteIngestedFilesByEnvironment(ctx context.Context, arg DeleteIngestedFilesByEnvironmentParams) error {
+	_, err := q.db.ExecContext(ctx, deleteIngestedFilesByEnvironment, arg.EnvironmentType, arg.EnvironmentName)
+	return err
+}
+
 const deleteKubernetes = `-- name: DeleteKubernetes :exec
 DELETE FROM
     kubernetes
@@ -138,6 +153,46 @@ func (q *Queries) GetDockerByName(ctx context.Context, name string) (Docker, err
 	return i, err
 }
 
+const getIngestedFilesByEnvironment = `-- name: GetIngestedFilesByEnvironment :many
+SELECT file_path, ingested_at
+FROM ingested_files
+WHERE environment_type = ? AND environment_name = ?
+ORDER BY ingested_at DESC
+`
+
+type GetIngestedFilesByEnvironmentParams struct {
+	EnvironmentType string
+	EnvironmentName string
+}
+
+type GetIngestedFilesByEnvironmentRow struct {
+	FilePath   string
+	IngestedAt *time.Time
+}
+
+func (q *Queries) GetIngestedFilesByEnvironment(ctx context.Context, arg GetIngestedFilesByEnvironmentParams) ([]GetIngestedFilesByEnvironmentRow, error) {
+	rows, err := q.db.QueryContext(ctx, getIngestedFilesByEnvironment, arg.EnvironmentType, arg.EnvironmentName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetIngestedFilesByEnvironmentRow
+	for rows.Next() {
+		var i GetIngestedFilesByEnvironmentRow
+		if err := rows.Scan(&i.FilePath, &i.IngestedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getKubernetesByName = `-- name: GetKubernetesByName :one
 SELECT
     name, directory, context, api_url, gui_url, backoffice_url, protocol
@@ -230,6 +285,24 @@ func (q *Queries) InsertDocker(ctx context.Context, arg InsertDockerParams) (Doc
 		&i.BackofficePort,
 	)
 	return i, err
+}
+
+const insertIngestedFile = `-- name: InsertIngestedFile :exec
+INSERT INTO ingested_files (environment_type, environment_name, file_path, ingested_at)
+VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+ON CONFLICT (environment_type, environment_name, file_path)
+DO UPDATE SET ingested_at = CURRENT_TIMESTAMP
+`
+
+type InsertIngestedFileParams struct {
+	EnvironmentType string
+	EnvironmentName string
+	FilePath        string
+}
+
+func (q *Queries) InsertIngestedFile(ctx context.Context, arg InsertIngestedFileParams) error {
+	_, err := q.db.ExecContext(ctx, insertIngestedFile, arg.EnvironmentType, arg.EnvironmentName, arg.FilePath)
+	return err
 }
 
 const insertKubernetes = `-- name: InsertKubernetes :one

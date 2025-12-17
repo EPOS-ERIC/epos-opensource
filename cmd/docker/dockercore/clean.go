@@ -71,6 +71,12 @@ func Clean(opts CleanOpts) (*sqlc.Docker, error) {
 	}
 
 	display.Done("Database volume cleaned")
+
+	// Clear ingested files tracking
+	if err := db.DeleteIngestedFilesByEnvironment("docker", opts.Name); err != nil {
+		return handleFailure("failed to clear ingested files tracking: %w", err)
+	}
+
 	display.Step("Restarting services")
 
 	if _, err := command.RunCommand(exec.Command("docker", "stop", backOfficeContainer), false); err != nil {

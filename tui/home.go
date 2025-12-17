@@ -14,8 +14,9 @@ import (
 
 // DetailRow represents a row in the details grid.
 type DetailRow struct {
-	Label string
-	Value string
+	Label       string
+	Value       string
+	IncludeOpen bool
 }
 
 // createHome builds the home screen layout with environment lists and details panel.
@@ -83,9 +84,22 @@ func (a *App) createHome() *tview.Flex {
 	a.detailsList.SetTitle(" [::b]Ingested Files ")
 	a.detailsList.SetTitleColor(DefaultTheme.Secondary)
 	updateListStyle(a.detailsList, false)
-	a.detailsList.AddItem("/path/to/ttl1.ttl", "", 0, nil)
-	a.detailsList.AddItem("/path/to/ttl2.ttl", "", 0, nil)
-	a.detailsList.AddItem("/path/to/ttl3.ttl", "", 0, nil)
+	a.detailsList.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		currentItem := a.detailsList.GetCurrentItem()
+		itemCount := a.detailsList.GetItemCount()
+
+		switch event.Key() {
+		case tcell.KeyDown:
+			if currentItem >= itemCount-1 {
+				return nil // Block wrap to top
+			}
+		case tcell.KeyUp:
+			if currentItem <= 0 {
+				return nil // Block wrap to bottom
+			}
+		}
+		return event
+	})
 
 	a.detailsEmpty = tview.NewTextView()
 	a.detailsEmpty.SetText(DefaultTheme.MutedTag("i") + "\nSelect an environment to view details")
@@ -141,6 +155,15 @@ func (a *App) openInBrowser(url string) {
 	if err := exec.Command("open", url).Run(); err != nil {
 		a.ShowError("Failed to open in browser")
 		log.Printf("error opening in browser: %v", err)
+	}
+}
+
+// openDirectory opens the given directory path using the default file manager.
+func (a *App) openDirectory(dir string) {
+	dir = strings.Trim(dir, " ")
+	if err := exec.Command("open", dir).Run(); err != nil {
+		a.ShowError("Failed to open directory")
+		log.Printf("error opening directory: %v", err)
 	}
 }
 
@@ -397,13 +420,16 @@ func (a *App) cycleDetailsFocusBackward() {
 }
 
 // createGridRows creates the grid rows for details or name/dir.
-func (a *App) createGridRows(grid *tview.Grid, rows []DetailRow, buttons *[]*tview.Button, includeOpen bool, header string) {
+func (a *App) createGridRows(grid *tview.Grid, rows []DetailRow, buttons *[]*tview.Button, header string) {
 	grid.Clear()
 	*buttons = nil
 
 	numColumns := 3
-	if includeOpen {
-		numColumns = 4
+	for _, row := range rows {
+		if row.IncludeOpen {
+			numColumns = 4
+			break
+		}
 	}
 
 	// Set up rows: one row per detail item, plus header if present
@@ -421,8 +447,8 @@ func (a *App) createGridRows(grid *tview.Grid, rows []DetailRow, buttons *[]*tvi
 	// Col 0: Label (fixed width ~15 chars)
 	// Col 1: Value (flexible, takes remaining space)
 	// Col 2: Copy button (fixed width ~8 chars)
-	// Col 3: Open button (fixed width ~8 chars) if includeOpen
-	if includeOpen {
+	// Col 3: Open button (fixed width ~8 chars) if any row has IncludeOpen
+	if numColumns == 4 {
 		grid.SetColumns(15, 0, 8, 8)
 	} else {
 		grid.SetColumns(15, 0, 8)
@@ -466,16 +492,20 @@ func (a *App) createGridRows(grid *tview.Grid, rows []DetailRow, buttons *[]*tvi
 
 		*buttons = append(*buttons, copyBtn)
 
-		if includeOpen {
-			openBtn := tview.NewButton("Open").
-				SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary)).
+		openBtn := tview.NewButton("Open")
+		if row.IncludeOpen {
+			openBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary)).
 				SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
-			openBtn.SetSelectedFunc(func() { a.openInBrowser(row.Value) })
-
-			grid.AddItem(openBtn, rowIndex+i, 3, 1, 1, 0, 0, false)
-
+			if strings.HasPrefix(row.Value, "http://") || strings.HasPrefix(row.Value, "https://") {
+				openBtn.SetSelectedFunc(func() { a.openInBrowser(row.Value) })
+			} else {
+				openBtn.SetSelectedFunc(func() { a.openDirectory(row.Value) })
+			}
 			*buttons = append(*buttons, openBtn)
+		} else {
+			openBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Surface).Foreground(DefaultTheme.OnSurface))
 		}
+		grid.AddItem(openBtn, rowIndex+i, 3, 1, 1, 0, 0, false)
 	}
 	// grid.SetBackgroundColor(DefaultTheme.OnSurface)
 	grid.SetBordersColor(DefaultTheme.Secondary)
@@ -483,7 +513,7 @@ func (a *App) createGridRows(grid *tview.Grid, rows []DetailRow, buttons *[]*tvi
 
 // createDetailsRows creates the grid rows for details.
 func (a *App) createDetailsRows(rows []DetailRow) {
-	a.createGridRows(a.detailsGrid, rows, &a.detailsButtons, true, "Environment URLs")
+	a.createGridRows(a.detailsGrid, rows, &a.detailsButtons, "Environment URLs")
 }
 
 // showDetails fetches and displays environment details in a grid.
@@ -514,14 +544,14 @@ func (a *App) showDetails(name, envType string) {
 				return
 			}
 			nameDirRows := []DetailRow{
-				{Label: "Name", Value: d.Name},
-				{Label: "Directory", Value: d.Directory},
+				{Label: "Name", Value: d.Name, IncludeOpen: false},
+				{Label: "Directory", Value: d.Directory, IncludeOpen: true},
 			}
-			a.createGridRows(a.nameDirGrid, nameDirRows, &a.nameDirButtons, false, "Basic Information")
+			a.createGridRows(a.nameDirGrid, nameDirRows, &a.nameDirButtons, "Basic Information")
 			rows := []DetailRow{
-				{Label: "API URL", Value: apiURL},
-				{Label: "GUI URL", Value: d.GuiUrl},
-				{Label: "Backoffice URL", Value: backofficeURL},
+				{Label: "API URL", Value: apiURL, IncludeOpen: true},
+				{Label: "GUI URL", Value: d.GuiUrl, IncludeOpen: true},
+				{Label: "Backoffice URL", Value: backofficeURL, IncludeOpen: true},
 			}
 			a.createDetailsRows(rows)
 		} else {
@@ -535,14 +565,14 @@ func (a *App) showDetails(name, envType string) {
 	case "k8s":
 		if k, err := db.GetKubernetesByName(name); err == nil {
 			nameDirRows := []DetailRow{
-				{Label: "Name", Value: k.Name},
-				{Label: "Directory", Value: k.Directory},
+				{Label: "Name", Value: k.Name, IncludeOpen: false},
+				{Label: "Directory", Value: k.Directory, IncludeOpen: true},
 			}
-			a.createGridRows(a.nameDirGrid, nameDirRows, &a.nameDirButtons, false, "Basic Information")
+			a.createGridRows(a.nameDirGrid, nameDirRows, &a.nameDirButtons, "Basic Information")
 			rows := []DetailRow{
-				{Label: "API URL", Value: k.ApiUrl},
-				{Label: "GUI URL", Value: k.GuiUrl},
-				{Label: "Backoffice URL", Value: k.BackofficeUrl},
+				{Label: "API URL", Value: k.ApiUrl, IncludeOpen: true},
+				{Label: "GUI URL", Value: k.GuiUrl, IncludeOpen: true},
+				{Label: "Backoffice URL", Value: k.BackofficeUrl, IncludeOpen: true},
 			}
 			a.createDetailsRows(rows)
 		} else {
@@ -553,6 +583,25 @@ func (a *App) showDetails(name, envType string) {
 			errorTV := tview.NewTextView().SetText(fmt.Sprintf("Error fetching details for %s: %v", name, err)).SetTextColor(DefaultTheme.Destructive)
 			a.detailsGrid.AddItem(errorTV, 0, 0, 1, 1, 0, 0, false)
 		}
+	}
+
+	// Populate ingested files list
+	a.detailsList.Clear()
+	if ingestedFiles, err := db.GetIngestedFilesByEnvironment(envType, name); err == nil {
+		count := len(ingestedFiles)
+		if count > 0 {
+			a.detailsList.SetTitle(fmt.Sprintf(" [::b]Ingested Files (%d) ", count))
+			for i, file := range ingestedFiles {
+				itemText := fmt.Sprintf("%d. %s", i+1, file.FilePath)
+				a.detailsList.AddItem(itemText, "", 0, nil)
+			}
+		} else {
+			a.detailsList.SetTitle(" [::b]Ingested Files ")
+			a.detailsList.AddItem("No ingested files yet", "", 0, nil)
+		}
+	} else {
+		a.detailsList.SetTitle(" [::b]Ingested Files ")
+		a.detailsList.AddItem(fmt.Sprintf("Error loading files: %v", err), "", 0, nil)
 	}
 
 	a.tview.SetFocus(a.details)
@@ -741,6 +790,14 @@ func (a *App) setupFocusHandlers() {
 		} else {
 			updateBoxStyle(a.details, false)
 		}
+	})
+
+	// Details List
+	a.detailsList.SetFocusFunc(func() {
+		updateListStyle(a.detailsList, true)
+	})
+	a.detailsList.SetBlurFunc(func() {
+		updateListStyle(a.detailsList, false)
 	})
 }
 

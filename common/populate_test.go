@@ -116,7 +116,7 @@ func TestPopulateEnv(t *testing.T) {
 			}
 
 			target := filepath.Join(tmpDir, tc.targetPath)
-			err := PopulateEnv(target, serverURL, 2)
+			_, err := PopulateEnv(target, serverURL, 2)
 
 			if tc.expectErr {
 				if err == nil {

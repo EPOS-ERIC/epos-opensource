@@ -19,6 +19,13 @@ type Docker struct {
 	BackofficePort int64
 }
 
+type IngestedFile struct {
+	EnvironmentType string
+	EnvironmentName string
+	FilePath        string
+	IngestedAt      *time.Time
+}
+
 type Kubernetes struct {
 	Name          string
 	Directory     string

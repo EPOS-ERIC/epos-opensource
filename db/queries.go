@@ -165,3 +165,52 @@ func UpsertLatestReleaseCache(tagName string, fetchedAt time.Time) error {
 	}
 	return nil
 }
+
+// InsertIngestedFile inserts or updates an ingested file record.
+func InsertIngestedFile(envType, envName, filePath string) error {
+	q, err := Get()
+	if err != nil {
+		return fmt.Errorf("error getting db connection: %w", err)
+	}
+	err = q.InsertIngestedFile(context.Background(), sqlc.InsertIngestedFileParams{
+		EnvironmentType: envType,
+		EnvironmentName: envName,
+		FilePath:        filePath,
+	})
+	if err != nil {
+		return fmt.Errorf("error inserting ingested file: %w", err)
+	}
+	return nil
+}
+
+// DeleteIngestedFilesByEnvironment deletes all ingested file records for an environment.
+func DeleteIngestedFilesByEnvironment(envType, envName string) error {
+	q, err := Get()
+	if err != nil {
+		return fmt.Errorf("error getting db connection: %w", err)
+	}
+	err = q.DeleteIngestedFilesByEnvironment(context.Background(), sqlc.DeleteIngestedFilesByEnvironmentParams{
+		EnvironmentType: envType,
+		EnvironmentName: envName,
+	})
+	if err != nil {
+		return fmt.Errorf("error deleting ingested files: %w", err)
+	}
+	return nil
+}
+
+// GetIngestedFilesByEnvironment retrieves all ingested file records for an environment.
+func GetIngestedFilesByEnvironment(envType, envName string) ([]sqlc.GetIngestedFilesByEnvironmentRow, error) {
+	q, err := Get()
+	if err != nil {
+		return nil, fmt.Errorf("error getting db connection: %w", err)
+	}
+	files, err := q.GetIngestedFilesByEnvironment(context.Background(), sqlc.GetIngestedFilesByEnvironmentParams{
+		EnvironmentType: envType,
+		EnvironmentName: envName,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error getting ingested files: %w", err)
+	}
+	return files, nil
+}
