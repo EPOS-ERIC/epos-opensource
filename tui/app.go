@@ -30,7 +30,8 @@ type App struct {
 	k8sFlex        *tview.Flex
 	k8sEnvs        []string // Environment names for k8s list (lookup by index)
 	details        *tview.Flex
-	detailsTable   *tview.Table
+	detailsGrid    *tview.Grid
+	detailsButtons []*tview.Button
 	nameDirTable   *tview.Table
 	buttonsFlex    *tview.Flex
 	deleteButton   *tview.Button
@@ -64,6 +65,17 @@ func Run() error {
 func (a *App) init() {
 	a.tview = tview.NewApplication()
 	a.tview.EnableMouse(true)
+	a.tview.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Rune() {
+		case 'q':
+			a.Quit()
+			return nil
+		case '?':
+			a.showHelp()
+			return nil
+		}
+		return event
+	})
 	a.pages = tview.NewPages()
 	a.outputWriter = &OutputWriter{}
 

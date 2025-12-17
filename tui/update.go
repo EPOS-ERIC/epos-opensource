@@ -157,4 +157,17 @@ func (a *App) returnFromUpdate() {
 	if a.previousFocus != nil {
 		a.tview.SetFocus(a.previousFocus)
 	}
+	if a.detailsShown {
+		key := DetailsK8sKey
+		if a.currentEnv == a.dockerFlex {
+			key = DetailsDockerKey
+		}
+		a.UpdateFooter("[Environment Details]", KeyDescriptions[key])
+	} else {
+		if a.currentEnv == a.dockerFlex {
+			a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
+		} else {
+			a.UpdateFooter("[K8s Environments]", KeyDescriptions["k8s"])
+		}
+	}
 }

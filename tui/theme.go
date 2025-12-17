@@ -48,6 +48,11 @@ var DefaultTheme = &Theme{
 	OnMuted:       tcell.ColorDefault,
 }
 
+const (
+	DetailsDockerKey = "details-docker"
+	DetailsK8sKey    = "details-k8s"
+)
+
 // KeyDescriptions maps screen names to their available keyboard shortcuts.
 // Used by updateFooter() to show context-sensitive help.
 var KeyDescriptions = map[string][]string{

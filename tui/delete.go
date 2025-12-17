@@ -32,7 +32,7 @@ func (a *App) showDeleteConfirm() {
 	deleteBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Destructive))
 
 	cancelBtn := tview.NewButton("Cancel").SetSelectedFunc(func() {
-		a.returnFromDelete()
+		a.returnFromDelete(false)
 	})
 	cancelBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary))
 	cancelBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
@@ -48,7 +48,7 @@ func (a *App) showDeleteConfirm() {
 				a.tview.SetFocus(rightBtn)
 				return nil
 			case tcell.KeyEsc:
-				a.returnFromDelete()
+				a.returnFromDelete(false)
 				return nil
 			}
 			return event
@@ -131,29 +131,56 @@ func (a *App) showDeleteProgress(envName string) {
 		a.tview.QueueUpdateDraw(func() {
 			if err != nil {
 				statusBar.SetText(fmt.Sprintf("%sDelete failed: %v[-]", DefaultTheme.ErrorTag(""), err))
+				layout.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+					if event.Key() == tcell.KeyEsc || event.Key() == tcell.KeyEnter {
+						a.outputWriter.ClearView()
+						a.returnFromDelete(false)
+						return nil
+					}
+					return event
+				})
 			} else {
 				statusBar.SetText(DefaultTheme.SuccessTag("") + "Environment deleted successfully!" + "[-]")
+				layout.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+					if event.Key() == tcell.KeyEsc || event.Key() == tcell.KeyEnter {
+						a.outputWriter.ClearView()
+						a.returnFromDelete(true)
+						return nil
+					}
+					return event
+				})
 			}
-
-			layout.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-				if event.Key() == tcell.KeyEsc || event.Key() == tcell.KeyEnter {
-					a.outputWriter.ClearView()
-					a.returnFromDelete()
-					return nil
-				}
-				return event
-			})
 			a.UpdateFooter("[Delete Complete]", KeyDescriptions["delete-complete"])
 		})
 	}()
 }
 
 // returnFromDelete cleans up and returns to the home screen.
-func (a *App) returnFromDelete() {
+func (a *App) returnFromDelete(clearDetails bool) {
 	a.pages.RemovePage("delete-confirm")
 	a.pages.RemovePage("delete-progress")
 	a.pages.SwitchToPage("home")
 	a.refreshLists()
-	a.clearDetailsPanel()
-	a.tview.SetFocus(a.currentEnv)
+
+	if clearDetails {
+		a.clearDetailsPanel()
+		a.tview.SetFocus(a.currentEnv)
+	} else {
+		if a.previousFocus != nil {
+			a.tview.SetFocus(a.previousFocus)
+		}
+	}
+	if a.detailsShown {
+		key := DetailsK8sKey
+		if a.currentEnv == a.dockerFlex {
+			key = DetailsDockerKey
+		}
+		a.UpdateFooter("[Environment Details]", KeyDescriptions[key])
+	} else {
+		if a.currentEnv == a.dockerFlex {
+			a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
+		} else {
+			a.UpdateFooter("[K8s Environments]", KeyDescriptions["k8s"])
+		}
+	}
 }

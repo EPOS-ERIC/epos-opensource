@@ -12,63 +12,22 @@ import (
 	"github.com/rivo/tview"
 )
 
+// DetailRow represents a row in the details grid.
+type DetailRow struct {
+	Label string
+	Value string
+}
+
 // createHome builds the home screen layout with environment lists and details panel.
 func (a *App) createHome() *tview.Flex {
 	envsFlex := a.createEnvLists()
-	a.detailsTable = tview.NewTable()
-	a.detailsTable.SetBorders(true)
-	a.detailsTable.SetBordersColor(DefaultTheme.Secondary)
-	a.detailsTable.SetSelectable(true, true)
-	a.detailsTable.SetSelectedStyle(tcell.StyleDefault.Foreground(DefaultTheme.Secondary).Background(DefaultTheme.Background))
-	a.detailsTable.Select(0, 2)
-	a.detailsTable.SetBorderPadding(1, 1, 0, 0)
+	a.detailsGrid = tview.NewGrid()
+	a.detailsGrid.SetBorders(true)
 
 	a.nameDirTable = tview.NewTable()
 	a.nameDirTable.SetBorders(true)
 	a.nameDirTable.SetBordersColor(DefaultTheme.Secondary)
 	a.nameDirTable.SetBorderPadding(1, 1, 0, 0)
-
-	// Action handler helper
-	triggerAction := func(row int) {
-		if row < 0 || row >= a.detailsTable.GetRowCount() {
-			return
-		}
-		value := a.detailsTable.GetCell(row, 1).Text
-		action := a.detailsTable.GetCell(row, 2).Text
-		switch action {
-		case " Copy ":
-			a.copyToClipboard(value)
-		case " Open ":
-			a.openInBrowser(value)
-		}
-	}
-
-	// Capture mouse events to handle clicks
-	mouseClicked := false
-	a.detailsTable.SetMouseCapture(func(action tview.MouseAction, event *tcell.EventMouse) (tview.MouseAction, *tcell.EventMouse) {
-		if action == tview.MouseLeftClick {
-			mouseClicked = true
-		}
-		return action, event
-	})
-
-	// Restrict selection and handle single-click actions
-	a.detailsTable.SetSelectionChangedFunc(func(row, column int) {
-		if column != 2 {
-			a.detailsTable.Select(row, 2)
-			return
-		}
-
-		if mouseClicked {
-			mouseClicked = false
-			triggerAction(row)
-		}
-	})
-
-	// Handle activation (Enter key)
-	a.detailsTable.SetSelectedFunc(func(row, column int) {
-		triggerAction(row)
-	})
 
 	a.deleteButton = tview.NewButton("Delete")
 	a.deleteButton.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary))
@@ -329,7 +288,7 @@ func (a *App) switchEnvFocus() {
 	}
 }
 
-// cycleDetailsFocus cycles focus between buttons, table, and list in the details view.
+// cycleDetailsFocus cycles focus between buttons, grid, and list in the details view.
 func (a *App) cycleDetailsFocus() {
 	focus := a.tview.GetFocus()
 	switch focus {
@@ -342,40 +301,37 @@ func (a *App) cycleDetailsFocus() {
 	case a.populateButton:
 		a.tview.SetFocus(a.updateButton)
 	case a.nameDirTable:
-		a.detailsTable.Select(0, 2)
-		a.tview.SetFocus(a.detailsTable)
-	case a.detailsTable:
-		if rows := a.detailsTable.GetRowCount(); rows > 0 {
-			r, _ := a.detailsTable.GetSelection()
-			if r < rows-1 {
-				a.detailsTable.Select(r+1, 2)
-				return
-			}
+		if len(a.detailsButtons) > 0 {
+			a.tview.SetFocus(a.detailsButtons[0])
+		} else {
+			a.tview.SetFocus(a.detailsList)
 		}
-		a.tview.SetFocus(a.detailsList)
 	case a.detailsList:
 		a.tview.SetFocus(a.populateButton)
 	default:
-		// If we are in details but nothing recognized is focused, start at the top
+		// Check if it's a details button
+		for i, btn := range a.detailsButtons {
+			if focus == btn {
+				if i+1 < len(a.detailsButtons) {
+					a.tview.SetFocus(a.detailsButtons[i+1])
+				} else {
+					a.tview.SetFocus(a.detailsList)
+				}
+				return
+			}
+		}
+		// If not, start at the top
 		a.tview.SetFocus(a.populateButton)
 	}
 }
 
-// cycleDetailsFocusBackward cycles focus backward between buttons, table, and list in the details view.
+// cycleDetailsFocusBackward cycles focus backward between buttons, grid, and list in the details view.
 func (a *App) cycleDetailsFocusBackward() {
 	focus := a.tview.GetFocus()
 	switch focus {
 	case a.detailsList:
-		if rows := a.detailsTable.GetRowCount(); rows > 0 {
-			a.detailsTable.Select(rows-1, 2)
-			a.tview.SetFocus(a.detailsTable)
-		} else {
-			a.tview.SetFocus(a.nameDirTable)
-		}
-	case a.detailsTable:
-		r, _ := a.detailsTable.GetSelection()
-		if r > 0 {
-			a.detailsTable.Select(r-1, 2)
+		if len(a.detailsButtons) > 0 {
+			a.tview.SetFocus(a.detailsButtons[len(a.detailsButtons)-1])
 		} else {
 			a.tview.SetFocus(a.nameDirTable)
 		}
@@ -390,25 +346,87 @@ func (a *App) cycleDetailsFocusBackward() {
 	case a.populateButton:
 		a.tview.SetFocus(a.detailsList)
 	default:
-		// If we are in details but nothing recognized is focused, start at the end
+		// Check if it's a details button
+		for i, btn := range a.detailsButtons {
+			if focus == btn {
+				if i > 0 {
+					a.tview.SetFocus(a.detailsButtons[i-1])
+				} else {
+					a.tview.SetFocus(a.nameDirTable)
+				}
+				return
+			}
+		}
+		// If not, start at the end
 		a.tview.SetFocus(a.detailsList)
 	}
 }
 
-// showDetails fetches and displays environment details in a table.
+// createDetailsRows creates the grid rows for details.
+func (a *App) createDetailsRows(rows []DetailRow) {
+	a.detailsGrid.Clear()
+	a.detailsButtons = nil
+
+	// Set up rows: one row per detail item, each 1 cell tall (no border padding)
+	rowHeights := make([]int, len(rows))
+	for i := range rowHeights {
+		rowHeights[i] = 1
+	}
+	a.detailsGrid.SetRows(rowHeights...)
+
+	// Set up columns:
+	// Col 0: Label (fixed width ~15 chars)
+	// Col 1: Value (flexible, takes remaining space)
+	// Col 2: Copy button (fixed width ~8 chars)
+	// Col 3: Open button (fixed width ~8 chars)
+	a.detailsGrid.SetColumns(15, 0, 8, 8)
+
+	for i, row := range rows {
+		// Create label with no extra padding
+		labelTV := tview.NewTextView().
+			SetText("[::b]" + row.Label).
+			SetTextColor(DefaultTheme.Primary).
+			SetDynamicColors(true)
+		labelTV.SetBorderPadding(0, 0, 1, 1)
+
+		// Create value with no extra padding
+		valueTV := tview.NewTextView().
+			SetText(row.Value).
+			SetTextColor(DefaultTheme.OnSurface)
+		valueTV.SetBorderPadding(0, 0, 1, 1)
+
+		// Create buttons
+		copyBtn := tview.NewButton("Copy").
+			SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary)).
+			SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
+		copyBtn.SetSelectedFunc(func() { a.copyToClipboard(row.Value) })
+
+		openBtn := tview.NewButton("Open").
+			SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary)).
+			SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
+		openBtn.SetSelectedFunc(func() { a.openInBrowser(row.Value) })
+
+		a.detailsGrid.AddItem(labelTV, i, 0, 1, 1, 0, 0, false)
+		a.detailsGrid.AddItem(valueTV, i, 1, 1, 1, 0, 0, false)
+		a.detailsGrid.AddItem(copyBtn, i, 2, 1, 1, 0, 0, false)
+		a.detailsGrid.AddItem(openBtn, i, 3, 1, 1, 0, 0, false)
+
+		a.detailsButtons = append(a.detailsButtons, copyBtn, openBtn)
+	}
+	// a.detailsGrid.SetBackgroundColor(DefaultTheme.OnSurface)
+	a.detailsGrid.SetBordersColor(DefaultTheme.Secondary)
+}
+
+// showDetails fetches and displays environment details in a grid.
 func (a *App) showDetails(name, envType string) {
 	if !a.detailsShown {
 		a.details.Clear()
 		a.details.AddItem(a.buttonsFlex, 1, 0, true)
 		a.details.AddItem(a.nameDirTable, 0, 1, false)
-		a.details.AddItem(a.detailsTable, 0, 2, false)
+		a.details.AddItem(a.detailsGrid, 0, 1, false)
 		a.details.AddItem(a.detailsList, 0, 1, false)
 		a.detailsShown = true
 		updateBoxStyle(a.details, true)
-	}
-
-	padString := func(str string) string {
-		return " " + str + " "
 	}
 
 	switch envType {
@@ -426,45 +444,43 @@ func (a *App) showDetails(name, envType string) {
 				log.Printf("error joining docker backoffice url: %v", err)
 				return
 			}
-			a.nameDirTable.SetCell(0, 0, tview.NewTableCell(padString("Name")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.nameDirTable.SetCell(0, 1, tview.NewTableCell(padString(d.Name)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.nameDirTable.SetCell(1, 0, tview.NewTableCell(padString("Directory")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.nameDirTable.SetCell(1, 1, tview.NewTableCell(padString(d.Directory)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(0, 0, tview.NewTableCell(padString("API URL")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(0, 1, tview.NewTableCell(padString(apiURL)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(0, 2, tview.NewTableCell(padString("Open")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(1, 0, tview.NewTableCell(padString("GUI URL")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(1, 1, tview.NewTableCell(padString(d.GuiUrl)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(1, 2, tview.NewTableCell(padString("Open")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(2, 0, tview.NewTableCell(padString("Backoffice URL")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(2, 1, tview.NewTableCell(padString(backofficeURL)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(2, 2, tview.NewTableCell(padString("Open")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
+			a.nameDirTable.SetCell(0, 0, tview.NewTableCell(" Name ").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
+			a.nameDirTable.SetCell(0, 1, tview.NewTableCell(" "+d.Name+" ").SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
+			a.nameDirTable.SetCell(1, 0, tview.NewTableCell(" Directory ").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
+			a.nameDirTable.SetCell(1, 1, tview.NewTableCell(" "+d.Directory+" ").SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
+			rows := []DetailRow{
+				{Label: "API URL", Value: apiURL},
+				{Label: "GUI URL", Value: d.GuiUrl},
+				{Label: "Backoffice URL", Value: backofficeURL},
+			}
+			a.createDetailsRows(rows)
 		} else {
-			a.detailsTable.SetCell(0, 0, tview.NewTableCell(padString(fmt.Sprintf("Error fetching details for %s: %v", name, err))).SetTextColor(DefaultTheme.Destructive))
+			a.detailsGrid.Clear()
+			a.detailsButtons = nil
+			a.detailsGrid.SetRows(1)
+			a.detailsGrid.SetColumns(1)
+			errorTV := tview.NewTextView().SetText(fmt.Sprintf("Error fetching details for %s: %v", name, err)).SetTextColor(DefaultTheme.Destructive)
+			a.detailsGrid.AddItem(errorTV, 0, 0, 1, 1, 0, 0, false)
 		}
 	case "k8s":
 		if k, err := db.GetKubernetesByName(name); err == nil {
-			a.nameDirTable.SetCell(0, 0, tview.NewTableCell(padString("Name")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.nameDirTable.SetCell(0, 1, tview.NewTableCell(padString(k.Name)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.nameDirTable.SetCell(1, 0, tview.NewTableCell(padString("Directory")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.nameDirTable.SetCell(1, 1, tview.NewTableCell(padString(k.Directory)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(0, 0, tview.NewTableCell(padString("Context")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(0, 1, tview.NewTableCell(padString(k.Context)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(0, 2, tview.NewTableCell(padString("Copy")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(1, 0, tview.NewTableCell(padString("API URL")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(1, 1, tview.NewTableCell(padString(k.ApiUrl)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(1, 2, tview.NewTableCell(padString("Open")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(2, 0, tview.NewTableCell(padString("GUI URL")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(2, 1, tview.NewTableCell(padString(k.GuiUrl)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(2, 2, tview.NewTableCell(padString("Open")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(3, 0, tview.NewTableCell(padString("Backoffice URL")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(3, 1, tview.NewTableCell(padString(k.BackofficeUrl)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(3, 2, tview.NewTableCell(padString("Open")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(4, 0, tview.NewTableCell(padString("Protocol")).SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.detailsTable.SetCell(4, 1, tview.NewTableCell(padString(k.Protocol)).SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.detailsTable.SetCell(4, 2, tview.NewTableCell(padString("Copy")).SetTextColor(DefaultTheme.Secondary).SetAttributes(tcell.AttrBold))
+			a.nameDirTable.SetCell(0, 0, tview.NewTableCell(" Name ").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
+			a.nameDirTable.SetCell(0, 1, tview.NewTableCell(" "+k.Name+" ").SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
+			a.nameDirTable.SetCell(1, 0, tview.NewTableCell(" Directory ").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
+			a.nameDirTable.SetCell(1, 1, tview.NewTableCell(" "+k.Directory+" ").SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
+			rows := []DetailRow{
+				{Label: "API URL", Value: k.ApiUrl},
+				{Label: "GUI URL", Value: k.GuiUrl},
+				{Label: "Backoffice URL", Value: k.BackofficeUrl},
+			}
+			a.createDetailsRows(rows)
 		} else {
-			a.detailsTable.SetCell(0, 0, tview.NewTableCell(padString(fmt.Sprintf("Error fetching details for %s: %v", name, err))).SetTextColor(DefaultTheme.Destructive))
+			a.detailsGrid.Clear()
+			a.detailsButtons = nil
+			a.detailsGrid.SetRows(1)
+			a.detailsGrid.SetColumns(1)
+			errorTV := tview.NewTextView().SetText(fmt.Sprintf("Error fetching details for %s: %v", name, err)).SetTextColor(DefaultTheme.Destructive)
+			a.detailsGrid.AddItem(errorTV, 0, 0, 1, 1, 0, 0, false)
 		}
 	}
 
@@ -478,12 +494,6 @@ func (a *App) setupRootInput(envsFlex *tview.Flex) {
 		switch {
 		case event.Key() == tcell.KeyTab, event.Key() == tcell.KeyBacktab:
 			a.switchEnvFocus()
-			return nil
-		case event.Rune() == 'q':
-			a.Quit()
-			return nil
-		case event.Rune() == '?':
-			a.showHelp()
 			return nil
 		case event.Rune() == 'n':
 			if a.currentEnv == a.dockerFlex {
@@ -522,7 +532,19 @@ func (a *App) setupDetailsInput(details *tview.Flex) {
 		switch {
 		case event.Key() == tcell.KeyEsc:
 			a.clearDetailsPanel()
-			a.tview.SetFocus(a.currentEnv)
+			if a.currentEnv == a.dockerFlex {
+				if a.docker.GetItemCount() > 0 {
+					a.tview.SetFocus(a.docker)
+				} else {
+					a.tview.SetFocus(a.dockerEmpty)
+				}
+			} else {
+				if a.k8s.GetItemCount() > 0 {
+					a.tview.SetFocus(a.k8s)
+				} else {
+					a.tview.SetFocus(a.k8sEmpty)
+				}
+			}
 			return nil
 		case event.Key() == tcell.KeyTab:
 			a.cycleDetailsFocus()
@@ -532,6 +554,26 @@ func (a *App) setupDetailsInput(details *tview.Flex) {
 			return nil
 		case event.Key() == tcell.KeyEnter:
 			return event // Let the table handle via SetSelectedFunc
+		case event.Rune() == 'd':
+			if a.currentEnv == a.dockerFlex {
+				a.showDeleteConfirm()
+				return nil
+			}
+		case event.Rune() == 'c':
+			if a.currentEnv == a.dockerFlex {
+				a.showCleanConfirm()
+				return nil
+			}
+		case event.Rune() == 'u':
+			if a.currentEnv == a.dockerFlex {
+				a.showUpdateForm()
+				return nil
+			}
+		case event.Rune() == 'p':
+			if a.currentEnv == a.dockerFlex {
+				a.showPopulateForm()
+				return nil
+			}
 		}
 		return event
 	}
@@ -616,9 +658,9 @@ func (a *App) setupFocusHandlers() {
 	// Details
 	a.details.SetFocusFunc(func() {
 		updateBoxStyle(a.details, true)
-		key := "details-k8s"
+		key := DetailsK8sKey
 		if a.currentEnv == a.dockerFlex {
-			key = "details-docker"
+			key = DetailsDockerKey
 		}
 		a.UpdateFooter("[Environment Details]", KeyDescriptions[key])
 	})
@@ -628,14 +670,6 @@ func (a *App) setupFocusHandlers() {
 		} else {
 			updateBoxStyle(a.details, false)
 		}
-	})
-
-	// Details Table
-	a.detailsTable.SetFocusFunc(func() {
-		a.detailsTable.SetSelectedStyle(tcell.StyleDefault.Foreground(DefaultTheme.Primary))
-	})
-	a.detailsTable.SetBlurFunc(func() {
-		a.detailsTable.SetSelectedStyle(tcell.StyleDefault.Foreground(DefaultTheme.Secondary).Background(DefaultTheme.Background))
 	})
 
 	// Name and Directory Table
