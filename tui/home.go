@@ -136,6 +136,8 @@ func (a *App) clearDetailsPanel() {
 		updateBoxStyle(a.details, false)
 		a.nameDirGrid.Clear()
 		a.nameDirButtons = nil
+		a.currentDetailsName = ""
+		a.currentDetailsType = ""
 	}
 }
 
@@ -512,6 +514,9 @@ func (a *App) createDetailsRows(rows []DetailRow) {
 
 // showDetails fetches and displays environment details in a grid.
 func (a *App) showDetails(name, envType string) {
+	a.currentDetailsName = name
+	a.currentDetailsType = envType
+
 	if !a.detailsShown {
 		a.details.Clear()
 		a.details.AddItem(a.buttonsFlex, 1, 0, true)
@@ -579,9 +584,17 @@ func (a *App) showDetails(name, envType string) {
 		}
 	}
 
+	a.populateIngestedFilesList()
+
+	a.tview.SetFocus(a.details)
+	a.UpdateFooter("[Environment Details]", KeyDescriptions["details-"+envType])
+}
+
+// populateIngestedFilesList populates the ingested files list for the current details environment.
+func (a *App) populateIngestedFilesList() {
 	// Populate ingested files list
 	a.detailsList.Clear()
-	if ingestedFiles, err := db.GetIngestedFilesByEnvironment(envType, name); err == nil {
+	if ingestedFiles, err := db.GetIngestedFilesByEnvironment(a.currentDetailsType, a.currentDetailsName); err == nil {
 		count := len(ingestedFiles)
 		if count > 0 {
 			a.detailsList.SetTitle(fmt.Sprintf(" [::b]Ingested Files (%d) ", count))
@@ -597,9 +610,13 @@ func (a *App) showDetails(name, envType string) {
 		a.detailsList.SetTitle(" [::b]Ingested Files ")
 		a.detailsList.AddItem(fmt.Sprintf("Error loading files: %v", err), "", 0, nil)
 	}
+}
 
-	a.tview.SetFocus(a.details)
-	a.UpdateFooter("[Environment Details]", KeyDescriptions["details-"+envType])
+// refreshIngestedFiles refreshes the ingested files list if details are currently shown.
+func (a *App) refreshIngestedFiles() {
+	if a.detailsShown {
+		a.populateIngestedFilesList()
+	}
 }
 
 // setupRootInput configures global key handlers for the home screen root.

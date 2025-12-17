@@ -304,6 +304,7 @@ func (a *App) returnFromPopulate() {
 	a.pages.RemovePage("populate-progress")
 	a.pages.SwitchToPage("home")
 	a.refreshLists()
+	a.refreshIngestedFiles()
 
 	if a.previousFocus != nil {
 		a.tview.SetFocus(a.previousFocus)

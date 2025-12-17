@@ -154,6 +154,7 @@ func (a *App) returnFromClean() {
 	a.pages.RemovePage("clean-progress")
 	a.pages.SwitchToPage("home")
 	a.refreshLists()
+	a.refreshIngestedFiles()
 
 	if a.previousFocus != nil {
 		a.tview.SetFocus(a.previousFocus)

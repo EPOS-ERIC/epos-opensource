@@ -24,30 +24,32 @@ type App struct {
 	config config.Config
 
 	// Home screen components
-	docker         *tview.List
-	dockerEmpty    *tview.TextView
-	dockerFlex     *tview.Flex
-	dockerEnvs     []string // Environment names for docker list (lookup by index)
-	k8s            *tview.List
-	k8sEmpty       *tview.TextView
-	k8sFlex        *tview.Flex
-	k8sEnvs        []string // Environment names for k8s list (lookup by index)
-	details        *tview.Flex
-	detailsGrid    *tview.Grid
-	detailsButtons []*tview.Button
-	nameDirGrid    *tview.Grid
-	nameDirButtons []*tview.Button
-	buttonsFlex    *tview.Flex
-	deleteButton   *tview.Button
-	cleanButton    *tview.Button
-	updateButton   *tview.Button
-	populateButton *tview.Button
-	detailsList    *tview.List
-	detailsEmpty   *tview.TextView
-	currentEnv     tview.Primitive
-	homeFlex       *tview.Flex
-	detailsShown   bool
-	previousFocus  tview.Primitive
+	docker             *tview.List
+	dockerEmpty        *tview.TextView
+	dockerFlex         *tview.Flex
+	dockerEnvs         []string // Environment names for docker list (lookup by index)
+	k8s                *tview.List
+	k8sEmpty           *tview.TextView
+	k8sFlex            *tview.Flex
+	k8sEnvs            []string // Environment names for k8s list (lookup by index)
+	details            *tview.Flex
+	detailsGrid        *tview.Grid
+	detailsButtons     []*tview.Button
+	nameDirGrid        *tview.Grid
+	nameDirButtons     []*tview.Button
+	buttonsFlex        *tview.Flex
+	deleteButton       *tview.Button
+	cleanButton        *tview.Button
+	updateButton       *tview.Button
+	populateButton     *tview.Button
+	detailsList        *tview.List
+	detailsEmpty       *tview.TextView
+	currentEnv         tview.Primitive
+	homeFlex           *tview.Flex
+	detailsShown       bool
+	currentDetailsName string
+	currentDetailsType string
+	previousFocus      tview.Primitive
 
 	// Background tasks
 	refreshTicker *time.Ticker

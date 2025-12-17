@@ -153,6 +153,7 @@ func (a *App) returnFromUpdate() {
 	a.pages.RemovePage("update-progress")
 	a.pages.SwitchToPage("home")
 	a.refreshLists()
+	a.refreshIngestedFiles()
 
 	if a.previousFocus != nil {
 		a.tview.SetFocus(a.previousFocus)
