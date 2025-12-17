@@ -10,7 +10,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var force bool
+var (
+	force bool
+	reset bool
+)
 
 var UpdateCmd = &cobra.Command{
 	Use:               "update [env-name]",
@@ -27,6 +30,7 @@ var UpdateCmd = &cobra.Command{
 			Name:        name,
 			Force:       force,
 			CustomHost:  host,
+			Reset:       reset,
 		})
 		if err != nil {
 			display.Error("%v", err)
@@ -42,4 +46,5 @@ func init() {
 	UpdateCmd.Flags().StringVarP(&envFile, "env-file", "e", "", "Path to the environment variables file (.env)")
 	UpdateCmd.Flags().StringVarP(&manifestsDir, "manifests-dir", "m", "", "Path to the directory containing the manifests files")
 	UpdateCmd.Flags().StringVar(&host, "host", "", "Host (either IP or hostname) to use for exposing the environment. If not set the nginx ingress controller IP is used by default")
+	UpdateCmd.Flags().BoolVarP(&reset, "reset", "r", false, "Reset .env and manifests to embedded versions")
 }

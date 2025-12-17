@@ -10,7 +10,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var force bool
+var (
+	force bool
+	reset bool
+)
 
 var UpdateCmd = &cobra.Command{
 	Use:   "update [env-name]",
@@ -27,6 +30,7 @@ var UpdateCmd = &cobra.Command{
 			PullImages:  pullImages,
 			Force:       force,
 			CustomHost:  host,
+			Reset:       reset,
 		})
 		if err != nil {
 			display.Error("%v", err)
@@ -43,4 +47,5 @@ func init() {
 	UpdateCmd.Flags().BoolVarP(&force, "force", "f", false, "Remove the current containers before redeploying")
 	UpdateCmd.Flags().BoolVarP(&pullImages, "update-images", "u", false, "Download Docker images before starting")
 	UpdateCmd.Flags().StringVar(&host, "host", "", "Host (either IP or hostname) to use for exposing the environment")
+	UpdateCmd.Flags().BoolVar(&reset, "reset", false, "Reset the environment config to the embedded defaults")
 }
