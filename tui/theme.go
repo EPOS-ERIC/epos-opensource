@@ -10,42 +10,44 @@ import (
 
 // Theme defines the color scheme for the TUI.
 type Theme struct {
-	Primary       tcell.Color
-	OnPrimary     tcell.Color
-	Secondary     tcell.Color
-	OnSecondary   tcell.Color
-	Error         tcell.Color
-	OnError       tcell.Color
-	Destructive   tcell.Color
-	OnDestructive tcell.Color
-	Success       tcell.Color
-	OnSuccess     tcell.Color
-	Background    tcell.Color
-	OnBackground  tcell.Color
-	Surface       tcell.Color
-	OnSurface     tcell.Color
-	Muted         tcell.Color
-	OnMuted       tcell.Color
+	Primary          tcell.Color
+	OnPrimary        tcell.Color
+	Secondary        tcell.Color
+	OnSecondary      tcell.Color
+	Error            tcell.Color
+	OnError          tcell.Color
+	Destructive      tcell.Color
+	OnDestructive    tcell.Color
+	Success          tcell.Color
+	OnSuccess        tcell.Color
+	Background       tcell.Color
+	OnBackground     tcell.Color
+	Surface          tcell.Color
+	OnSurface        tcell.Color
+	Muted            tcell.Color
+	OnMuted          tcell.Color
+	HeaderBackground tcell.Color
 }
 
 // DefaultTheme is the default color scheme.
 var DefaultTheme = &Theme{
-	Primary:       tcell.NewRGBColor(90, 180, 105),
-	OnPrimary:     tcell.NewRGBColor(0, 0, 0),
-	Secondary:     tcell.NewRGBColor(229, 161, 14),
-	OnSecondary:   tcell.NewRGBColor(0, 0, 0),
-	Error:         tcell.NewRGBColor(200, 60, 60),
-	OnError:       tcell.NewRGBColor(255, 255, 255),
-	Destructive:   tcell.NewRGBColor(200, 60, 60),
-	OnDestructive: tcell.NewRGBColor(255, 255, 255),
-	Success:       tcell.NewRGBColor(90, 180, 105),
-	OnSuccess:     tcell.NewRGBColor(0, 0, 0),
-	Background:    tcell.ColorDefault,
-	OnBackground:  tcell.ColorDefault,
-	Surface:       tcell.NewRGBColor(60, 72, 65),
-	OnSurface:     tcell.NewRGBColor(255, 255, 255),
-	Muted:         tcell.NewRGBColor(60, 72, 65),
-	OnMuted:       tcell.ColorDefault,
+	Primary:          tcell.NewRGBColor(90, 180, 105),
+	OnPrimary:        tcell.NewRGBColor(0, 0, 0),
+	Secondary:        tcell.NewRGBColor(229, 161, 14),
+	OnSecondary:      tcell.NewRGBColor(0, 0, 0),
+	Error:            tcell.NewRGBColor(200, 60, 60),
+	OnError:          tcell.NewRGBColor(255, 255, 255),
+	Destructive:      tcell.NewRGBColor(200, 60, 60),
+	OnDestructive:    tcell.NewRGBColor(255, 255, 255),
+	Success:          tcell.NewRGBColor(90, 180, 105),
+	OnSuccess:        tcell.NewRGBColor(0, 0, 0),
+	Background:       tcell.ColorDefault,
+	OnBackground:     tcell.ColorDefault,
+	Surface:          tcell.NewRGBColor(60, 72, 65),
+	OnSurface:        tcell.NewRGBColor(255, 255, 255),
+	Muted:            tcell.NewRGBColor(60, 72, 65),
+	OnMuted:          tcell.ColorDefault,
+	HeaderBackground: tcell.NewRGBColor(40, 48, 43),
 }
 
 const (

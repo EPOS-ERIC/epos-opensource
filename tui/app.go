@@ -32,7 +32,8 @@ type App struct {
 	details        *tview.Flex
 	detailsGrid    *tview.Grid
 	detailsButtons []*tview.Button
-	nameDirTable   *tview.Table
+	nameDirGrid    *tview.Grid
+	nameDirButtons []*tview.Button
 	buttonsFlex    *tview.Flex
 	deleteButton   *tview.Button
 	cleanButton    *tview.Button

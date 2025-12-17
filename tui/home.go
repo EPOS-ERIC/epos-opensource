@@ -24,10 +24,12 @@ func (a *App) createHome() *tview.Flex {
 	a.detailsGrid = tview.NewGrid()
 	a.detailsGrid.SetBorders(true)
 
-	a.nameDirTable = tview.NewTable()
-	a.nameDirTable.SetBorders(true)
-	a.nameDirTable.SetBordersColor(DefaultTheme.Secondary)
-	a.nameDirTable.SetBorderPadding(1, 1, 0, 0)
+	a.nameDirGrid = tview.NewGrid()
+	a.nameDirGrid.SetBorders(true)
+	a.nameDirGrid.SetBordersColor(DefaultTheme.Secondary)
+	a.nameDirGrid.SetBorderPadding(1, 1, 0, 0)
+
+	a.nameDirButtons = []*tview.Button{}
 
 	a.deleteButton = tview.NewButton("Delete")
 	a.deleteButton.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary))
@@ -117,6 +119,8 @@ func (a *App) clearDetailsPanel() {
 		a.details.AddItem(a.detailsEmpty, 0, 1, true)
 		a.detailsShown = false
 		updateBoxStyle(a.details, false)
+		a.nameDirGrid.Clear()
+		a.nameDirButtons = nil
 	}
 }
 
@@ -293,19 +297,19 @@ func (a *App) cycleDetailsFocus() {
 	focus := a.tview.GetFocus()
 	switch focus {
 	case a.deleteButton:
-		a.tview.SetFocus(a.nameDirTable)
+		if len(a.nameDirButtons) > 0 {
+			a.tview.SetFocus(a.nameDirButtons[0])
+		} else if len(a.detailsButtons) > 0 {
+			a.tview.SetFocus(a.detailsButtons[0])
+		} else {
+			a.tview.SetFocus(a.detailsList)
+		}
 	case a.cleanButton:
 		a.tview.SetFocus(a.deleteButton)
 	case a.updateButton:
 		a.tview.SetFocus(a.cleanButton)
 	case a.populateButton:
 		a.tview.SetFocus(a.updateButton)
-	case a.nameDirTable:
-		if len(a.detailsButtons) > 0 {
-			a.tview.SetFocus(a.detailsButtons[0])
-		} else {
-			a.tview.SetFocus(a.detailsList)
-		}
 	case a.detailsList:
 		a.tview.SetFocus(a.populateButton)
 	default:
@@ -316,6 +320,21 @@ func (a *App) cycleDetailsFocus() {
 					a.tview.SetFocus(a.detailsButtons[i+1])
 				} else {
 					a.tview.SetFocus(a.detailsList)
+				}
+				return
+			}
+		}
+		// Check if it's a nameDir button
+		for i, btn := range a.nameDirButtons {
+			if focus == btn {
+				if i+1 < len(a.nameDirButtons) {
+					a.tview.SetFocus(a.nameDirButtons[i+1])
+				} else {
+					if len(a.detailsButtons) > 0 {
+						a.tview.SetFocus(a.detailsButtons[0])
+					} else {
+						a.tview.SetFocus(a.detailsList)
+					}
 				}
 				return
 			}
@@ -332,11 +351,11 @@ func (a *App) cycleDetailsFocusBackward() {
 	case a.detailsList:
 		if len(a.detailsButtons) > 0 {
 			a.tview.SetFocus(a.detailsButtons[len(a.detailsButtons)-1])
+		} else if len(a.nameDirButtons) > 0 {
+			a.tview.SetFocus(a.nameDirButtons[len(a.nameDirButtons)-1])
 		} else {
-			a.tview.SetFocus(a.nameDirTable)
+			a.tview.SetFocus(a.deleteButton)
 		}
-	case a.nameDirTable:
-		a.tview.SetFocus(a.deleteButton)
 	case a.deleteButton:
 		a.tview.SetFocus(a.cleanButton)
 	case a.cleanButton:
@@ -352,7 +371,22 @@ func (a *App) cycleDetailsFocusBackward() {
 				if i > 0 {
 					a.tview.SetFocus(a.detailsButtons[i-1])
 				} else {
-					a.tview.SetFocus(a.nameDirTable)
+					if len(a.nameDirButtons) > 0 {
+						a.tview.SetFocus(a.nameDirButtons[len(a.nameDirButtons)-1])
+					} else {
+						a.tview.SetFocus(a.deleteButton)
+					}
+				}
+				return
+			}
+		}
+		// Check if it's a nameDir button
+		for i, btn := range a.nameDirButtons {
+			if focus == btn {
+				if i > 0 {
+					a.tview.SetFocus(a.nameDirButtons[i-1])
+				} else {
+					a.tview.SetFocus(a.deleteButton)
 				}
 				return
 			}
@@ -362,24 +396,49 @@ func (a *App) cycleDetailsFocusBackward() {
 	}
 }
 
-// createDetailsRows creates the grid rows for details.
-func (a *App) createDetailsRows(rows []DetailRow) {
-	a.detailsGrid.Clear()
-	a.detailsButtons = nil
+// createGridRows creates the grid rows for details or name/dir.
+func (a *App) createGridRows(grid *tview.Grid, rows []DetailRow, buttons *[]*tview.Button, includeOpen bool, header string) {
+	grid.Clear()
+	*buttons = nil
 
-	// Set up rows: one row per detail item, each 1 cell tall (no border padding)
-	rowHeights := make([]int, len(rows))
+	numColumns := 3
+	if includeOpen {
+		numColumns = 4
+	}
+
+	// Set up rows: one row per detail item, plus header if present
+	totalRows := len(rows)
+	if header != "" {
+		totalRows++
+	}
+	rowHeights := make([]int, totalRows)
 	for i := range rowHeights {
 		rowHeights[i] = 1
 	}
-	a.detailsGrid.SetRows(rowHeights...)
+	grid.SetRows(rowHeights...)
 
 	// Set up columns:
 	// Col 0: Label (fixed width ~15 chars)
 	// Col 1: Value (flexible, takes remaining space)
 	// Col 2: Copy button (fixed width ~8 chars)
-	// Col 3: Open button (fixed width ~8 chars)
-	a.detailsGrid.SetColumns(15, 0, 8, 8)
+	// Col 3: Open button (fixed width ~8 chars) if includeOpen
+	if includeOpen {
+		grid.SetColumns(15, 0, 8, 8)
+	} else {
+		grid.SetColumns(15, 0, 8)
+	}
+
+	rowIndex := 0
+	if header != "" {
+		// Create header text view
+		headerTV := tview.NewTextView().
+			SetDynamicColors(true).
+			SetText("["+DefaultTheme.Hex(DefaultTheme.OnSurface)+":"+DefaultTheme.Hex(DefaultTheme.HeaderBackground)+":b]"+header).SetSize(1, len(header))
+		headerTV.SetBorderPadding(0, 0, 2, 0).SetBackgroundColor(DefaultTheme.HeaderBackground)
+
+		grid.AddItem(headerTV, 0, 0, 1, numColumns, 0, 0, false)
+		rowIndex = 1
+	}
 
 	for i, row := range rows {
 		// Create label with no extra padding
@@ -401,20 +460,30 @@ func (a *App) createDetailsRows(rows []DetailRow) {
 			SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
 		copyBtn.SetSelectedFunc(func() { a.copyToClipboard(row.Value) })
 
-		openBtn := tview.NewButton("Open").
-			SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary)).
-			SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
-		openBtn.SetSelectedFunc(func() { a.openInBrowser(row.Value) })
+		grid.AddItem(labelTV, rowIndex+i, 0, 1, 1, 0, 0, false)
+		grid.AddItem(valueTV, rowIndex+i, 1, 1, 1, 0, 0, false)
+		grid.AddItem(copyBtn, rowIndex+i, 2, 1, 1, 0, 0, false)
 
-		a.detailsGrid.AddItem(labelTV, i, 0, 1, 1, 0, 0, false)
-		a.detailsGrid.AddItem(valueTV, i, 1, 1, 1, 0, 0, false)
-		a.detailsGrid.AddItem(copyBtn, i, 2, 1, 1, 0, 0, false)
-		a.detailsGrid.AddItem(openBtn, i, 3, 1, 1, 0, 0, false)
+		*buttons = append(*buttons, copyBtn)
 
-		a.detailsButtons = append(a.detailsButtons, copyBtn, openBtn)
+		if includeOpen {
+			openBtn := tview.NewButton("Open").
+				SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary)).
+				SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
+			openBtn.SetSelectedFunc(func() { a.openInBrowser(row.Value) })
+
+			grid.AddItem(openBtn, rowIndex+i, 3, 1, 1, 0, 0, false)
+
+			*buttons = append(*buttons, openBtn)
+		}
 	}
-	// a.detailsGrid.SetBackgroundColor(DefaultTheme.OnSurface)
-	a.detailsGrid.SetBordersColor(DefaultTheme.Secondary)
+	// grid.SetBackgroundColor(DefaultTheme.OnSurface)
+	grid.SetBordersColor(DefaultTheme.Secondary)
+}
+
+// createDetailsRows creates the grid rows for details.
+func (a *App) createDetailsRows(rows []DetailRow) {
+	a.createGridRows(a.detailsGrid, rows, &a.detailsButtons, true, "Environment URLs")
 }
 
 // showDetails fetches and displays environment details in a grid.
@@ -422,7 +491,7 @@ func (a *App) showDetails(name, envType string) {
 	if !a.detailsShown {
 		a.details.Clear()
 		a.details.AddItem(a.buttonsFlex, 1, 0, true)
-		a.details.AddItem(a.nameDirTable, 0, 1, false)
+		a.details.AddItem(a.nameDirGrid, 0, 1, false)
 		a.details.AddItem(a.detailsGrid, 0, 1, false)
 		a.details.AddItem(a.detailsList, 0, 1, false)
 		a.detailsShown = true
@@ -444,10 +513,11 @@ func (a *App) showDetails(name, envType string) {
 				log.Printf("error joining docker backoffice url: %v", err)
 				return
 			}
-			a.nameDirTable.SetCell(0, 0, tview.NewTableCell(" Name ").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.nameDirTable.SetCell(0, 1, tview.NewTableCell(" "+d.Name+" ").SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.nameDirTable.SetCell(1, 0, tview.NewTableCell(" Directory ").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.nameDirTable.SetCell(1, 1, tview.NewTableCell(" "+d.Directory+" ").SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
+			nameDirRows := []DetailRow{
+				{Label: "Name", Value: d.Name},
+				{Label: "Directory", Value: d.Directory},
+			}
+			a.createGridRows(a.nameDirGrid, nameDirRows, &a.nameDirButtons, false, "Basic Information")
 			rows := []DetailRow{
 				{Label: "API URL", Value: apiURL},
 				{Label: "GUI URL", Value: d.GuiUrl},
@@ -464,10 +534,11 @@ func (a *App) showDetails(name, envType string) {
 		}
 	case "k8s":
 		if k, err := db.GetKubernetesByName(name); err == nil {
-			a.nameDirTable.SetCell(0, 0, tview.NewTableCell(" Name ").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.nameDirTable.SetCell(0, 1, tview.NewTableCell(" "+k.Name+" ").SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
-			a.nameDirTable.SetCell(1, 0, tview.NewTableCell(" Directory ").SetTextColor(DefaultTheme.Primary).SetAttributes(tcell.AttrBold))
-			a.nameDirTable.SetCell(1, 1, tview.NewTableCell(" "+k.Directory+" ").SetTextColor(DefaultTheme.OnSurface).SetAlign(tview.AlignLeft).SetExpansion(1))
+			nameDirRows := []DetailRow{
+				{Label: "Name", Value: k.Name},
+				{Label: "Directory", Value: k.Directory},
+			}
+			a.createGridRows(a.nameDirGrid, nameDirRows, &a.nameDirButtons, false, "Basic Information")
 			rows := []DetailRow{
 				{Label: "API URL", Value: k.ApiUrl},
 				{Label: "GUI URL", Value: k.GuiUrl},
@@ -670,14 +741,6 @@ func (a *App) setupFocusHandlers() {
 		} else {
 			updateBoxStyle(a.details, false)
 		}
-	})
-
-	// Name and Directory Table
-	a.nameDirTable.SetFocusFunc(func() {
-		updateBoxStyle(a.nameDirTable, true)
-	})
-	a.nameDirTable.SetBlurFunc(func() {
-		updateBoxStyle(a.nameDirTable, false)
 	})
 }
 
