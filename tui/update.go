@@ -2,104 +2,96 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
-// showUpdateForm displays a confirmation dialog for updating a Docker environment.
+// updateFormData holds the form field values.
+type updateFormData struct {
+	name        string
+	envFile     string
+	composeFile string
+	customHost  string
+	pullImages  bool
+	force       bool
+	reset       bool
+}
+
+// showUpdateForm displays the Docker environment update form.
 func (a *App) showUpdateForm() {
-	a.previousFocus = a.tview.GetFocus()
+	a.UpdateFooter("[Update Docker Environment]", KeyDescriptions["update-form"])
+
 	envName := a.SelectedDockerEnv()
 	if envName == "" {
 		return
 	}
 
-	// Create text view for message
-	textView := tview.NewTextView().
-		SetText("\nThis will recreate the environment with new settings.\n\nAny unsaved changes may be lost.").
-		SetDynamicColors(true).
-		SetTextAlign(tview.AlignCenter)
-
-	// Create explicit buttons with styling
-	updateBtn := tview.NewButton("Update").SetSelectedFunc(func() {
-		a.pages.RemovePage("update-confirm")
-		a.showUpdateProgress(envName)
-	})
-	updateBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary))
-	updateBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
-
-	cancelBtn := tview.NewButton("Cancel").SetSelectedFunc(func() {
-		a.returnFromUpdate()
-	})
-	cancelBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary))
-	cancelBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
-
-	// Helper to handle arrow key navigation between buttons
-	buttonInputCapture := func(leftBtn, rightBtn *tview.Button) func(*tcell.EventKey) *tcell.EventKey {
-		return func(event *tcell.EventKey) *tcell.EventKey {
-			switch event.Key() {
-			case tcell.KeyLeft:
-				a.tview.SetFocus(leftBtn)
-				return nil
-			case tcell.KeyRight:
-				a.tview.SetFocus(rightBtn)
-				return nil
-			case tcell.KeyEsc:
-				a.returnFromUpdate()
-				return nil
-			}
-			return event
-		}
+	data := &updateFormData{
+		name: envName,
 	}
-	updateBtn.SetInputCapture(buttonInputCapture(updateBtn, cancelBtn))
-	cancelBtn.SetInputCapture(buttonInputCapture(updateBtn, cancelBtn))
 
-	buttonContainer := tview.NewFlex().SetDirection(tview.FlexColumn).
-		AddItem(tview.NewBox(), 0, 1, false).
-		AddItem(updateBtn, 10, 0, true).
-		AddItem(tview.NewBox(), 2, 0, false).
-		AddItem(cancelBtn, 10, 0, true).
-		AddItem(tview.NewBox(), 0, 1, false)
-	buttonContainer.SetBackgroundColor(tcell.ColorDefault)
+	form := tview.NewForm().
+		AddInputField("Env File", "", 0, nil, func(text string) { data.envFile = text }).
+		AddInputField("Compose File", "", 0, nil, func(text string) { data.composeFile = text }).
+		AddInputField("Custom Host", "", 0, nil, func(text string) { data.customHost = text }).
+		AddCheckbox("Pull Images", false, func(checked bool) { data.pullImages = checked }).
+		AddCheckbox("Force (reset DB)", false, func(checked bool) { data.force = checked }).
+		AddCheckbox("Reset Config", false, func(checked bool) { data.reset = checked }).
+		AddButton("Update", func() { a.handleUpdate(data) }).
+		AddButton("Cancel", func() { a.returnFromUpdate() })
 
-	// Main layout
-	layout := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(textView, 0, 1, false).
-		AddItem(buttonContainer, 1, 0, true)
-	layout.SetBorder(true).
-		SetTitle(" [::b]Update Environment ").
-		SetTitleColor(DefaultTheme.Secondary).
+	form.SetFieldBackgroundColor(DefaultTheme.Surface)
+	form.SetFieldTextColor(DefaultTheme.Secondary)
+	form.SetLabelColor(DefaultTheme.Secondary)
+	form.SetButtonBackgroundColor(DefaultTheme.Primary)
+	form.SetButtonTextColor(DefaultTheme.OnPrimary)
+	form.SetButtonActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
+	form.SetBorderPadding(1, 0, 2, 2)
+
+	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEsc {
+			a.returnFromUpdate()
+			return nil
+		}
+		return event
+	})
+
+	// Layout
+	content := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(form, 0, 1, true)
+
+	content.SetBorder(true).
 		SetBorderColor(DefaultTheme.Primary).
-		SetBackgroundColor(DefaultTheme.Background)
+		SetTitle(" [::b]Update Docker Environment ").
+		SetTitleColor(DefaultTheme.Secondary)
 
-	// Center the layout
-	innerFlex := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(nil, 0, 1, false).
-		AddItem(layout, 11, 1, true).
-		AddItem(nil, 0, 1, false)
-	innerFlex.SetBackgroundColor(DefaultTheme.Background)
+	a.pages.AddPage("update", CenterPrimitive(content, 2, 3), true, true)
+	a.tview.SetFocus(form)
+}
 
-	outerLayout := tview.NewFlex().
-		AddItem(nil, 0, 1, false).
-		AddItem(innerFlex, 60, 1, true).
-		AddItem(nil, 0, 1, false)
-	outerLayout.SetBackgroundColor(DefaultTheme.Background)
+// handleUpdate validates the form and starts update.
+func (a *App) handleUpdate(data *updateFormData) {
+	// Basic validation - prevent reset with custom files
+	if data.reset && (strings.TrimSpace(data.envFile) != "" || strings.TrimSpace(data.composeFile) != "") {
+		a.ShowError("Cannot specify custom files when Reset Config is checked!")
+		return
+	}
 
-	a.pages.AddPage("update-confirm", outerLayout, true, true)
-	a.tview.SetFocus(updateBtn)
-	a.UpdateFooter("[Update Environment]", KeyDescriptions["update-confirm"])
+	a.showUpdateProgress(data)
 }
 
 // showUpdateProgress displays the update progress with live output.
-func (a *App) showUpdateProgress(envName string) {
+func (a *App) showUpdateProgress(data *updateFormData) {
 	outputView := tview.NewTextView().
 		SetDynamicColors(true).
 		SetScrollable(true).
 		SetChangedFunc(func() { a.tview.Draw() })
 	outputView.SetBorder(true).
-		SetTitle(fmt.Sprintf(" [::b]Updating: %s ", envName)).
+		SetTitle(fmt.Sprintf(" [::b]Updating: %s ", data.name)).
 		SetTitleColor(DefaultTheme.Secondary).
 		SetBorderColor(DefaultTheme.Primary).
 		SetBorderPadding(0, 0, 2, 2)
@@ -124,7 +116,13 @@ func (a *App) showUpdateProgress(envName string) {
 	// Run update in background
 	go func() {
 		_, err := dockercore.Update(dockercore.UpdateOpts{
-			Name: envName,
+			Name:        data.name,
+			EnvFile:     data.envFile,
+			ComposeFile: data.composeFile,
+			PullImages:  data.pullImages,
+			Force:       data.force,
+			CustomHost:  data.customHost,
+			Reset:       data.reset,
 		})
 
 		a.tview.QueueUpdateDraw(func() {
@@ -149,14 +147,20 @@ func (a *App) showUpdateProgress(envName string) {
 
 // returnFromUpdate cleans up and returns to the home screen.
 func (a *App) returnFromUpdate() {
-	a.pages.RemovePage("update-confirm")
+	a.pages.RemovePage("update")
 	a.pages.RemovePage("update-progress")
 	a.pages.SwitchToPage("home")
 	a.refreshLists()
 	a.refreshIngestedFiles()
 
-	if a.previousFocus != nil {
-		a.tview.SetFocus(a.previousFocus)
+	if a.detailsShown {
+		a.tview.SetFocus(a.details)
+	} else {
+		if a.currentEnv == a.dockerFlex {
+			a.tview.SetFocus(a.docker)
+		} else {
+			a.tview.SetFocus(a.k8s)
+		}
 	}
 	if a.detailsShown {
 		key := DetailsK8sKey

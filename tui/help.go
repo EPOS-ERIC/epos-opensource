@@ -25,6 +25,18 @@ func (a *App) showHelp() {
 	row = addHelpSection(table, row, "KUBERNETES ENVIRONMENTS", KeyDescriptions["k8s"])
 	row++
 
+	// Environment Details (Docker) section
+	row = addHelpSection(table, row, "ENVIRONMENT DETAILS (DOCKER)", KeyDescriptions["details-docker"])
+	row++
+
+	// Environment Details (K8s) section
+	row = addHelpSection(table, row, "ENVIRONMENT DETAILS (K8S)", KeyDescriptions["details-k8s"])
+	row++
+
+	// File Picker section
+	row = addHelpSection(table, row, "FILE PICKER", KeyDescriptions["file-picker"])
+	row++
+
 	// General section
 	table.SetCell(row, 0, tview.NewTableCell(DefaultTheme.SecondaryTag("b")+"GENERAL").SetAlign(tview.AlignLeft).SetExpansion(1))
 	row++
