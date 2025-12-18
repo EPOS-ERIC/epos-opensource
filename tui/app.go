@@ -27,11 +27,14 @@ type App struct {
 	docker             *tview.List
 	dockerEmpty        *tview.TextView
 	dockerFlex         *tview.Flex
+	dockerFlexInner    *tview.Flex
 	dockerEnvs         []string // Environment names for docker list (lookup by index)
 	k8s                *tview.List
 	k8sEmpty           *tview.TextView
 	k8sFlex            *tview.Flex
 	k8sEnvs            []string // Environment names for k8s list (lookup by index)
+	createNewButton    *tview.Button
+	buttonFlex         *tview.Flex
 	details            *tview.Flex
 	detailsGrid        *tview.Grid
 	detailsButtons     []*tview.Button
@@ -49,6 +52,7 @@ type App struct {
 	detailsShown       bool
 	currentDetailsName string
 	currentDetailsType string
+	currentDetailsRows []DetailRow
 	previousFocus      tview.Primitive
 
 	// Background tasks

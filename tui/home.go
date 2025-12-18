@@ -145,17 +145,13 @@ func (a *App) clearDetailsPanel() {
 func (a *App) createEnvLists() *tview.Flex {
 	// Docker list
 	a.docker = tview.NewList()
-	a.docker.SetBorder(true)
+	a.docker.SetBorder(false)
 	a.docker.SetBorderPadding(1, 1, 1, 1)
-	a.docker.SetTitle(" [::b]Docker Environments ")
-	a.docker.SetTitleColor(DefaultTheme.Secondary)
 	updateListStyle(a.docker, false)
 
 	a.dockerEmpty = tview.NewTextView()
-	a.dockerEmpty.SetBorder(true)
+	a.dockerEmpty.SetBorder(false)
 	a.dockerEmpty.SetBorderPadding(1, 1, 1, 1)
-	a.dockerEmpty.SetTitle(" [::b]Docker Environments ")
-	a.dockerEmpty.SetTitleColor(DefaultTheme.Secondary)
 	updateBoxStyle(a.dockerEmpty, false)
 	a.dockerEmpty.SetTextAlign(tview.AlignCenter)
 	a.dockerEmpty.SetDynamicColors(true)
@@ -183,6 +179,24 @@ func (a *App) createEnvLists() *tview.Flex {
 
 	a.k8sFlex = tview.NewFlex()
 
+	a.createNewButton = tview.NewButton("Create New Environment")
+	a.createNewButton.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary))
+	a.createNewButton.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
+	a.createNewButton.SetSelectedFunc(func() {
+		a.showDeployForm()
+	})
+
+	a.buttonFlex = tview.NewFlex().SetDirection(tview.FlexColumn)
+	a.buttonFlex.AddItem(tview.NewBox(), 0, 1, false)
+	a.buttonFlex.AddItem(a.createNewButton, 26, 0, false)
+	a.buttonFlex.AddItem(tview.NewBox(), 0, 1, false)
+
+	a.dockerFlexInner = tview.NewFlex().SetDirection(tview.FlexRow)
+	a.dockerFlex = tview.NewFlex().SetDirection(tview.FlexRow).AddItem(a.dockerFlexInner, 0, 1, true)
+	a.dockerFlex.SetBorder(true)
+	a.dockerFlex.SetTitle(" [::b]Docker Environments ")
+	a.dockerFlex.SetTitleColor(DefaultTheme.Secondary)
+
 	// Initial data load
 	a.refreshLists()
 
@@ -206,14 +220,14 @@ func (a *App) refreshLists() {
 	k8sIndex := a.k8s.GetCurrentItem()
 
 	// Docker environments
-	a.dockerFlex.Clear()
+	a.dockerFlexInner.Clear()
 	a.docker.Clear()
 	a.dockerEnvs = nil
 	if dockers, err := db.GetAllDocker(); err == nil {
 		if len(dockers) == 0 {
-			a.dockerFlex.AddItem(a.dockerEmpty, 0, 1, true)
+			a.dockerFlexInner.AddItem(a.dockerEmpty, 0, 1, true)
 		} else {
-			a.dockerFlex.AddItem(a.docker, 0, 1, true)
+			a.dockerFlexInner.AddItem(a.docker, 0, 1, true)
 			for _, d := range dockers {
 				a.docker.AddItem("[::b] • "+d.Name+"  ", "", 0, nil)
 				a.dockerEnvs = append(a.dockerEnvs, d.Name)
@@ -222,6 +236,7 @@ func (a *App) refreshLists() {
 				a.docker.SetCurrentItem(dockerIndex)
 			}
 		}
+		a.dockerFlexInner.AddItem(a.buttonFlex, 1, 0, false)
 	}
 
 	// K8s environments
@@ -475,27 +490,7 @@ func (a *App) createGridRows(grid *tview.Grid, rows []DetailRow, buttons *[]*tvi
 			openBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary)).
 				SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
 			openBtn.SetSelectedFunc(func() {
-				var cmd string
-				if strings.HasPrefix(row.Value, "http://") || strings.HasPrefix(row.Value, "https://") {
-					cmd = a.config.TUI.OpenURLCommand
-				} else {
-					if info, err := os.Stat(row.Value); err == nil && info.IsDir() {
-						cmd = a.config.TUI.OpenDirectoryCommand
-					} else {
-						cmd = a.config.TUI.OpenFileCommand
-					}
-				}
-				if cmd != "" {
-					a.tview.Suspend(func() {
-						if err := common.OpenWithCommand(cmd, row.Value); err != nil {
-							log.Printf("Failed to open: %v", err)
-						}
-					})
-				} else {
-					if err := common.OpenWithCommand(cmd, row.Value); err != nil {
-						a.ShowError("Failed to open")
-					}
-				}
+				a.openValue(row.Value)
 			})
 			*buttons = append(*buttons, openBtn)
 		} else {
@@ -548,10 +543,11 @@ func (a *App) showDetails(name, envType string) {
 			}
 			a.createGridRows(a.nameDirGrid, nameDirRows, &a.nameDirButtons, "Basic Information")
 			rows := []DetailRow{
-				{Label: "Platform", Value: d.GuiUrl, IncludeOpen: true},
+				{Label: "GUI", Value: d.GuiUrl, IncludeOpen: true},
 				{Label: "Backoffice", Value: backofficeURL, IncludeOpen: true},
 				{Label: "API", Value: apiURL, IncludeOpen: true},
 			}
+			a.currentDetailsRows = rows
 			a.createDetailsRows(rows)
 		} else {
 			a.detailsGrid.Clear()
@@ -565,14 +561,16 @@ func (a *App) showDetails(name, envType string) {
 		if k, err := db.GetKubernetesByName(name); err == nil {
 			nameDirRows := []DetailRow{
 				{Label: "Name", Value: k.Name, IncludeOpen: false},
+				{Label: "Context", Value: k.Context, IncludeOpen: false},
 				{Label: "Directory", Value: k.Directory, IncludeOpen: true},
 			}
 			a.createGridRows(a.nameDirGrid, nameDirRows, &a.nameDirButtons, "Basic Information")
 			rows := []DetailRow{
-				{Label: "Platform", Value: k.GuiUrl, IncludeOpen: true},
+				{Label: "GUI", Value: k.GuiUrl, IncludeOpen: true},
 				{Label: "Backoffice", Value: k.BackofficeUrl, IncludeOpen: true},
 				{Label: "API", Value: k.ApiUrl, IncludeOpen: true},
 			}
+			a.currentDetailsRows = rows
 			a.createDetailsRows(rows)
 		} else {
 			a.detailsGrid.Clear()
@@ -616,6 +614,29 @@ func (a *App) populateIngestedFilesList() {
 func (a *App) refreshIngestedFiles() {
 	if a.detailsShown {
 		a.populateIngestedFilesList()
+	}
+}
+
+// openValue opens the given value (URL, directory, or file) using the appropriate command.
+func (a *App) openValue(value string) {
+	var cmd string
+	if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") {
+		cmd = a.config.TUI.OpenURLCommand
+	} else {
+		if info, err := os.Stat(value); err == nil && info.IsDir() {
+			cmd = a.config.TUI.OpenDirectoryCommand
+		} else {
+			cmd = a.config.TUI.OpenFileCommand
+		}
+	}
+	if cmd != "" {
+		a.tview.Suspend(func() {
+			if err := common.OpenWithCommand(cmd, value); err != nil {
+				log.Printf("Failed to open: %v", err)
+			}
+		})
+	} else {
+		a.ShowError("Failed to open")
 	}
 }
 
@@ -705,6 +726,21 @@ func (a *App) setupDetailsInput(details *tview.Flex) {
 				a.showPopulateForm()
 				return nil
 			}
+		case event.Rune() == 'g':
+			if a.detailsShown && len(a.currentDetailsRows) > 0 {
+				a.openValue(a.currentDetailsRows[0].Value)
+				return nil
+			}
+		case event.Rune() == 'b':
+			if a.detailsShown && len(a.currentDetailsRows) > 1 {
+				a.openValue(a.currentDetailsRows[1].Value)
+				return nil
+			}
+		case event.Rune() == 'a':
+			if a.detailsShown && len(a.currentDetailsRows) > 2 {
+				a.openValue(a.currentDetailsRows[2].Value)
+				return nil
+			}
 		}
 		return event
 	}
@@ -750,20 +786,22 @@ func (a *App) setupFocusHandlers() {
 	a.docker.SetFocusFunc(func() {
 		a.currentEnv = a.dockerFlex
 		updateListStyle(a.docker, true)
+		updateBoxStyle(a.dockerFlex, true)
 		a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
 	})
 	a.docker.SetBlurFunc(func() {
 		updateListStyle(a.docker, false)
+		updateBoxStyle(a.dockerFlex, false)
 	})
 
 	// Docker Empty
 	a.dockerEmpty.SetFocusFunc(func() {
 		a.currentEnv = a.dockerFlex
-		updateBoxStyle(a.dockerEmpty, true)
+		updateBoxStyle(a.dockerFlex, true)
 		a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
 	})
 	a.dockerEmpty.SetBlurFunc(func() {
-		updateBoxStyle(a.dockerEmpty, false)
+		updateBoxStyle(a.dockerFlex, false)
 	})
 
 	// K8s List
