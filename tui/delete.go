@@ -1,8 +1,6 @@
 package tui
 
 import (
-	"fmt"
-
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -95,32 +93,8 @@ func (a *App) showDeleteConfirm() {
 
 // showDeleteProgress displays the deletion progress with live output.
 func (a *App) showDeleteProgress(envName string) {
-	outputView := tview.NewTextView().
-		SetDynamicColors(true).
-		SetScrollable(true).
-		SetChangedFunc(func() { a.tview.Draw() })
-	outputView.SetBorder(true).
-		SetTitle(fmt.Sprintf(" [::b]Deleting: %s ", envName)).
-		SetTitleColor(DefaultTheme.Secondary).
-		SetBorderColor(DefaultTheme.Destructive).
-		SetBorderPadding(0, 0, 2, 2)
-
-	statusBar := tview.NewTextView().
-		SetDynamicColors(true).
-		SetTextAlign(tview.AlignCenter).
-		SetText(DefaultTheme.SecondaryTag("") + "Deleting... Please wait" + "[-]")
-
-	layout := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(outputView, 0, 1, true).
-		AddItem(statusBar, 1, 0, false)
-	layout.SetBackgroundColor(DefaultTheme.Background)
-
-	// Connect output writer
-	a.outputWriter.ClearBuffer()
-	a.outputWriter.SetView(a.tview, outputView)
-
-	a.pages.AddAndSwitchToPage("delete-progress", layout, true)
-	a.UpdateFooter("[Deleting]", KeyDescriptions["deleting"])
+	progress := NewOperationProgress(a, "Delete", envName)
+	progress.Start()
 
 	// Run deletion in background
 	go func() {
@@ -128,30 +102,11 @@ func (a *App) showDeleteProgress(envName string) {
 			Name: []string{envName},
 		})
 
-		a.tview.QueueUpdateDraw(func() {
-			if err != nil {
-				statusBar.SetText(fmt.Sprintf("%sDelete failed: %v[-]", DefaultTheme.ErrorTag(""), err))
-				layout.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-					if event.Key() == tcell.KeyEsc || event.Key() == tcell.KeyEnter {
-						a.outputWriter.ClearView()
-						a.returnFromDelete(false)
-						return nil
-					}
-					return event
-				})
-			} else {
-				statusBar.SetText(DefaultTheme.SuccessTag("") + "Environment deleted successfully!" + "[-]")
-				layout.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-					if event.Key() == tcell.KeyEsc || event.Key() == tcell.KeyEnter {
-						a.outputWriter.ClearView()
-						a.returnFromDelete(true)
-						return nil
-					}
-					return event
-				})
-			}
-			a.UpdateFooter("[Delete Complete]", KeyDescriptions["delete-complete"])
-		})
+		if err != nil {
+			progress.Complete(false, err.Error())
+		} else {
+			progress.Complete(true, "Environment deleted successfully!")
+		}
 	}()
 }
 

@@ -76,40 +76,8 @@ func (a *App) handleDeploy(data *deployFormData) {
 
 // showDeployProgress displays the deployment progress with live output.
 func (a *App) showDeployProgress(data *deployFormData) {
-	outputView := tview.NewTextView().
-		SetDynamicColors(true).
-		SetScrollable(true).
-		SetChangedFunc(func() { a.tview.Draw() })
-	outputView.SetBorder(true).
-		SetTitle(fmt.Sprintf(" [::b]Deploying: %s ", data.name)).
-		SetTitleColor(DefaultTheme.Secondary).
-		SetBorderColor(DefaultTheme.Primary).
-		SetBorderPadding(0, 0, 2, 2)
-
-	statusBar := tview.NewTextView().
-		SetDynamicColors(true).
-		SetTextAlign(tview.AlignCenter).
-		SetText(DefaultTheme.SecondaryTag("") + "Deploying... Press ESC to go back" + "[-]")
-
-	layout := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(outputView, 0, 1, true).
-		AddItem(statusBar, 1, 0, false)
-
-	// Connect output writer
-	a.outputWriter.ClearBuffer()
-	a.outputWriter.SetView(a.tview, outputView)
-
-	layout.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEsc {
-			a.outputWriter.ClearView()
-			a.returnFromDeploy()
-			return nil
-		}
-		return event
-	})
-
-	a.pages.AddAndSwitchToPage("deploy-progress", layout, true)
-	a.UpdateFooter("[Deploying]", KeyDescriptions["deploying"])
+	progress := NewOperationProgress(a, "Deploy", data.name)
+	progress.Start()
 
 	// Run deployment in background
 	go func() {
@@ -122,23 +90,12 @@ func (a *App) showDeployProgress(data *deployFormData) {
 			CustomHost:  data.host,
 		})
 
-		a.tview.QueueUpdateDraw(func() {
-			if err != nil {
-				statusBar.SetText(fmt.Sprintf("%sDeployment failed: %v[-]", DefaultTheme.ErrorTag(""), err))
-			} else {
-				statusBar.SetText(fmt.Sprintf("%sDeployment complete![-] GUI: %s", DefaultTheme.SuccessTag(""), docker.GuiUrl))
-			}
-
-			layout.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-				if event.Key() == tcell.KeyEsc || event.Key() == tcell.KeyEnter {
-					a.outputWriter.ClearView()
-					a.returnFromDeploy()
-					return nil
-				}
-				return event
-			})
-			a.UpdateFooter("[Deploy Complete]", KeyDescriptions["deploy-complete"])
-		})
+		if err != nil {
+			progress.Complete(false, err.Error())
+		} else {
+			successMsg := fmt.Sprintf("Deployment complete! GUI: %s", docker.GuiUrl)
+			progress.Complete(true, successMsg)
+		}
 	}()
 }
 

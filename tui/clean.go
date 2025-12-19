@@ -95,32 +95,8 @@ func (a *App) showCleanConfirm() {
 
 // showCleanProgress displays the cleaning progress with live output.
 func (a *App) showCleanProgress(envName string) {
-	outputView := tview.NewTextView().
-		SetDynamicColors(true).
-		SetScrollable(true).
-		SetChangedFunc(func() { a.tview.Draw() })
-	outputView.SetBorder(true).
-		SetTitle(fmt.Sprintf(" [::b]Cleaning: %s ", envName)).
-		SetTitleColor(DefaultTheme.Secondary).
-		SetBorderColor(DefaultTheme.Secondary).
-		SetBorderPadding(0, 0, 2, 2)
-
-	statusBar := tview.NewTextView().
-		SetDynamicColors(true).
-		SetTextAlign(tview.AlignCenter).
-		SetText(DefaultTheme.SecondaryTag("") + "Cleaning... Please wait" + "[-]")
-
-	layout := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(outputView, 0, 1, true).
-		AddItem(statusBar, 1, 0, false)
-	layout.SetBackgroundColor(DefaultTheme.Background)
-
-	// Connect output writer
-	a.outputWriter.ClearBuffer()
-	a.outputWriter.SetView(a.tview, outputView)
-
-	a.pages.AddAndSwitchToPage("clean-progress", layout, true)
-	a.UpdateFooter("[Cleaning]", KeyDescriptions["cleaning"])
+	progress := NewOperationProgress(a, "Clean", envName)
+	progress.Start()
 
 	// Run cleaning in background
 	go func() {
@@ -128,23 +104,12 @@ func (a *App) showCleanProgress(envName string) {
 			Name: envName,
 		})
 
-		a.tview.QueueUpdateDraw(func() {
-			if err != nil {
-				statusBar.SetText(fmt.Sprintf("%sClean failed: %v[-]", DefaultTheme.ErrorTag(""), err))
-			} else {
-				statusBar.SetText(fmt.Sprintf("%sEnvironment cleaned successfully![-] GUI: %s", DefaultTheme.SuccessTag(""), docker.GuiUrl))
-			}
-
-			layout.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-				if event.Key() == tcell.KeyEsc || event.Key() == tcell.KeyEnter {
-					a.outputWriter.ClearView()
-					a.returnFromClean()
-					return nil
-				}
-				return event
-			})
-			a.UpdateFooter("[Clean Complete]", KeyDescriptions["clean-complete"])
-		})
+		if err != nil {
+			progress.Complete(false, err.Error())
+		} else {
+			successMsg := fmt.Sprintf("Environment cleaned successfully! GUI: %s", docker.GuiUrl)
+			progress.Complete(true, successMsg)
+		}
 	}()
 }
 

@@ -243,31 +243,8 @@ func (a *App) handlePopulate(envName string, state *populateState) {
 
 // showPopulateProgress displays the populate progress with live output.
 func (a *App) showPopulateProgress(envName string, paths []string, examples bool) {
-	outputView := tview.NewTextView().
-		SetDynamicColors(true).
-		SetScrollable(true).
-		SetChangedFunc(func() { a.tview.Draw() })
-	outputView.SetBorder(true).
-		SetTitle(fmt.Sprintf(" [::b]Populating: %s ", envName)).
-		SetTitleColor(DefaultTheme.Secondary).
-		SetBorderColor(DefaultTheme.Primary).
-		SetBorderPadding(0, 0, 2, 2)
-
-	statusBar := tview.NewTextView().
-		SetDynamicColors(true).
-		SetTextAlign(tview.AlignCenter).
-		SetText(DefaultTheme.SecondaryTag("") + "Populating... Please wait" + "[-]")
-
-	layout := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(outputView, 0, 1, true).
-		AddItem(statusBar, 1, 0, false)
-	layout.SetBackgroundColor(DefaultTheme.Background)
-
-	a.outputWriter.ClearBuffer()
-	a.outputWriter.SetView(a.tview, outputView)
-
-	a.pages.AddAndSwitchToPage("populate-progress", layout, true)
-	a.UpdateFooter("[Populating]", KeyDescriptions["populating"])
+	progress := NewOperationProgress(a, "Populate", envName)
+	progress.Start()
 
 	// Run populate in background
 	go func() {
@@ -278,23 +255,11 @@ func (a *App) showPopulateProgress(envName string, paths []string, examples bool
 			Parallel:         1,
 		})
 
-		a.tview.QueueUpdateDraw(func() {
-			if err != nil {
-				statusBar.SetText(fmt.Sprintf("%sPopulate failed: %v[-]", DefaultTheme.ErrorTag(""), err))
-			} else {
-				statusBar.SetText(DefaultTheme.SuccessTag("") + "Environment populated successfully!" + "[-]")
-			}
-
-			layout.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-				if event.Key() == tcell.KeyEsc || event.Key() == tcell.KeyEnter {
-					a.outputWriter.ClearView()
-					a.returnFromPopulate()
-					return nil
-				}
-				return event
-			})
-			a.UpdateFooter("[Populate Complete]", KeyDescriptions["populate-complete"])
-		})
+		if err != nil {
+			progress.Complete(false, err.Error())
+		} else {
+			progress.Complete(true, "Environment populated successfully!")
+		}
 	}()
 }
 

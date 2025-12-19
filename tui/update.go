@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
@@ -86,32 +85,8 @@ func (a *App) handleUpdate(data *updateFormData) {
 
 // showUpdateProgress displays the update progress with live output.
 func (a *App) showUpdateProgress(data *updateFormData) {
-	outputView := tview.NewTextView().
-		SetDynamicColors(true).
-		SetScrollable(true).
-		SetChangedFunc(func() { a.tview.Draw() })
-	outputView.SetBorder(true).
-		SetTitle(fmt.Sprintf(" [::b]Updating: %s ", data.name)).
-		SetTitleColor(DefaultTheme.Secondary).
-		SetBorderColor(DefaultTheme.Primary).
-		SetBorderPadding(0, 0, 2, 2)
-
-	statusBar := tview.NewTextView().
-		SetDynamicColors(true).
-		SetTextAlign(tview.AlignCenter).
-		SetText(DefaultTheme.SecondaryTag("") + "Updating... Please wait" + "[-]")
-
-	layout := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(outputView, 0, 1, true).
-		AddItem(statusBar, 1, 0, false)
-	layout.SetBackgroundColor(DefaultTheme.Background)
-
-	// Connect output writer
-	a.outputWriter.ClearBuffer()
-	a.outputWriter.SetView(a.tview, outputView)
-
-	a.pages.AddAndSwitchToPage("update-progress", layout, true)
-	a.UpdateFooter("[Updating]", KeyDescriptions["updating"])
+	progress := NewOperationProgress(a, "Update", data.name)
+	progress.Start()
 
 	// Run update in background
 	go func() {
@@ -125,23 +100,11 @@ func (a *App) showUpdateProgress(data *updateFormData) {
 			Reset:       data.reset,
 		})
 
-		a.tview.QueueUpdateDraw(func() {
-			if err != nil {
-				statusBar.SetText(fmt.Sprintf("%sUpdate failed: %v[-]", DefaultTheme.ErrorTag(""), err))
-			} else {
-				statusBar.SetText(DefaultTheme.SuccessTag("") + "Environment updated successfully!" + "[-]")
-			}
-
-			layout.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-				if event.Key() == tcell.KeyEsc || event.Key() == tcell.KeyEnter {
-					a.outputWriter.ClearView()
-					a.returnFromUpdate()
-					return nil
-				}
-				return event
-			})
-			a.UpdateFooter("[Update Complete]", KeyDescriptions["update-complete"])
-		})
+		if err != nil {
+			progress.Complete(false, err.Error())
+		} else {
+			progress.Complete(true, "Environment updated successfully!")
+		}
 	}()
 }
 

@@ -73,3 +73,10 @@ func (w *OutputWriter) ClearBuffer() {
 	defer w.mu.Unlock()
 	w.buffer.Reset()
 }
+
+// GetBuffer returns the current buffer content.
+func (w *OutputWriter) GetBuffer() string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.buffer.String()
+}

@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
@@ -84,6 +85,7 @@ func (a *App) createHome() *tview.Flex {
 	a.detailsList.SetBorder(true)
 	a.detailsList.SetTitle(" [::b]Ingested Files ")
 	a.detailsList.SetTitleColor(DefaultTheme.Secondary)
+	a.detailsList.SetBorderPadding(1, 0, 1, 1)
 	updateListStyle(a.detailsList, false)
 	a.detailsList.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		currentItem := a.detailsList.GetCurrentItem()
@@ -101,6 +103,18 @@ func (a *App) createHome() *tview.Flex {
 		}
 		return event
 	})
+
+	a.detailsListEmpty = tview.NewTextView()
+	a.detailsListEmpty.SetBorder(true)
+	a.detailsListEmpty.SetTitle(" [::b]Ingested Files ")
+	a.detailsListEmpty.SetTitleColor(DefaultTheme.Secondary)
+	a.detailsListEmpty.SetTextAlign(tview.AlignCenter)
+	a.detailsListEmpty.SetDynamicColors(true)
+	a.detailsListEmpty.SetText("\n" + DefaultTheme.MutedTag("i") + "No ingested files yet")
+	updateBoxStyle(a.detailsListEmpty, false)
+
+	a.detailsListFlex = tview.NewFlex().SetDirection(tview.FlexRow)
+	a.detailsListFlex.AddItem(a.detailsList, 0, 1, false)
 
 	a.detailsEmpty = tview.NewTextView()
 	a.detailsEmpty.SetText(DefaultTheme.MutedTag("i") + "\nSelect an environment to view details")
@@ -188,7 +202,7 @@ func (a *App) createEnvLists() *tview.Flex {
 
 	a.buttonFlex = tview.NewFlex().SetDirection(tview.FlexColumn)
 	a.buttonFlex.AddItem(tview.NewBox(), 0, 1, false)
-	a.buttonFlex.AddItem(a.createNewButton, 26, 0, false)
+	a.buttonFlex.AddItem(a.createNewButton, 26, 0, true)
 	a.buttonFlex.AddItem(tview.NewBox(), 0, 1, false)
 
 	a.dockerFlexInner = tview.NewFlex().SetDirection(tview.FlexRow)
@@ -225,7 +239,7 @@ func (a *App) refreshLists() {
 	a.dockerEnvs = nil
 	if dockers, err := db.GetAllDocker(); err == nil {
 		if len(dockers) == 0 {
-			a.dockerFlexInner.AddItem(a.dockerEmpty, 0, 1, true)
+			a.dockerFlexInner.AddItem(a.dockerEmpty, 0, 1, false)
 		} else {
 			a.dockerFlexInner.AddItem(a.docker, 0, 1, true)
 			for _, d := range dockers {
@@ -236,7 +250,7 @@ func (a *App) refreshLists() {
 				a.docker.SetCurrentItem(dockerIndex)
 			}
 		}
-		a.dockerFlexInner.AddItem(a.buttonFlex, 1, 0, false)
+		a.dockerFlexInner.AddItem(a.buttonFlex, 1, 0, true)
 	}
 
 	// K8s environments
@@ -299,7 +313,7 @@ func (a *App) switchEnvFocus() {
 		if a.docker.GetItemCount() > 0 {
 			a.tview.SetFocus(a.docker)
 		} else {
-			a.tview.SetFocus(a.dockerEmpty)
+			a.tview.SetFocus(a.createNewButton)
 		}
 	}
 }
@@ -314,7 +328,7 @@ func (a *App) cycleDetailsFocus() {
 		} else if len(a.detailsButtons) > 0 {
 			a.tview.SetFocus(a.detailsButtons[0])
 		} else {
-			a.tview.SetFocus(a.detailsList)
+			a.tview.SetFocus(a.detailsListFlex)
 		}
 	case a.cleanButton:
 		a.tview.SetFocus(a.deleteButton)
@@ -322,7 +336,7 @@ func (a *App) cycleDetailsFocus() {
 		a.tview.SetFocus(a.cleanButton)
 	case a.populateButton:
 		a.tview.SetFocus(a.updateButton)
-	case a.detailsList:
+	case a.detailsListFlex:
 		a.tview.SetFocus(a.populateButton)
 	default:
 		// Check if it's a details button
@@ -331,7 +345,7 @@ func (a *App) cycleDetailsFocus() {
 				if i+1 < len(a.detailsButtons) {
 					a.tview.SetFocus(a.detailsButtons[i+1])
 				} else {
-					a.tview.SetFocus(a.detailsList)
+					a.tview.SetFocus(a.detailsListFlex)
 				}
 				return
 			}
@@ -345,7 +359,7 @@ func (a *App) cycleDetailsFocus() {
 					if len(a.detailsButtons) > 0 {
 						a.tview.SetFocus(a.detailsButtons[0])
 					} else {
-						a.tview.SetFocus(a.detailsList)
+						a.tview.SetFocus(a.detailsListFlex)
 					}
 				}
 				return
@@ -360,7 +374,7 @@ func (a *App) cycleDetailsFocus() {
 func (a *App) cycleDetailsFocusBackward() {
 	focus := a.tview.GetFocus()
 	switch focus {
-	case a.detailsList:
+	case a.detailsListFlex:
 		if len(a.detailsButtons) > 0 {
 			a.tview.SetFocus(a.detailsButtons[len(a.detailsButtons)-1])
 		} else if len(a.nameDirButtons) > 0 {
@@ -375,7 +389,7 @@ func (a *App) cycleDetailsFocusBackward() {
 	case a.updateButton:
 		a.tview.SetFocus(a.populateButton)
 	case a.populateButton:
-		a.tview.SetFocus(a.detailsList)
+		a.tview.SetFocus(a.detailsListFlex)
 	default:
 		// Check if it's a details button
 		for i, btn := range a.detailsButtons {
@@ -404,7 +418,7 @@ func (a *App) cycleDetailsFocusBackward() {
 			}
 		}
 		// If not, start at the end
-		a.tview.SetFocus(a.detailsList)
+		a.tview.SetFocus(a.detailsListFlex)
 	}
 }
 
@@ -474,9 +488,15 @@ func (a *App) createGridRows(grid *tview.Grid, rows []DetailRow, buttons *[]*tvi
 			SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary)).
 			SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
 		copyBtn.SetSelectedFunc(func() {
-			if err := common.CopyToClipboard(row.Value); err != nil {
-				a.ShowError("Failed to copy to clipboard")
-			}
+			go func() {
+				if err := common.CopyToClipboard(row.Value); err != nil {
+					a.tview.QueueUpdateDraw(func() {
+						a.ShowError("Failed to copy to clipboard")
+					})
+				} else {
+					a.FlashMessage("Copied to clipboard", 2*time.Second)
+				}
+			}()
 		})
 
 		grid.AddItem(labelTV, rowIndex+i, 0, 1, 1, 0, 0, false)
@@ -517,7 +537,7 @@ func (a *App) showDetails(name, envType string) {
 		a.details.AddItem(a.buttonsFlex, 1, 0, true)
 		a.details.AddItem(a.nameDirGrid, 0, 1, false)
 		a.details.AddItem(a.detailsGrid, 0, 1, false)
-		a.details.AddItem(a.detailsList, 0, 1, false)
+		a.details.AddItem(a.detailsListFlex, 0, 1, false)
 		a.detailsShown = true
 		updateBoxStyle(a.details, true)
 	}
@@ -592,6 +612,8 @@ func (a *App) showDetails(name, envType string) {
 func (a *App) populateIngestedFilesList() {
 	// Populate ingested files list
 	a.detailsList.Clear()
+	a.detailsListFlex.Clear()
+
 	if ingestedFiles, err := db.GetIngestedFilesByEnvironment(a.currentDetailsType, a.currentDetailsName); err == nil {
 		count := len(ingestedFiles)
 		if count > 0 {
@@ -600,13 +622,13 @@ func (a *App) populateIngestedFilesList() {
 				itemText := fmt.Sprintf("%d. %s", i+1, file.FilePath)
 				a.detailsList.AddItem(itemText, "", 0, nil)
 			}
+			a.detailsListFlex.AddItem(a.detailsList, 0, 1, true)
 		} else {
-			a.detailsList.SetTitle(" [::b]Ingested Files ")
-			a.detailsList.AddItem("No ingested files yet", "", 0, nil)
+			a.detailsListFlex.AddItem(a.detailsListEmpty, 0, 1, true)
 		}
 	} else {
-		a.detailsList.SetTitle(" [::b]Ingested Files ")
-		a.detailsList.AddItem(fmt.Sprintf("Error loading files: %v", err), "", 0, nil)
+		a.detailsListEmpty.SetText("\n" + DefaultTheme.DestructiveTag("i") + fmt.Sprintf("Error loading files: %v", err))
+		a.detailsListFlex.AddItem(a.detailsListEmpty, 0, 1, true)
 	}
 }
 
@@ -801,6 +823,16 @@ func (a *App) setupFocusHandlers() {
 		a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
 	})
 	a.dockerEmpty.SetBlurFunc(func() {
+		updateBoxStyle(a.dockerFlex, false)
+	})
+
+	// Create New Button
+	a.createNewButton.SetFocusFunc(func() {
+		a.currentEnv = a.dockerFlex
+		updateBoxStyle(a.dockerFlex, true)
+		a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
+	})
+	a.createNewButton.SetBlurFunc(func() {
 		updateBoxStyle(a.dockerFlex, false)
 	})
 
