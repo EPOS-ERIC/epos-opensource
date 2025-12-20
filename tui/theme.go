@@ -59,9 +59,9 @@ const (
 // Used by updateFooter() to show context-sensitive help.
 var KeyDescriptions = map[string][]string{
 	"docker":            {"tab: switch", "↑↓: nav", "n: new", "d: del", "c: clean", "u: update", "p: populate", "enter: details", "?: help", "q: quit"},
-	"k8s":               {"tab: switch", "↑↓: nav", "enter: details", "?: help", "q: quit"},
+	"k8s":               {"tab: switch", "↑↓: nav", "n: new", "d: del", "u: update", "p: populate", "enter: details", "?: help", "q: quit"},
 	"details-docker":    {"esc: back", "tab: cycle", "d: del", "c: clean", "u: update", "p: populate", "g: open gui", "b: open backoffice", "a: open api", "?: help"},
-	"details-k8s":       {"esc: back", "tab: cycle", "g: open gui", "b: open backoffice", "a: open api", "?: help"},
+	"details-k8s":       {"esc: back", "tab: cycle", "d: del", "u: update", "p: populate", "g: open gui", "b: open backoffice", "a: open api", "?: help"},
 	"delete-confirm":    {"←→: switch", "enter: confirm", "esc: cancel"},
 	"deleting":          {"please wait..."},
 	"delete-complete":   {"esc/enter: back"},

@@ -4,9 +4,7 @@ CREATE TABLE ingested_files (
     environment_name TEXT NOT NULL,
     file_path TEXT NOT NULL,
     ingested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (environment_type, environment_name, file_path),
-    FOREIGN KEY (environment_name) REFERENCES docker(name) ON DELETE CASCADE,
-    FOREIGN KEY (environment_name) REFERENCES kubernetes(name) ON DELETE CASCADE
+    PRIMARY KEY (environment_type, environment_name, file_path)
 );
 
 -- +goose Down

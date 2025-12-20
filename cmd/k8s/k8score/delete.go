@@ -42,6 +42,10 @@ func Delete(opts DeleteOpts) error {
 				return fmt.Errorf("failed to remove directory %s: %w", env.Directory, err)
 			}
 
+			if err := db.DeleteIngestedFilesByEnvironment("kubernetes", envName); err != nil {
+				return fmt.Errorf("failed to delete ingested files for '%s': %w", envName, err)
+			}
+
 			err = db.DeleteKubernetes(envName)
 			if err != nil {
 				return fmt.Errorf("failed to delete kubernetes %s (dir: %s) in db: %w", envName, env.Directory, err)

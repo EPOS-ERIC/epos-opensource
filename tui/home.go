@@ -175,17 +175,13 @@ func (a *App) createEnvLists() *tview.Flex {
 
 	// K8s list
 	a.k8s = tview.NewList()
-	a.k8s.SetBorder(true)
+	a.k8s.SetBorder(false)
 	a.k8s.SetBorderPadding(1, 1, 1, 1)
-	a.k8s.SetTitle(" [::b]K8s Environments ")
-	a.k8s.SetTitleColor(DefaultTheme.Secondary)
 	updateListStyle(a.k8s, false)
 
 	a.k8sEmpty = tview.NewTextView()
-	a.k8sEmpty.SetBorder(true)
+	a.k8sEmpty.SetBorder(false)
 	a.k8sEmpty.SetBorderPadding(1, 1, 1, 1)
-	a.k8sEmpty.SetTitle(" [::b]K8s Environments ")
-	a.k8sEmpty.SetTitleColor(DefaultTheme.Secondary)
 	updateBoxStyle(a.k8sEmpty, false)
 	a.k8sEmpty.SetTextAlign(tview.AlignCenter)
 	a.k8sEmpty.SetDynamicColors(true)
@@ -205,11 +201,30 @@ func (a *App) createEnvLists() *tview.Flex {
 	a.buttonFlex.AddItem(a.createNewButton, 26, 0, true)
 	a.buttonFlex.AddItem(tview.NewBox(), 0, 1, false)
 
+	a.createNewButtonK8s = tview.NewButton("Create New Environment")
+	a.createNewButtonK8s.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary))
+	a.createNewButtonK8s.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
+	a.createNewButtonK8s.SetSelectedFunc(func() {
+		a.showDeployForm()
+	})
+
+	a.buttonFlexK8s = tview.NewFlex().SetDirection(tview.FlexColumn)
+	a.buttonFlexK8s.AddItem(tview.NewBox(), 0, 1, false)
+	a.buttonFlexK8s.AddItem(a.createNewButtonK8s, 26, 0, true)
+	a.buttonFlexK8s.AddItem(tview.NewBox(), 0, 1, false)
+
 	a.dockerFlexInner = tview.NewFlex().SetDirection(tview.FlexRow)
 	a.dockerFlex = tview.NewFlex().SetDirection(tview.FlexRow).AddItem(a.dockerFlexInner, 0, 1, true)
 	a.dockerFlex.SetBorder(true)
 	a.dockerFlex.SetTitle(" [::b]Docker Environments ")
 	a.dockerFlex.SetTitleColor(DefaultTheme.Secondary)
+
+	a.k8sFlexInner = tview.NewFlex().SetDirection(tview.FlexRow)
+	a.k8sFlex.AddItem(a.k8sFlexInner, 0, 1, true)
+	a.k8sFlex.SetBorder(true)
+	a.k8sFlex.SetTitle(" [::b]K8s Environments ")
+	a.k8sFlex.SetTitleColor(DefaultTheme.Secondary)
+	a.k8sFlex.SetBorderColor(DefaultTheme.Surface)
 
 	// Initial data load
 	a.refreshLists()
@@ -254,14 +269,14 @@ func (a *App) refreshLists() {
 	}
 
 	// K8s environments
-	a.k8sFlex.Clear()
+	a.k8sFlexInner.Clear()
 	a.k8s.Clear()
 	a.k8sEnvs = nil
 	if k8sEnvs, err := db.GetAllKubernetes(); err == nil {
 		if len(k8sEnvs) == 0 {
-			a.k8sFlex.AddItem(a.k8sEmpty, 0, 1, false)
+			a.k8sFlexInner.AddItem(a.k8sEmpty, 0, 1, false)
 		} else {
-			a.k8sFlex.AddItem(a.k8s, 0, 1, false)
+			a.k8sFlexInner.AddItem(a.k8s, 0, 1, true)
 			for _, k := range k8sEnvs {
 				a.k8s.AddItem("[::b] • "+k.Name+" ", "", 0, nil)
 				a.k8sEnvs = append(a.k8sEnvs, k.Name)
@@ -270,6 +285,7 @@ func (a *App) refreshLists() {
 				a.k8s.SetCurrentItem(k8sIndex)
 			}
 		}
+		a.k8sFlexInner.AddItem(a.buttonFlexK8s, 1, 0, true)
 	}
 }
 
@@ -307,7 +323,7 @@ func (a *App) switchEnvFocus() {
 		if a.k8s.GetItemCount() > 0 {
 			a.tview.SetFocus(a.k8s)
 		} else {
-			a.tview.SetFocus(a.k8sEmpty)
+			a.tview.SetFocus(a.createNewButtonK8s)
 		}
 	} else {
 		if a.docker.GetItemCount() > 0 {
@@ -670,12 +686,14 @@ func (a *App) setupRootInput(envsFlex *tview.Flex) {
 			a.switchEnvFocus()
 			return nil
 		case event.Rune() == 'n':
-			if a.currentEnv == a.dockerFlex {
-				a.showDeployForm()
-				return nil
-			}
+			a.showDeployForm()
+			return nil
 		case event.Rune() == 'd':
 			if a.currentEnv == a.dockerFlex && a.docker.GetItemCount() > 0 {
+				a.showDeleteConfirm()
+				return nil
+			}
+			if a.currentEnv == a.k8sFlex && a.k8s.GetItemCount() > 0 {
 				a.showDeleteConfirm()
 				return nil
 			}
@@ -689,8 +707,16 @@ func (a *App) setupRootInput(envsFlex *tview.Flex) {
 				a.showUpdateForm()
 				return nil
 			}
+			if a.currentEnv == a.k8sFlex && a.k8s.GetItemCount() > 0 {
+				a.showUpdateForm()
+				return nil
+			}
 		case event.Rune() == 'p':
 			if a.currentEnv == a.dockerFlex && a.docker.GetItemCount() > 0 {
+				a.showPopulateForm()
+				return nil
+			}
+			if a.currentEnv == a.k8sFlex && a.k8s.GetItemCount() > 0 {
 				a.showPopulateForm()
 				return nil
 			}
@@ -729,25 +755,19 @@ func (a *App) setupDetailsInput(details *tview.Flex) {
 		case event.Key() == tcell.KeyEnter:
 			return event // Let the table handle via SetSelectedFunc
 		case event.Rune() == 'd':
-			if a.currentEnv == a.dockerFlex {
-				a.showDeleteConfirm()
-				return nil
-			}
+			a.showDeleteConfirm()
+			return nil
 		case event.Rune() == 'c':
 			if a.currentEnv == a.dockerFlex {
 				a.showCleanConfirm()
 				return nil
 			}
 		case event.Rune() == 'u':
-			if a.currentEnv == a.dockerFlex {
-				a.showUpdateForm()
-				return nil
-			}
+			a.showUpdateForm()
+			return nil
 		case event.Rune() == 'p':
-			if a.currentEnv == a.dockerFlex {
-				a.showPopulateForm()
-				return nil
-			}
+			a.showPopulateForm()
+			return nil
 		case event.Rune() == 'g':
 			if a.detailsShown && len(a.currentDetailsRows) > 0 {
 				a.openValue(a.currentDetailsRows[0].Value)
@@ -840,20 +860,34 @@ func (a *App) setupFocusHandlers() {
 	a.k8s.SetFocusFunc(func() {
 		a.currentEnv = a.k8sFlex
 		updateListStyle(a.k8s, true)
+		updateBoxStyle(a.k8sFlex, true)
 		a.UpdateFooter("[K8s Environments]", KeyDescriptions["k8s"])
 	})
 	a.k8s.SetBlurFunc(func() {
 		updateListStyle(a.k8s, false)
+		updateBoxStyle(a.k8sFlex, false)
 	})
 
 	// K8s Empty
 	a.k8sEmpty.SetFocusFunc(func() {
 		a.currentEnv = a.k8sFlex
 		updateBoxStyle(a.k8sEmpty, true)
+		updateBoxStyle(a.k8sFlex, true)
 		a.UpdateFooter("[K8s Environments]", KeyDescriptions["k8s"])
 	})
 	a.k8sEmpty.SetBlurFunc(func() {
 		updateBoxStyle(a.k8sEmpty, false)
+		updateBoxStyle(a.k8sFlex, false)
+	})
+
+	// Create New Button K8s
+	a.createNewButtonK8s.SetFocusFunc(func() {
+		a.currentEnv = a.k8sFlex
+		updateBoxStyle(a.k8sFlex, true)
+		a.UpdateFooter("[K8s Environments]", KeyDescriptions["k8s"])
+	})
+	a.createNewButtonK8s.SetBlurFunc(func() {
+		updateBoxStyle(a.k8sFlex, false)
 	})
 
 	// Details

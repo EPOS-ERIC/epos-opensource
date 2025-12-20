@@ -32,9 +32,12 @@ type App struct {
 	k8s                *tview.List
 	k8sEmpty           *tview.TextView
 	k8sFlex            *tview.Flex
+	k8sFlexInner       *tview.Flex
 	k8sEnvs            []string // Environment names for k8s list (lookup by index)
 	createNewButton    *tview.Button
 	buttonFlex         *tview.Flex
+	createNewButtonK8s *tview.Button
+	buttonFlexK8s      *tview.Flex
 	details            *tview.Flex
 	detailsGrid        *tview.Grid
 	detailsButtons     []*tview.Button

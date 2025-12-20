@@ -2,21 +2,34 @@ package tui
 
 import (
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
+	"github.com/epos-eu/epos-opensource/cmd/k8s/k8score"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
-// showDeleteConfirm displays a confirmation dialog for deleting a Docker environment.
+// showDeleteConfirm displays a confirmation dialog for deleting a Docker or K8s environment.
 func (a *App) showDeleteConfirm() {
 	a.previousFocus = a.tview.GetFocus()
-	envName := a.SelectedDockerEnv()
+	isDocker := a.currentEnv == a.dockerFlex
+	envName := ""
+	if isDocker {
+		envName = a.SelectedDockerEnv()
+	} else {
+		envName = a.SelectedK8sEnv()
+	}
+
 	if envName == "" {
 		return
 	}
 
 	// Create text view for message
+	message := "This will permanently remove all containers, volumes, and associated resources.\n\n"
+	if !isDocker {
+		message = "This will permanently remove the namespace and all associated Kubernetes resources.\n\n"
+	}
+
 	textView := tview.NewTextView().
-		SetText("This will permanently remove all containers, volumes, and associated resources.\n\n" + DefaultTheme.DestructiveTag("b") + "This action cannot be undone." + "[-]").
+		SetText(message + DefaultTheme.DestructiveTag("b") + "This action cannot be undone." + "[-]").
 		SetDynamicColors(true).
 		SetTextAlign(tview.AlignCenter)
 	textView.SetBorderPadding(1, 0, 1, 1)
@@ -24,7 +37,7 @@ func (a *App) showDeleteConfirm() {
 	// Create explicit buttons with styling
 	deleteBtn := tview.NewButton("Delete").SetSelectedFunc(func() {
 		a.pages.RemovePage("delete-confirm")
-		a.showDeleteProgress(envName)
+		a.showDeleteProgress(envName, isDocker)
 	})
 	deleteBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Destructive).Foreground(DefaultTheme.OnDestructive))
 	deleteBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Destructive))
@@ -92,15 +105,22 @@ func (a *App) showDeleteConfirm() {
 }
 
 // showDeleteProgress displays the deletion progress with live output.
-func (a *App) showDeleteProgress(envName string) {
+func (a *App) showDeleteProgress(envName string, isDocker bool) {
 	progress := NewOperationProgress(a, "Delete", envName)
 	progress.Start()
 
 	// Run deletion in background
 	go func() {
-		err := dockercore.Delete(dockercore.DeleteOpts{
-			Name: []string{envName},
-		})
+		var err error
+		if isDocker {
+			err = dockercore.Delete(dockercore.DeleteOpts{
+				Name: []string{envName},
+			})
+		} else {
+			err = k8score.Delete(k8score.DeleteOpts{
+				Name: []string{envName},
+			})
+		}
 
 		if err != nil {
 			progress.Complete(false, err.Error())

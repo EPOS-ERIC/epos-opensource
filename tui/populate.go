@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
+	"github.com/epos-eu/epos-opensource/cmd/k8s/k8score"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -21,7 +22,14 @@ type populateState struct {
 // showPopulateForm displays the dynamic populate form.
 func (a *App) showPopulateForm() {
 	a.previousFocus = a.tview.GetFocus()
-	envName := a.SelectedDockerEnv()
+	isDocker := a.currentEnv == a.dockerFlex
+	envName := ""
+	if isDocker {
+		envName = a.SelectedDockerEnv()
+	} else {
+		envName = a.SelectedK8sEnv()
+	}
+
 	if envName == "" {
 		return
 	}
@@ -139,7 +147,7 @@ func (a *App) showPopulateForm() {
 
 		// 4. Action Buttons
 		populateBtn := tview.NewButton("Populate").SetSelectedFunc(func() {
-			a.handlePopulate(envName, state)
+			a.handlePopulate(envName, state, isDocker)
 		})
 		populateBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary))
 		populateBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
@@ -228,7 +236,7 @@ func (a *App) showPopulateForm() {
 }
 
 // handlePopulate validates the form and starts population.
-func (a *App) handlePopulate(envName string, state *populateState) {
+func (a *App) handlePopulate(envName string, state *populateState, isDocker bool) {
 	// Parse paths
 	var validPaths []string
 	for _, p := range state.paths {
@@ -238,22 +246,32 @@ func (a *App) handlePopulate(envName string, state *populateState) {
 	}
 
 	a.pages.RemovePage("populate-confirm")
-	a.showPopulateProgress(envName, validPaths, state.examples)
+	a.showPopulateProgress(envName, validPaths, state.examples, isDocker)
 }
 
 // showPopulateProgress displays the populate progress with live output.
-func (a *App) showPopulateProgress(envName string, paths []string, examples bool) {
+func (a *App) showPopulateProgress(envName string, paths []string, examples bool, isDocker bool) {
 	progress := NewOperationProgress(a, "Populate", envName)
 	progress.Start()
 
 	// Run populate in background
 	go func() {
-		_, err := dockercore.Populate(dockercore.PopulateOpts{
-			Name:             envName,
-			TTLDirs:          paths,
-			PopulateExamples: examples,
-			Parallel:         1,
-		})
+		var err error
+		if isDocker {
+			_, err = dockercore.Populate(dockercore.PopulateOpts{
+				Name:             envName,
+				TTLDirs:          paths,
+				PopulateExamples: examples,
+				Parallel:         1,
+			})
+		} else {
+			_, err = k8score.Populate(k8score.PopulateOpts{
+				Name:             envName,
+				TTLDirs:          paths,
+				PopulateExamples: examples,
+				Parallel:         1,
+			})
+		}
 
 		if err != nil {
 			progress.Complete(false, err.Error())

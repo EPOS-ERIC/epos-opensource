@@ -243,7 +243,6 @@ func (op *OperationProgress) showCompletionOverlay() {
 
 	// Create buttons
 	closeBtn := tview.NewButton("Close & Return").SetSelectedFunc(func() { doneFunc("Close & Return") })
-	copyBtn := tview.NewButton("Copy Logs").SetSelectedFunc(func() { doneFunc("Copy Logs") })
 	viewBtn := tview.NewButton("View Logs").SetSelectedFunc(func() { doneFunc("View Logs") })
 
 	// Style buttons
@@ -252,7 +251,6 @@ func (op *OperationProgress) showCompletionOverlay() {
 		btn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
 	}
 	styleBtn(closeBtn)
-	styleBtn(copyBtn)
 	styleBtn(viewBtn)
 
 	// button navigation
@@ -276,17 +274,14 @@ func (op *OperationProgress) showCompletionOverlay() {
 			return event
 		}
 	}
-	closeBtn.SetInputCapture(buttonInputCapture(viewBtn, copyBtn))
-	copyBtn.SetInputCapture(buttonInputCapture(closeBtn, viewBtn))
-	viewBtn.SetInputCapture(buttonInputCapture(copyBtn, closeBtn))
+	closeBtn.SetInputCapture(buttonInputCapture(viewBtn, closeBtn))
+	viewBtn.SetInputCapture(buttonInputCapture(viewBtn, closeBtn))
 
 	buttonContainer := tview.NewFlex().SetDirection(tview.FlexColumn).
 		AddItem(tview.NewBox(), 0, 1, false).
 		AddItem(closeBtn, 18, 1, true).
 		AddItem(tview.NewBox(), 2, 0, false).
-		AddItem(copyBtn, 14, 1, false).
-		AddItem(tview.NewBox(), 2, 0, false).
-		AddItem(viewBtn, 14, 1, false).
+		AddItem(viewBtn, 13, 1, false).
 		AddItem(tview.NewBox(), 0, 1, false)
 
 	// Main modal layout
@@ -319,7 +314,7 @@ func (op *OperationProgress) showCompletionOverlay() {
 	})
 
 	op.overlay = modalLayout
-	op.app.pages.AddPage("completion-overlay", CenterPrimitive(modalLayout, 1, 1), true, true)
+	op.app.pages.AddPage("completion-overlay", CenterPrimitive(modalLayout, 0, 1), true, true)
 	op.app.tview.SetFocus(closeBtn)
 }
 
