@@ -13,92 +13,42 @@ import (
 
 // FilePicker is a component to select files or directories.
 type FilePicker struct {
-	view   *tview.TreeView
-	root   *tview.TreeNode
-	marked map[string]bool
+	app        *App
+	view       *tview.TreeView
+	root       *tview.TreeNode
+	marked     map[string]bool
+	onSelect   func([]string)
+	onChanged  func(path string)
+	lastSearch string
 }
 
 // newFilePicker creates a new file picker.
-func newFilePicker(initialPath string, selectedPaths []string) *FilePicker {
+func newFilePicker(app *App, initialPath string, selectedPaths []string, onSelect func([]string)) *FilePicker {
 	rootPath := "/"
-
-	rootNode := tview.NewTreeNode(rootPath).
-		SetReference(rootPath).
-		SetColor(DefaultTheme.Primary)
+	rootNode := tview.NewTreeNode(rootPath).SetReference(rootPath).SetColor(DefaultTheme.Primary)
 
 	picker := &FilePicker{
-		view:   tview.NewTreeView().SetRoot(rootNode).SetCurrentNode(rootNode),
-		root:   rootNode,
-		marked: make(map[string]bool),
+		app:      app,
+		view:     tview.NewTreeView().SetRoot(rootNode).SetCurrentNode(rootNode),
+		root:     rootNode,
+		marked:   make(map[string]bool),
+		onSelect: onSelect,
 	}
-	picker.view.SetBorderPadding(0, 0, 3, 3)
+	picker.view.SetBorderPadding(0, 0, 3, 3).SetBackgroundColor(DefaultTheme.Background)
 
 	for _, p := range selectedPaths {
 		picker.marked[p] = true
 	}
 
-	// Helper to format text
-	updateText := func(n *tview.TreeNode, path string) {
-		name := filepath.Base(path)
-		if path == "/" {
-			name = "/"
-		}
-		pColor := DefaultTheme.Hex(DefaultTheme.Primary)
-		sColor := DefaultTheme.Hex(DefaultTheme.Success)
-		box := fmt.Sprintf("[%s]%s[-]", pColor, tview.Escape("[ ]"))
-		if picker.marked[path] {
-			box = fmt.Sprintf("[%s]%s[-]", sColor, tview.Escape("[✓]"))
-		}
-		n.SetText(box + " " + name)
-	}
-
-	updateText(rootNode, rootPath)
-
+	picker.updateNodeText(rootNode)
 	picker.addNodes(rootNode, rootPath)
 
-	// Logic to expand directories to a specific path
-	expandToPath := func(path string) {
-		pathElements := strings.Split(path, string(os.PathSeparator))
-		currentNode := rootNode
-
-		for _, elem := range pathElements {
-			if elem == "" {
-				continue
-			}
-
-			// Find child matching this element (ignoring prefix in comparison)
-			var foundNode *tview.TreeNode
-			for _, child := range currentNode.GetChildren() {
-				ref := child.GetReference()
-				if ref != nil && filepath.Base(ref.(string)) == elem {
-					foundNode = child
-					break
-				}
-			}
-
-			if foundNode != nil {
-				fullPath := foundNode.GetReference().(string)
-				picker.addNodes(foundNode, fullPath)
-				foundNode.SetExpanded(true)
-				currentNode = foundNode
-			} else {
-				break
-			}
-		}
-	}
-
-	// Auto-expand to initialPath
-	expandToPath(initialPath)
-
-	// Auto-expand to all selected paths to ensure they are visible
+	picker.expandTo(initialPath)
 	for _, p := range selectedPaths {
-		expandToPath(p)
+		picker.expandTo(p)
 	}
 
-	// Set selection to initial path if simpler, or first selected?
-	// Let's stick to initialPath logic for finding current node context
-	// Re-traverse for initialPath to set CurrentNode
-	// (or just capture the last node from expandToPath if we cared, but re-traversal is cheap for deep paths)
+	// Set selection to current node from initial path
 	pathElements := strings.Split(initialPath, string(os.PathSeparator))
 	currentNode := rootNode
 	for _, elem := range pathElements {
@@ -115,26 +65,330 @@ func newFilePicker(initialPath string, selectedPaths []string) *FilePicker {
 	}
 	picker.view.SetCurrentNode(currentNode)
 
-	picker.view.SetSelectedFunc(func(node *tview.TreeNode) {
-		reference := node.GetReference()
-		if reference == nil {
-			return
-		}
-		path := reference.(string)
-		children := node.GetChildren()
-		if len(children) == 0 {
-			picker.addNodes(node, path)
-		} else {
-			node.SetExpanded(!node.IsExpanded())
+	picker.view.SetChangedFunc(func(node *tview.TreeNode) {
+		if node != nil && node.GetReference() != nil {
+			path := node.GetReference().(string)
+			if picker.onChanged != nil {
+				picker.onChanged(path)
+			}
 		}
 	})
-
-	picker.view.SetBackgroundColor(DefaultTheme.Background)
 
 	return picker
 }
 
-// addNodes adds child nodes to the given node based on the directory content.
+// updateNodeText updates the visual representation of a node (checkbox and name).
+func (f *FilePicker) updateNodeText(n *tview.TreeNode) {
+	ref := n.GetReference()
+	if ref == nil {
+		return
+	}
+	path := ref.(string)
+	name := filepath.Base(path)
+	if path == "/" {
+		name = "/"
+	}
+
+	pColor := DefaultTheme.Hex(DefaultTheme.Primary)
+	sColor := DefaultTheme.Hex(DefaultTheme.Success)
+	box := fmt.Sprintf("[%s]%s[-]", pColor, tview.Escape("[ ]"))
+	if f.marked[path] {
+		box = fmt.Sprintf("[%s]%s[-]", sColor, tview.Escape("[✓]"))
+	}
+	n.SetText(box + " " + name)
+}
+
+// expandTo expands the tree to the specified path.
+func (f *FilePicker) expandTo(path string) {
+	pathElements := strings.Split(path, string(os.PathSeparator))
+	currentNode := f.root
+
+	for _, elem := range pathElements {
+		if elem == "" {
+			continue
+		}
+
+		var foundNode *tview.TreeNode
+		for _, child := range currentNode.GetChildren() {
+			ref := child.GetReference()
+			if ref != nil && filepath.Base(ref.(string)) == elem {
+				foundNode = child
+				break
+			}
+		}
+
+		if foundNode != nil {
+			fullPath := foundNode.GetReference().(string)
+			f.addNodes(foundNode, fullPath)
+			foundNode.SetExpanded(true)
+			currentNode = foundNode
+		} else {
+			break
+		}
+	}
+}
+
+// toggleMark toggles the selection state of a node.
+func (f *FilePicker) toggleMark(node *tview.TreeNode) {
+	ref := node.GetReference()
+	if ref == nil {
+		return
+	}
+	path := ref.(string)
+	f.marked[path] = !f.marked[path]
+	f.updateNodeText(node)
+}
+
+// findParent searches for the parent of a node.
+func (f *FilePicker) findParent(node *tview.TreeNode) *tview.TreeNode {
+	if node == f.root {
+		return nil
+	}
+	var parent *tview.TreeNode
+	var search func(*tview.TreeNode) bool
+	search = func(n *tview.TreeNode) bool {
+		for _, child := range n.GetChildren() {
+			if child == node {
+				parent = n
+				return true
+			}
+			if child.IsExpanded() {
+				if search(child) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	search(f.root)
+	return parent
+}
+
+// submit returns the selected paths and closes the picker.
+func (f *FilePicker) submit() {
+	var result []string
+	for p, m := range f.marked {
+		if m {
+			result = append(result, p)
+		}
+	}
+	if len(result) == 0 {
+		if node := f.view.GetCurrentNode(); node != nil {
+			if ref := node.GetReference(); ref != nil {
+				result = append(result, ref.(string))
+			}
+		}
+	}
+	f.app.pages.RemovePage("file-picker")
+	f.app.UpdateFooter("[Populate Environment]", KeyDescriptions["populate-form"])
+	if f.onSelect != nil {
+		f.onSelect(result)
+	}
+}
+
+// findAllMatches finds all nodes matching the search text.
+func (f *FilePicker) findAllMatches(text string) []*tview.TreeNode {
+	var matches []*tview.TreeNode
+	if text == "" {
+		return matches
+	}
+	text = strings.ToLower(text)
+
+	var search func(n *tview.TreeNode)
+	search = func(n *tview.TreeNode) {
+		ref := n.GetReference()
+		if ref != nil {
+			name := filepath.Base(ref.(string))
+			if strings.Contains(strings.ToLower(name), text) {
+				if n != f.root || len(text) > 1 {
+					matches = append(matches, n)
+				}
+			}
+		}
+		if n.IsExpanded() {
+			for _, child := range n.GetChildren() {
+				search(child)
+			}
+		}
+	}
+	search(f.root)
+	return matches
+}
+
+// executeSearch performs a search and updates the UI.
+func (f *FilePicker) executeSearch(text string, searchField *tview.InputField) {
+	if text == "" {
+		return
+	}
+	f.lastSearch = text
+	matches := f.findAllMatches(text)
+
+	if len(matches) > 0 {
+		f.view.SetCurrentNode(matches[0])
+		f.app.tview.SetFocus(f.view)
+		// UX: update footer with match count
+		f.app.UpdateFooter("[File Picker]", []string{fmt.Sprintf("match 1/%d", len(matches)), "n: next", "N: prev", "/: search"})
+	} else {
+		searchField.SetLabel("Not found: ")
+		searchField.SetLabelColor(DefaultTheme.Error)
+	}
+}
+
+// moveSelection moves the current node selection by a step (e.g., for mouse wheel).
+func (f *FilePicker) moveSelection(step int) {
+	var visibleNodes []*tview.TreeNode
+	var traverse func(n *tview.TreeNode)
+	traverse = func(n *tview.TreeNode) {
+		visibleNodes = append(visibleNodes, n)
+		if n.IsExpanded() {
+			for _, child := range n.GetChildren() {
+				traverse(child)
+			}
+		}
+	}
+	traverse(f.root)
+
+	current := f.view.GetCurrentNode()
+	index := -1
+	for i, n := range visibleNodes {
+		if n == current {
+			index = i
+			break
+		}
+	}
+
+	if index != -1 {
+		newIndex := index + step
+		if newIndex >= 0 && newIndex < len(visibleNodes) {
+			f.view.SetCurrentNode(visibleNodes[newIndex])
+		}
+	}
+}
+
+// setupInput configures keyboard navigation and actions.
+func (f *FilePicker) setupInput(layout *tview.Flex, searchField *tview.InputField) {
+	f.view.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		key := event.Key()
+		rune := event.Rune()
+
+		if key == tcell.KeyRune && rune == '/' {
+			searchField.SetLabel("/")
+			searchField.SetLabelColor(DefaultTheme.Secondary)
+			layout.ResizeItem(searchField, 1, 0)
+			f.app.tview.SetFocus(searchField)
+			f.app.UpdateFooter("[Search]", []string{"enter: find", "esc: cancel"})
+			return nil
+		}
+
+		if f.lastSearch != "" && (rune == 'n' || rune == 'N') {
+			matches := f.findAllMatches(f.lastSearch)
+			if len(matches) == 0 {
+				return nil
+			}
+			currentNode := f.view.GetCurrentNode()
+			currentIndex := -1
+			for i, m := range matches {
+				if m == currentNode {
+					currentIndex = i
+					break
+				}
+			}
+
+			var nextIndex int
+			if rune == 'N' {
+				nextIndex = currentIndex - 1
+				if nextIndex < 0 {
+					nextIndex = len(matches) - 1
+				}
+			} else {
+				nextIndex = currentIndex + 1
+				if nextIndex >= len(matches) {
+					nextIndex = 0
+				}
+			}
+
+			if currentIndex == -1 {
+				nextIndex = 0
+			}
+
+			f.view.SetCurrentNode(matches[nextIndex])
+			// UX: update match count in footer
+			f.app.UpdateFooter("[File Picker]", []string{fmt.Sprintf("match %d/%d", nextIndex+1, len(matches)), "n: next", "N: prev", "/: search"})
+			return nil
+		}
+
+		switch {
+		case key == tcell.KeyEsc:
+			if f.lastSearch != "" || searchField.GetText() != "" {
+				searchField.SetText("")
+				searchField.SetLabel("/")
+				searchField.SetLabelColor(DefaultTheme.Secondary)
+				layout.ResizeItem(searchField, 0, 0)
+				f.lastSearch = ""
+				return nil
+			}
+			f.app.pages.RemovePage("file-picker")
+			f.app.UpdateFooter("[Populate Environment]", KeyDescriptions["populate-form"])
+			return nil
+
+		case key == tcell.KeyEnter:
+			f.submit()
+			return nil
+
+		case key == tcell.KeyRight:
+			node := f.view.GetCurrentNode()
+			if node != nil {
+				if ref := node.GetReference(); ref != nil {
+					path := ref.(string)
+					info, err := os.Stat(path)
+					if err == nil && info.IsDir() {
+						if len(node.GetChildren()) == 0 {
+							f.addNodes(node, path)
+						}
+						node.SetExpanded(true)
+					}
+				}
+			}
+			return nil
+
+		case key == tcell.KeyLeft:
+			node := f.view.GetCurrentNode()
+			if node != nil {
+				if node.IsExpanded() {
+					node.SetExpanded(false)
+				} else if parent := f.findParent(node); parent != nil {
+					f.view.SetCurrentNode(parent)
+				}
+			}
+			return nil
+
+		case key == tcell.KeyRune && rune == ' ':
+			if node := f.view.GetCurrentNode(); node != nil {
+				f.toggleMark(node)
+			}
+			return nil
+		}
+
+		return event
+	})
+
+	searchField.SetDoneFunc(func(key tcell.Key) {
+		switch key {
+		case tcell.KeyEnter:
+			f.executeSearch(searchField.GetText(), searchField)
+		case tcell.KeyEsc:
+			searchField.SetText("")
+			searchField.SetLabel("/")
+			searchField.SetLabelColor(DefaultTheme.Secondary)
+			layout.ResizeItem(searchField, 0, 0)
+			f.lastSearch = ""
+			f.app.tview.SetFocus(f.view)
+			f.app.UpdateFooter("[File Picker]", KeyDescriptions["file-picker"])
+		}
+	})
+}
+
+// addNodes adds child nodes based on directory content.
 func (f *FilePicker) addNodes(target *tview.TreeNode, path string) {
 	files, err := os.ReadDir(path)
 	if err != nil {
@@ -157,27 +411,15 @@ func (f *FilePicker) addNodes(target *tview.TreeNode, path string) {
 		}
 
 		fullPath := filepath.Join(path, file.Name())
-		node := tview.NewTreeNode("").
-			SetReference(fullPath).
-			SetSelectable(true)
-
-		// Set Text with Checkbox
-		name := file.Name()
-		pColor := DefaultTheme.Hex(DefaultTheme.Primary)
-		sColor := DefaultTheme.Hex(DefaultTheme.Success)
-		box := fmt.Sprintf("[%s]%s[-]", pColor, tview.Escape("[ ]"))
-		if f.marked[fullPath] {
-			box = fmt.Sprintf("[%s]%s[-]", sColor, tview.Escape("[✓]"))
-		}
-		node.SetText(box + " " + name)
+		node := tview.NewTreeNode("").SetReference(fullPath).SetSelectable(true)
+		f.updateNodeText(node)
 
 		if file.IsDir() {
 			node.SetColor(DefaultTheme.Secondary)
-			node.SetSelectedTextStyle(tcell.StyleDefault.Foreground(DefaultTheme.Primary).Background(DefaultTheme.Secondary))
 		} else {
 			node.SetColor(DefaultTheme.OnSurface)
-			node.SetSelectedTextStyle(tcell.StyleDefault.Foreground(DefaultTheme.Primary).Background(DefaultTheme.Secondary))
 		}
+		node.SetSelectedTextStyle(tcell.StyleDefault.Foreground(DefaultTheme.Primary).Background(DefaultTheme.Secondary))
 
 		target.AddChild(node)
 	}
@@ -185,8 +427,99 @@ func (f *FilePicker) addNodes(target *tview.TreeNode, path string) {
 
 // showFilePicker displays the file picker modal.
 func (a *App) showFilePicker(initialPaths []string, onSelect func([]string)) {
+	absPath := a.resolveStartPath(initialPaths)
+	picker := newFilePicker(a, absPath, initialPaths, onSelect)
+
+	a.UpdateFooter("[File Picker]", KeyDescriptions["file-picker"])
+
+	picker.view.SetSelectedFunc(func(node *tview.TreeNode) {
+		ref := node.GetReference()
+		if ref == nil {
+			return
+		}
+		path := ref.(string)
+
+		info, err := os.Stat(path)
+		if err == nil && info.IsDir() {
+			if len(node.GetChildren()) == 0 {
+				picker.addNodes(node, path)
+			}
+			node.SetExpanded(!node.IsExpanded())
+		} else {
+			picker.toggleMark(node)
+		}
+	})
+
+	btnSubmit := tview.NewButton("Submit").SetSelectedFunc(func() { picker.submit() })
+	ApplyButtonStyle(btnSubmit)
+
+	btnCancel := tview.NewButton("Cancel").SetSelectedFunc(func() {
+		a.pages.RemovePage("file-picker")
+		a.UpdateFooter("[Populate Environment]", KeyDescriptions["populate-form"])
+	})
+	btnCancel.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Surface).Foreground(DefaultTheme.OnSurface))
+	btnCancel.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Error).Foreground(DefaultTheme.OnError))
+
+	buttonBar := tview.NewFlex().SetDirection(tview.FlexColumn).
+		AddItem(tview.NewBox(), 0, 1, false).
+		AddItem(btnSubmit, 10, 0, false).
+		AddItem(tview.NewBox(), 0, 1, false).
+		AddItem(btnCancel, 10, 0, false).
+		AddItem(tview.NewBox(), 0, 1, false)
+
+	searchField := tview.NewInputField().
+		SetLabel("/").
+		SetFieldWidth(0).
+		SetLabelColor(DefaultTheme.Secondary).
+		SetFieldBackgroundColor(DefaultTheme.Background).
+		SetFieldTextColor(DefaultTheme.OnSurface)
+
+	pathBar := tview.NewTextView().
+		SetDynamicColors(true).
+		SetTextAlign(tview.AlignLeft)
+	pathBar.SetBackgroundColor(DefaultTheme.Surface)
+	pathBar.SetText(" [::b]Path:[-] " + absPath)
+
+	picker.onChanged = func(path string) {
+		pathBar.SetText(" [::b]Path:[-] " + path)
+	}
+
+	layout := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(pathBar, 1, 0, false).
+		AddItem(tview.NewBox(), 1, 0, false).
+		AddItem(picker.view, 0, 1, true).
+		AddItem(searchField, 0, 0, false).
+		AddItem(tview.NewBox(), 1, 0, false).
+		AddItem(buttonBar, 1, 0, false)
+
+	layout.SetBorder(true).
+		SetBorderColor(DefaultTheme.Primary).
+		SetTitle(" [::b]Select Files ").
+		SetTitleColor(DefaultTheme.Secondary)
+
+	// UX: Selection follows scroll wheel
+	picker.view.SetMouseCapture(func(action tview.MouseAction, event *tcell.EventMouse) (tview.MouseAction, *tcell.EventMouse) {
+		switch action {
+		case tview.MouseScrollUp:
+			picker.moveSelection(-1)
+		case tview.MouseScrollDown:
+			picker.moveSelection(1)
+		}
+		return action, event
+	})
+
+	picker.setupInput(layout, searchField)
+
+	pickerLayout := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(layout, 0, 1, true)
+
+	a.pages.AddPage("file-picker", CenterPrimitive(pickerLayout, 2, 4), true, true)
+	a.tview.SetFocus(picker.view)
+}
+
+// resolveStartPath determines the initial directory for the picker.
+func (a *App) resolveStartPath(initialPaths []string) string {
 	startPath := ""
-	// Use directory of first path if available, or CWD
 	if len(initialPaths) > 0 && initialPaths[0] != "" {
 		info, err := os.Stat(initialPaths[0])
 		if err == nil {
@@ -206,329 +539,10 @@ func (a *App) showFilePicker(initialPaths []string, onSelect func([]string)) {
 			startPath = "/"
 		}
 	}
+
 	absPath, err := filepath.Abs(startPath)
 	if err != nil {
-		absPath = "/"
+		return "/"
 	}
-
-	picker := newFilePicker(absPath, initialPaths)
-
-	// Update footer for file picker
-	a.UpdateFooter("[File Picker]", KeyDescriptions["file-picker"])
-
-	// Restore footer on exit (helper)
-	restoreFooter := func() {
-		a.UpdateFooter("[Populate Environment]", KeyDescriptions["populate-form"])
-	}
-
-	// Internal helper to update node text
-	updateNodeVisual := func(n *tview.TreeNode) {
-		ref := n.GetReference()
-		if ref == nil {
-			return
-		}
-		path := ref.(string)
-		name := filepath.Base(path)
-		if path == "/" {
-			name = "/"
-		}
-
-		pColor := DefaultTheme.Hex(DefaultTheme.Primary)
-		sColor := DefaultTheme.Hex(DefaultTheme.Success)
-		box := fmt.Sprintf("[%s]%s[-]", pColor, tview.Escape("[ ]"))
-		if picker.marked[path] {
-			box = fmt.Sprintf("[%s]%s[-]", sColor, tview.Escape("[✓]"))
-		}
-		n.SetText(box + " " + name)
-	}
-
-	// Submit handler
-	submit := func() {
-		var result []string
-		for p, m := range picker.marked {
-			if m {
-				result = append(result, p)
-			}
-		}
-		// If nothing marked, maybe return current node?
-		if len(result) == 0 {
-			if node := picker.view.GetCurrentNode(); node != nil {
-				if ref := node.GetReference(); ref != nil {
-					result = append(result, ref.(string))
-				}
-			}
-		}
-		a.pages.RemovePage("file-picker")
-		restoreFooter()
-		onSelect(result)
-	}
-
-	// Start Helper to handle selection (Enter)
-	picker.view.SetSelectedFunc(func(node *tview.TreeNode) {
-		reference := node.GetReference()
-		if reference == nil {
-			return
-		}
-		path := reference.(string)
-
-		info, err := os.Stat(path)
-		if err == nil && info.IsDir() {
-			if len(node.GetChildren()) == 0 {
-				picker.addNodes(node, path)
-			}
-			node.SetExpanded(!node.IsExpanded())
-		} else {
-			// File: Toggle Mark
-			picker.marked[path] = !picker.marked[path]
-			updateNodeVisual(node)
-		}
-	})
-
-	btnSubmit := tview.NewButton("Submit").SetSelectedFunc(func() {
-		submit()
-	})
-	btnSubmit.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary))
-	btnSubmit.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
-
-	btnCancel := tview.NewButton("Cancel").SetSelectedFunc(func() {
-		a.pages.RemovePage("file-picker")
-		restoreFooter()
-	})
-	btnCancel.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Surface).Foreground(DefaultTheme.OnSurface))
-	btnCancel.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Error).Foreground(DefaultTheme.OnError))
-
-	buttonBar := tview.NewFlex().SetDirection(tview.FlexColumn).
-		AddItem(tview.NewBox(), 0, 1, false).
-		AddItem(btnSubmit, 10, 0, false).
-		AddItem(tview.NewBox(), 0, 1, false).
-		AddItem(btnCancel, 10, 0, false).
-		AddItem(tview.NewBox(), 0, 1, false)
-
-	// Search Frame
-	searchField := tview.NewInputField().
-		SetLabel("/").
-		SetFieldWidth(0).
-		SetLabelColor(DefaultTheme.Secondary).
-		SetFieldBackgroundColor(DefaultTheme.Background).
-		SetFieldTextColor(DefaultTheme.OnSurface)
-
-	// Layout
-	layout := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(picker.view, 0, 1, true).
-		AddItem(searchField, 0, 0, false). // Hidden initially
-		AddItem(tview.NewBox(), 1, 0, false).
-		AddItem(buttonBar, 1, 0, false)
-	layout.SetBorder(true).
-		SetBorderColor(DefaultTheme.Primary).
-		SetTitle(" [::b]Select Files ").
-		SetTitleColor(DefaultTheme.Secondary).
-		SetBorderColor(DefaultTheme.Primary)
-
-	var lastSearch string
-
-	// Helper to find all matches
-	findAllMatches := func(text string) []*tview.TreeNode {
-		var matches []*tview.TreeNode
-		if text == "" {
-			return matches
-		}
-		text = strings.ToLower(text)
-
-		var search func(n *tview.TreeNode)
-		search = func(n *tview.TreeNode) {
-			// Use GetReference for search since GetText has prefix now
-			ref := n.GetReference()
-			if ref != nil {
-				name := filepath.Base(ref.(string))
-				if strings.Contains(strings.ToLower(name), text) {
-					if n != picker.root || len(text) > 1 {
-						matches = append(matches, n)
-					}
-				}
-			}
-			if n.IsExpanded() {
-				for _, child := range n.GetChildren() {
-					search(child)
-				}
-			}
-		}
-		search(picker.root)
-		return matches
-	}
-
-	// Search Logic
-	executeSearch := func(text string) {
-		if text == "" {
-			return
-		}
-		lastSearch = text
-		matches := findAllMatches(text)
-
-		if len(matches) > 0 {
-			picker.view.SetCurrentNode(matches[0])
-			// Keep Search UI, but change focus
-			a.tview.SetFocus(picker.view)
-			a.UpdateFooter("[File Picker]", KeyDescriptions["file-picker"])
-		} else {
-			searchField.SetLabel("Not found: ")
-			searchField.SetLabelColor(DefaultTheme.Error)
-		}
-	}
-
-	searchField.SetDoneFunc(func(key tcell.Key) {
-		switch key {
-		case tcell.KeyEnter:
-			executeSearch(searchField.GetText())
-		case tcell.KeyEsc:
-			// Cancel search
-			searchField.SetText("")
-			searchField.SetLabel("/")
-			searchField.SetLabelColor(DefaultTheme.Secondary)
-			layout.ResizeItem(searchField, 0, 0)
-			lastSearch = ""
-			a.tview.SetFocus(picker.view)
-			a.UpdateFooter("[File Picker]", KeyDescriptions["file-picker"])
-		}
-	})
-
-	// Add input capture for navigation and selection
-	picker.view.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyRune && event.Rune() == '/' {
-			// Open Search
-			searchField.SetLabel("/")
-			searchField.SetLabelColor(DefaultTheme.Secondary)
-			layout.ResizeItem(searchField, 1, 0)
-			a.tview.SetFocus(searchField)
-			a.UpdateFooter("[Search]", []string{"enter: find", "esc: cancel"})
-			return nil
-		}
-
-		// Search Navigation
-		if lastSearch != "" && (event.Rune() == 'n' || event.Rune() == 'N') {
-			matches := findAllMatches(lastSearch)
-			if len(matches) == 0 {
-				return nil
-			}
-			currentNode := picker.view.GetCurrentNode()
-			currentIndex := -1
-			for i, m := range matches {
-				if m == currentNode {
-					currentIndex = i
-					break
-				}
-			}
-
-			var nextIndex int
-			if event.Rune() == 'N' { // Previous
-				nextIndex = currentIndex - 1
-				if nextIndex < 0 {
-					nextIndex = len(matches) - 1
-				}
-			} else { // Next
-				nextIndex = currentIndex + 1
-				if nextIndex >= len(matches) {
-					nextIndex = 0
-				}
-			}
-
-			// If current node wasn't in matches (user moved), default to first match
-			if currentIndex == -1 {
-				nextIndex = 0
-			}
-
-			picker.view.SetCurrentNode(matches[nextIndex])
-			return nil
-		}
-
-		switch {
-		case event.Key() == tcell.KeyEsc:
-			if lastSearch != "" || searchField.GetText() != "" {
-				// Clear search first
-				searchField.SetText("")
-				searchField.SetLabel("/")
-				searchField.SetLabelColor(DefaultTheme.Secondary)
-				layout.ResizeItem(searchField, 0, 0)
-				lastSearch = ""
-				return nil
-			}
-			a.pages.RemovePage("file-picker")
-			restoreFooter()
-			return nil
-
-		case event.Key() == tcell.KeyEnter:
-			submit()
-			return nil
-
-		case event.Key() == tcell.KeyRight:
-			node := picker.view.GetCurrentNode()
-			if node != nil {
-				ref := node.GetReference()
-				if ref == nil {
-					return nil
-				}
-				path := ref.(string)
-				info, err := os.Stat(path)
-				if err == nil && info.IsDir() {
-					if len(node.GetChildren()) == 0 {
-						picker.addNodes(node, path)
-					}
-					node.SetExpanded(true)
-				}
-			}
-			return nil
-
-		case event.Key() == tcell.KeyLeft:
-			node := picker.view.GetCurrentNode()
-			if node != nil {
-				if node.IsExpanded() {
-					node.SetExpanded(false)
-				} else {
-					// Navigate to parent
-					// Since TreeNode doesn't expose GetParent, we search from root.
-					if node == picker.root {
-						return nil // Cannot go up from root
-					}
-					var parent *tview.TreeNode
-					var findParent func(*tview.TreeNode) bool
-					findParent = func(n *tview.TreeNode) bool {
-						for _, child := range n.GetChildren() {
-							if child == node {
-								parent = n
-								return true
-							}
-							if child.IsExpanded() { // Only search expanded nodes as parents
-								if findParent(child) {
-									return true
-								}
-							}
-						}
-						return false
-					}
-					findParent(picker.root)
-					if parent != nil {
-						picker.view.SetCurrentNode(parent)
-					}
-				}
-			}
-			return nil
-
-		case event.Key() == tcell.KeyRune && event.Rune() == ' ':
-			node := picker.view.GetCurrentNode()
-			if node != nil {
-				ref := node.GetReference()
-				if ref != nil {
-					// Toggle Mark
-					path := ref.(string)
-					picker.marked[path] = !picker.marked[path]
-					updateNodeVisual(node)
-				}
-			}
-			return nil
-		}
-
-		return event
-	})
-
-	a.pages.AddPage("file-picker", CenterPrimitive(layout, 2, 4), true, true)
-	a.tview.SetFocus(picker.view)
+	return absPath
 }

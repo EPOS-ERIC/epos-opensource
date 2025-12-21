@@ -82,8 +82,7 @@ var KeyDescriptions = map[string][]string{
 	"help":              {"↑↓: nav", "esc/q: close"},
 }
 
-// InitStyles sets up global tview styles and border characters.
-// Call this once during app initialization.
+// InitStyles sets up global tview styles and borders.
 func InitStyles() {
 	tview.Styles.PrimitiveBackgroundColor = DefaultTheme.Background
 	tview.Borders.HorizontalFocus = tview.Borders.Horizontal
@@ -94,44 +93,13 @@ func InitStyles() {
 	tview.Borders.BottomRightFocus = tview.Borders.BottomRight
 }
 
-// CreateGradient creates a gradient text string from start to end color.
-// Used for decorative text like version display.
-func CreateGradient(text string, startColor, endColor tcell.Color) string {
-	result := ""
-	runes := []rune(text)
-	n := len(runes)
-	if n == 0 {
-		return ""
-	}
-	for i, char := range runes {
-		ratio := float64(i) / float64(n-1)
-		if n == 1 {
-			ratio = 0
-		}
-		col := interpolateColor(startColor, endColor, ratio)
-		r, g, b := col.RGB()
-		result += fmt.Sprintf("[#%02x%02x%02x::b]%c", r, g, b, char)
-	}
-	return result
-}
-
-// interpolateColor blends between two colors based on a ratio (0.0 to 1.0).
-func interpolateColor(start, end tcell.Color, ratio float64) tcell.Color {
-	sr, sg, sb := start.RGB()
-	er, eg, eb := end.RGB()
-	r := uint8(float64(sr) + ratio*(float64(er)-float64(sr)))
-	g := uint8(float64(sg) + ratio*(float64(eg)-float64(sg)))
-	b := uint8(float64(sb) + ratio*(float64(eb)-float64(sb)))
-	return tcell.NewRGBColor(int32(r), int32(g), int32(b))
-}
-
 // Hex returns the hex string for a color.
 func (t *Theme) Hex(color tcell.Color) string {
 	r, g, b := color.RGB()
 	return fmt.Sprintf("#%02x%02x%02x", r, g, b)
 }
 
-// Tag returns a tview color tag for a color with attributes.
+// Tag returns a tview color tag.
 func (t *Theme) Tag(color tcell.Color, attrs string) string {
 	if attrs == "" {
 		return fmt.Sprintf("[%s]", t.Hex(color))
@@ -139,11 +107,34 @@ func (t *Theme) Tag(color tcell.Color, attrs string) string {
 	return fmt.Sprintf("[%s::%s]", t.Hex(color), attrs)
 }
 
-// Convenience methods for common tags.
-
 func (t *Theme) PrimaryTag(attrs string) string     { return t.Tag(t.Primary, attrs) }
 func (t *Theme) SecondaryTag(attrs string) string   { return t.Tag(t.Secondary, attrs) }
 func (t *Theme) ErrorTag(attrs string) string       { return t.Tag(t.Error, attrs) }
 func (t *Theme) SuccessTag(attrs string) string     { return t.Tag(t.Success, attrs) }
 func (t *Theme) DestructiveTag(attrs string) string { return t.Tag(t.Destructive, attrs) }
 func (t *Theme) MutedTag(attrs string) string       { return t.Tag(t.Muted, attrs) }
+
+type boxLike interface {
+	SetBorderColor(tcell.Color) *tview.Box
+}
+
+// updateBoxStyle sets the border color based on focus state.
+func updateBoxStyle(b boxLike, active bool) {
+	if active {
+		b.SetBorderColor(DefaultTheme.Primary)
+	} else {
+		b.SetBorderColor(DefaultTheme.Surface)
+	}
+}
+
+// updateListStyle sets border and selection colors based on focus state.
+func updateListStyle(l *tview.List, active bool) {
+	updateBoxStyle(l, active)
+	if active {
+		l.SetSelectedBackgroundColor(DefaultTheme.Primary)
+		l.SetSelectedTextColor(DefaultTheme.OnPrimary)
+	} else {
+		l.SetSelectedBackgroundColor(DefaultTheme.Surface)
+		l.SetSelectedTextColor(DefaultTheme.OnSurface)
+	}
+}

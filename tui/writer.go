@@ -8,7 +8,6 @@ import (
 )
 
 // OutputWriter captures command output and routes it to a TUI TextView.
-// Converts ANSI escape codes to tview color format.
 type OutputWriter struct {
 	app    *tview.Application
 	view   *tview.TextView
@@ -16,7 +15,7 @@ type OutputWriter struct {
 	mu     sync.Mutex
 }
 
-// Write implements io.Writer. Buffers output and writes to the active view.
+// Write implements io.Writer.
 func (w *OutputWriter) Write(p []byte) (n int, err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -31,7 +30,6 @@ func (w *OutputWriter) Write(p []byte) (n int, err error) {
 }
 
 // SetView connects the writer to a TextView for output display.
-// Flushes any buffered content that arrived before the view was connected.
 func (w *OutputWriter) SetView(app *tview.Application, view *tview.TextView) {
 	w.mu.Lock()
 	defer w.mu.Unlock()

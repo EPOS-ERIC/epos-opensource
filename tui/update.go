@@ -24,19 +24,13 @@ type updateFormData struct {
 
 // showUpdateForm displays the environment update form for Docker or K8s.
 func (a *App) showUpdateForm() {
-	isDocker := a.currentEnv == a.dockerFlex
+	a.PushFocus()
+	envName, isDocker := a.envList.GetSelected()
 	title := "Update Docker Environment"
 	if !isDocker {
 		title = "Update Kubernetes Environment"
 	}
 	a.UpdateFooter(fmt.Sprintf("[%s]", title), KeyDescriptions["update-form"])
-
-	envName := ""
-	if isDocker {
-		envName = a.SelectedDockerEnv()
-	} else {
-		envName = a.SelectedK8sEnv()
-	}
 
 	if envName == "" {
 		return
@@ -46,8 +40,8 @@ func (a *App) showUpdateForm() {
 		name: envName,
 	}
 
-	form := tview.NewForm().
-		AddInputField("Env File", "", 0, nil, func(text string) { data.envFile = text })
+	form := NewStyledForm()
+	form.AddInputField("Env File", "", 0, nil, func(text string) { data.envFile = text })
 
 	if isDocker {
 		form.AddInputField("Compose File", "", 0, nil, func(text string) { data.composeFile = text }).
@@ -62,25 +56,26 @@ func (a *App) showUpdateForm() {
 
 	form.AddCheckbox("Reset Config", false, func(checked bool) { data.reset = checked }).
 		AddButton("Update", func() { a.handleUpdate(data, isDocker) }).
-		AddButton("Cancel", func() { a.returnFromUpdate() })
-
-	form.SetFieldBackgroundColor(DefaultTheme.Surface)
-	form.SetFieldTextColor(DefaultTheme.Secondary)
-	form.SetLabelColor(DefaultTheme.Secondary)
-	form.SetButtonBackgroundColor(DefaultTheme.Primary)
-	form.SetButtonTextColor(DefaultTheme.OnPrimary)
-	form.SetButtonActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
-	form.SetBorderPadding(1, 0, 2, 2)
+		AddButton("Cancel", func() {
+			a.ResetToHome(ResetOptions{
+				PageNames:    []string{"update"},
+				RefreshFiles: true,
+				RestoreFocus: true,
+			})
+		})
 
 	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEsc {
-			a.returnFromUpdate()
+			a.ResetToHome(ResetOptions{
+				PageNames:    []string{"update"},
+				RefreshFiles: true,
+				RestoreFocus: true,
+			})
 			return nil
 		}
 		return event
 	})
 
-	// Layout
 	content := tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(form, 0, 1, true)
@@ -107,69 +102,33 @@ func (a *App) handleUpdate(data *updateFormData, isDocker bool) {
 
 // showUpdateProgress displays the update progress with live output.
 func (a *App) showUpdateProgress(data *updateFormData, isDocker bool) {
-	progress := NewOperationProgress(a, "Update", data.name)
-	progress.Start()
-
-	// Run update in background
-	go func() {
-		var err error
-		if isDocker {
-			_, err = dockercore.Update(dockercore.UpdateOpts{
-				Name:        data.name,
-				EnvFile:     data.envFile,
-				ComposeFile: data.composeFile,
-				PullImages:  data.pullImages,
-				Force:       data.force,
-				CustomHost:  data.customHost,
-				Reset:       data.reset,
-			})
-		} else {
-			_, err = k8score.Update(k8score.UpdateOpts{
-				Name:        data.name,
-				EnvFile:     data.envFile,
-				ManifestDir: data.manifestDir,
-				Force:       data.force,
-				CustomHost:  data.customHost,
-				Reset:       data.reset,
-			})
-		}
-
-		if err != nil {
-			progress.Complete(false, err.Error())
-		} else {
-			progress.Complete(true, "Environment updated successfully!")
-		}
-	}()
-}
-
-// returnFromUpdate cleans up and returns to the home screen.
-func (a *App) returnFromUpdate() {
-	a.pages.RemovePage("update")
-	a.pages.RemovePage("update-progress")
-	a.pages.SwitchToPage("home")
-	a.refreshLists()
-	a.refreshIngestedFiles()
-
-	if a.detailsShown {
-		a.tview.SetFocus(a.details)
-	} else {
-		if a.currentEnv == a.dockerFlex {
-			a.tview.SetFocus(a.docker)
-		} else {
-			a.tview.SetFocus(a.k8s)
-		}
-	}
-	if a.detailsShown {
-		key := DetailsK8sKey
-		if a.currentEnv == a.dockerFlex {
-			key = DetailsDockerKey
-		}
-		a.UpdateFooter("[Environment Details]", KeyDescriptions[key])
-	} else {
-		if a.currentEnv == a.dockerFlex {
-			a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
-		} else {
-			a.UpdateFooter("[K8s Environments]", KeyDescriptions["k8s"])
-		}
-	}
+	a.RunBackgroundTask(TaskOptions{
+		Operation: "Update",
+		EnvName:   data.name,
+		IsDocker:  isDocker,
+		Task: func() (string, error) {
+			var err error
+			if isDocker {
+				_, err = dockercore.Update(dockercore.UpdateOpts{
+					Name:        data.name,
+					EnvFile:     data.envFile,
+					ComposeFile: data.composeFile,
+					PullImages:  data.pullImages,
+					Force:       data.force,
+					CustomHost:  data.customHost,
+					Reset:       data.reset,
+				})
+			} else {
+				_, err = k8score.Update(k8score.UpdateOpts{
+					Name:        data.name,
+					EnvFile:     data.envFile,
+					ManifestDir: data.manifestDir,
+					Force:       data.force,
+					CustomHost:  data.customHost,
+					Reset:       data.reset,
+				})
+			}
+			return "", err
+		},
+	})
 }

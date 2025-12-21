@@ -9,7 +9,7 @@ import (
 
 // showHelp displays a modal with keyboard shortcuts for all screens.
 func (a *App) showHelp() {
-	a.previousFocus = a.tview.GetFocus()
+	a.PushFocus()
 	table := tview.NewTable().
 		SetBorders(false).
 		SetSelectable(false, false)
@@ -46,7 +46,6 @@ func (a *App) showHelp() {
 	table.SetCell(row, 0, tview.NewTableCell("  "+DefaultTheme.PrimaryTag("b")+"q").SetAlign(tview.AlignLeft))
 	table.SetCell(row, 1, tview.NewTableCell("quit application").SetAlign(tview.AlignRight).SetExpansion(1))
 
-	// Layout
 	content := tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(table, 0, 1, true)
@@ -55,28 +54,13 @@ func (a *App) showHelp() {
 		SetBorderColor(DefaultTheme.Secondary).
 		SetTitle(" [::b]Help ").
 		SetTitleColor(DefaultTheme.Secondary)
-		// SetBorderPadding(1, 0, 2, 2)
 
-	// Close handler
 	content.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEsc || event.Rune() == 'q' {
-			a.pages.RemovePage("help")
-			if a.previousFocus != nil {
-				a.tview.SetFocus(a.previousFocus)
-			}
-			if a.detailsShown {
-				key := DetailsK8sKey
-				if a.currentEnv == a.dockerFlex {
-					key = DetailsDockerKey
-				}
-				a.UpdateFooter("[Environment Details]", KeyDescriptions[key])
-			} else {
-				if a.currentEnv == a.dockerFlex {
-					a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
-				} else {
-					a.UpdateFooter("[K8s Environments]", KeyDescriptions["k8s"])
-				}
-			}
+			a.ResetToHome(ResetOptions{
+				PageNames:    []string{"help"},
+				RestoreFocus: true,
+			})
 			return nil
 		}
 		return event

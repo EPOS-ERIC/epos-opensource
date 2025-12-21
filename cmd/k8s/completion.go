@@ -1,64 +1,21 @@
 package k8s
 
 import (
-	"strings"
-
+	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
 	"github.com/spf13/cobra"
 )
 
 func validArgsFunction(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if strings.Contains(cmd.Use, "populate") {
-		if len(args) == 0 {
-			docker, err := db.GetAllKubernetes()
-			if err != nil {
-				return nil, cobra.ShellCompDirectiveNoFileComp
-			}
-
-			var matches []string
-			for _, k := range docker {
-				if strings.HasPrefix(k.Name, toComplete) {
-					matches = append(matches, k.Name)
-				}
-			}
-
-			return matches, cobra.ShellCompDirectiveNoFileComp
-		} else {
-			return nil, cobra.ShellCompDirectiveDefault
-		}
-	} else if strings.Contains(cmd.Use, "delete") {
-		if len(args) == 0 {
-			docker, err := db.GetAllKubernetes()
-			if err != nil {
-				return nil, cobra.ShellCompDirectiveNoFileComp
-			}
-
-			var matches []string
-			for _, k := range docker {
-				if strings.HasPrefix(k.Name, toComplete) {
-					matches = append(matches, k.Name)
-				}
-			}
-
-			return matches, cobra.ShellCompDirectiveNoFileComp
-		} else {
-			return nil, cobra.ShellCompDirectiveNoFileComp
-		}
-	} else if strings.Contains(cmd.Use, "clean") {
-		docker, err := db.GetAllKubernetes()
+	return common.SharedValidArgsFunction(cmd, args, toComplete, func() ([]string, error) {
+		kubernetes, err := db.GetAllKubernetes()
 		if err != nil {
-			return nil, cobra.ShellCompDirectiveNoFileComp
+			return nil, err
 		}
-
-		var matches []string
-		for _, k := range docker {
-			if strings.HasPrefix(k.Name, toComplete) {
-				matches = append(matches, k.Name)
-			}
+		names := make([]string, len(kubernetes))
+		for i, k := range kubernetes {
+			names[i] = k.Name
 		}
-
-		return matches, cobra.ShellCompDirectiveNoFileComp
-	} else {
-		return nil, cobra.ShellCompDirectiveNoFileComp
-	}
+		return names, nil
+	})
 }

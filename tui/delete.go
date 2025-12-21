@@ -3,159 +3,59 @@ package tui
 import (
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
 	"github.com/epos-eu/epos-opensource/cmd/k8s/k8score"
-	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 )
 
 // showDeleteConfirm displays a confirmation dialog for deleting a Docker or K8s environment.
 func (a *App) showDeleteConfirm() {
-	a.previousFocus = a.tview.GetFocus()
-	isDocker := a.currentEnv == a.dockerFlex
-	envName := ""
-	if isDocker {
-		envName = a.SelectedDockerEnv()
-	} else {
-		envName = a.SelectedK8sEnv()
-	}
+	envName, isDocker := a.envList.GetSelected()
 
 	if envName == "" {
 		return
 	}
 
-	// Create text view for message
 	message := "This will permanently remove all containers, volumes, and associated resources.\n\n"
 	if !isDocker {
 		message = "This will permanently remove the namespace and all associated Kubernetes resources.\n\n"
 	}
+	message += DefaultTheme.DestructiveTag("b") + "This action cannot be undone." + "[-]"
 
-	textView := tview.NewTextView().
-		SetText(message + DefaultTheme.DestructiveTag("b") + "This action cannot be undone." + "[-]").
-		SetDynamicColors(true).
-		SetTextAlign(tview.AlignCenter)
-	textView.SetBorderPadding(1, 0, 1, 1)
-
-	// Create explicit buttons with styling
-	deleteBtn := tview.NewButton("Delete").SetSelectedFunc(func() {
-		a.pages.RemovePage("delete-confirm")
-		a.showDeleteProgress(envName, isDocker)
-	})
-	deleteBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Destructive).Foreground(DefaultTheme.OnDestructive))
-	deleteBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Destructive))
-
-	cancelBtn := tview.NewButton("Cancel").SetSelectedFunc(func() {
-		a.returnFromDelete(false)
-	})
-	cancelBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary))
-	cancelBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
-
-	// Helper to handle arrow key navigation between buttons
-	buttonInputCapture := func(leftBtn, rightBtn *tview.Button) func(*tcell.EventKey) *tcell.EventKey {
-		return func(event *tcell.EventKey) *tcell.EventKey {
-			switch event.Key() {
-			case tcell.KeyLeft:
-				a.tview.SetFocus(leftBtn)
-				return nil
-			case tcell.KeyRight:
-				a.tview.SetFocus(rightBtn)
-				return nil
-			case tcell.KeyEsc:
-				a.returnFromDelete(false)
-				return nil
-			}
-			return event
-		}
-	}
-	deleteBtn.SetInputCapture(buttonInputCapture(deleteBtn, cancelBtn))
-	cancelBtn.SetInputCapture(buttonInputCapture(deleteBtn, cancelBtn))
-
-	buttonContainer := tview.NewFlex().SetDirection(tview.FlexColumn).
-		AddItem(tview.NewBox(), 0, 1, false).
-		AddItem(deleteBtn, 10, 0, true).
-		AddItem(tview.NewBox(), 2, 0, false).
-		AddItem(cancelBtn, 10, 0, true).
-		AddItem(tview.NewBox(), 0, 1, false)
-	buttonContainer.SetBackgroundColor(tcell.ColorDefault)
-
-	// Main layout
-	layout := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(textView, 0, 1, false).
-		AddItem(buttonContainer, 1, 0, true)
-	layout.SetBorder(true).
-		SetTitle(" [::b]Delete Environment ").
-		SetTitleColor(DefaultTheme.Secondary).
-		SetBorderColor(DefaultTheme.Destructive).
-		SetBackgroundColor(DefaultTheme.Background)
-
-	// Center the layout
-	innerFlex := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(nil, 0, 1, false).
-		AddItem(layout, 11, 1, true).
-		AddItem(nil, 0, 1, false)
-	innerFlex.SetBackgroundColor(DefaultTheme.Background)
-
-	outerLayout := tview.NewFlex().
-		AddItem(nil, 0, 1, false).
-		AddItem(innerFlex, 60, 1, true).
-		AddItem(nil, 0, 1, false)
-	outerLayout.SetBackgroundColor(DefaultTheme.Background)
-
-	a.pages.AddPage("delete-confirm", outerLayout, true, true)
-	a.tview.SetFocus(deleteBtn)
 	a.UpdateFooter("[Delete Environment]", KeyDescriptions["delete-confirm"])
+
+	a.ShowConfirmation(ConfirmationOptions{
+		PageName:     "delete-confirm",
+		Title:        " [::b]Delete Environment ",
+		Message:      message,
+		ConfirmLabel: "Delete",
+		CancelLabel:  "Cancel",
+		Destructive:  true,
+		OnConfirm: func() {
+			a.showDeleteProgress(envName, isDocker)
+		},
+		OnCancel: func() {
+			a.ResetToHome(ResetOptions{
+				PageNames:    []string{"delete-confirm"},
+				RestoreFocus: true,
+			})
+		},
+	})
 }
 
 // showDeleteProgress displays the deletion progress with live output.
 func (a *App) showDeleteProgress(envName string, isDocker bool) {
-	progress := NewOperationProgress(a, "Delete", envName)
-	progress.Start()
-
-	// Run deletion in background
-	go func() {
-		var err error
-		if isDocker {
-			err = dockercore.Delete(dockercore.DeleteOpts{
+	a.RunBackgroundTask(TaskOptions{
+		Operation: "Delete",
+		EnvName:   envName,
+		IsDocker:  isDocker,
+		Task: func() (string, error) {
+			if isDocker {
+				return "", dockercore.Delete(dockercore.DeleteOpts{
+					Name: []string{envName},
+				})
+			}
+			return "", k8score.Delete(k8score.DeleteOpts{
 				Name: []string{envName},
 			})
-		} else {
-			err = k8score.Delete(k8score.DeleteOpts{
-				Name: []string{envName},
-			})
-		}
-
-		if err != nil {
-			progress.Complete(false, err.Error())
-		} else {
-			progress.Complete(true, "Environment deleted successfully!")
-		}
-	}()
-}
-
-// returnFromDelete cleans up and returns to the home screen.
-func (a *App) returnFromDelete(clearDetails bool) {
-	a.pages.RemovePage("delete-confirm")
-	a.pages.RemovePage("delete-progress")
-	a.pages.SwitchToPage("home")
-	a.refreshLists()
-
-	if clearDetails {
-		a.clearDetailsPanel()
-		a.tview.SetFocus(a.currentEnv)
-	} else {
-		if a.previousFocus != nil {
-			a.tview.SetFocus(a.previousFocus)
-		}
-	}
-	if a.detailsShown {
-		key := DetailsK8sKey
-		if a.currentEnv == a.dockerFlex {
-			key = DetailsDockerKey
-		}
-		a.UpdateFooter("[Environment Details]", KeyDescriptions[key])
-	} else {
-		if a.currentEnv == a.dockerFlex {
-			a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
-		} else {
-			a.UpdateFooter("[K8s Environments]", KeyDescriptions["k8s"])
-		}
-	}
+		},
+		OnSuccess: func() {},
+	})
 }

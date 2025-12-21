@@ -26,26 +26,23 @@ func stripANSI(s string) string {
 // OperationProgress manages the UI for operation progress screens.
 type OperationProgress struct {
 	app       *App
-	operation string // "Deploy", "Populate", etc.
+	operation string
 	envName   string
 	startTime time.Time
-	state     string // StateRunning, StateSuccess, StateError
+	state     string
 	errorMsg  string
 
-	// UI Components
-	layout   *tview.Grid     // Main grid layout
-	header   *tview.Flex     // Top flex for title and clock
-	title    *tview.TextView // Operation: Env name
-	clock    *tview.TextView // Elapsed time
-	logsView *tview.TextView // Live output
-	overlay  tview.Primitive // Completion modal
+	layout   *tview.Grid
+	header   *tview.Flex
+	title    *tview.TextView
+	clock    *tview.TextView
+	logsView *tview.TextView
+	overlay  tview.Primitive
 
-	// Navigation state
 	wasInDetails     bool
 	savedDetailsName string
 	savedDetailsType string
 
-	// Internal
 	ticker *time.Ticker
 	done   chan bool
 }
@@ -61,16 +58,15 @@ func NewOperationProgress(app *App, operation, envName string) *OperationProgres
 		done:      make(chan bool),
 	}
 	// Save current navigation state
-	op.wasInDetails = app.detailsShown
-	op.savedDetailsName = app.currentDetailsName
-	op.savedDetailsType = app.currentDetailsType
+	op.wasInDetails = app.detailsPanel.IsShown()
+	op.savedDetailsName = app.detailsPanel.GetCurrentDetailsName()
+	op.savedDetailsType = app.detailsPanel.GetCurrentDetailsType()
 	op.rebuildUI()
 	return op
 }
 
-// rebuildUI builds the progress UI components.
+// rebuildUI constructs the component layout.
 func (op *OperationProgress) rebuildUI() {
-	// Create title and clock for header flex
 	titleText := fmt.Sprintf("  [%s::b]%s: %s[-]", DefaultTheme.Hex(DefaultTheme.OnSurface), op.operation, op.envName)
 	op.title = tview.NewTextView().
 		SetDynamicColors(true).
@@ -87,13 +83,11 @@ func (op *OperationProgress) rebuildUI() {
 		AddItem(op.clock, 10, 0, false)
 	op.header.SetBackgroundColor(DefaultTheme.HeaderBackground)
 
-	// Create logs view
 	op.logsView = tview.NewTextView().
 		SetDynamicColors(true).
 		SetScrollable(true).
 		SetChangedFunc(func() { op.app.tview.Draw() })
 
-	// Create grid layout
 	op.layout = tview.NewGrid().
 		SetRows(1, 0).
 		SetColumns(0).
@@ -121,17 +115,14 @@ func (op *OperationProgress) getProgressStatus() string {
 	}
 }
 
-// Start begins the progress display and timer updates.
+// Start begins the progress display and ticker.
 func (op *OperationProgress) Start() {
-	// Update global footer
 	footerTitle := fmt.Sprintf("[%s Progress]", op.operation)
 	op.app.UpdateFooter(footerTitle, []string{op.getProgressStatus()})
 
-	// Connect output writer
 	op.app.outputWriter.ClearBuffer()
 	op.app.outputWriter.SetView(op.app.tview, op.logsView)
 
-	// Start timer for header updates
 	op.ticker = time.NewTicker(time.Second)
 	go func() {
 		for {
@@ -145,10 +136,8 @@ func (op *OperationProgress) Start() {
 		}
 	}()
 
-	// Set input capture
 	op.layout.SetInputCapture(op.handleInput)
 
-	// Add to pages and switch
 	pageName := fmt.Sprintf("%s-progress", op.operation)
 	op.app.pages.AddAndSwitchToPage(pageName, op.layout, true)
 }
@@ -173,7 +162,7 @@ func (op *OperationProgress) formatElapsedTime(d time.Duration) string {
 	return fmt.Sprintf("%02d:%02d", minutes, seconds)
 }
 
-// Complete marks the operation as complete and shows overlay.
+// Complete marks the operation as finished and shows the completion overlay.
 func (op *OperationProgress) Complete(success bool, errorMsg string) {
 	if success {
 		op.state = StateSuccess
@@ -182,10 +171,8 @@ func (op *OperationProgress) Complete(success bool, errorMsg string) {
 		op.errorMsg = errorMsg
 	}
 
-	// Stop ticker
 	close(op.done)
 
-	// Update global footer and border color
 	op.app.tview.QueueUpdateDraw(func() {
 		borderColor := DefaultTheme.Success
 		if !success {
@@ -197,11 +184,10 @@ func (op *OperationProgress) Complete(success bool, errorMsg string) {
 		op.app.UpdateFooter(footerTitle, []string{op.getProgressStatus()})
 	})
 
-	// Show completion overlay
 	op.showCompletionOverlay()
 }
 
-// showCompletionOverlay displays the completion modal.
+// showCompletionOverlay displays the completion modal with results and actions.
 func (op *OperationProgress) showCompletionOverlay() {
 	var title, message string
 
@@ -234,26 +220,18 @@ func (op *OperationProgress) showCompletionOverlay() {
 		}
 	}
 
-	// Create message view
 	msgView := tview.NewTextView().
 		SetDynamicColors(true).
 		SetTextAlign(tview.AlignCenter).
 		SetText("\n" + message)
 	msgView.SetBackgroundColor(DefaultTheme.Background).SetBorderPadding(1, 0, 1, 1)
 
-	// Create buttons
 	closeBtn := tview.NewButton("Close & Return").SetSelectedFunc(func() { doneFunc("Close & Return") })
 	viewBtn := tview.NewButton("View Logs").SetSelectedFunc(func() { doneFunc("View Logs") })
 
-	// Style buttons
-	styleBtn := func(btn *tview.Button) {
-		btn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary))
-		btn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
-	}
-	styleBtn(closeBtn)
-	styleBtn(viewBtn)
+	ApplyButtonStyle(closeBtn)
+	ApplyButtonStyle(viewBtn)
 
-	// button navigation
 	buttonInputCapture := func(prev, next *tview.Button) func(*tcell.EventKey) *tcell.EventKey {
 		return func(event *tcell.EventKey) *tcell.EventKey {
 			switch event.Key() {
@@ -264,7 +242,7 @@ func (op *OperationProgress) showCompletionOverlay() {
 				op.app.tview.SetFocus(next)
 				return nil
 			case tcell.KeyEsc:
-				// Hide overlay and show logs instead of returning home
+				// Hide overlay and show logs
 				op.app.pages.HidePage("completion-overlay")
 				op.app.tview.SetFocus(op.layout)
 				footerTitle := fmt.Sprintf("[%s Progress]", op.operation)
@@ -284,7 +262,6 @@ func (op *OperationProgress) showCompletionOverlay() {
 		AddItem(viewBtn, 13, 1, false).
 		AddItem(tview.NewBox(), 0, 1, false)
 
-	// Main modal layout
 	modalLayout := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(msgView, 0, 1, false).
 		AddItem(buttonContainer, 1, 0, true)
@@ -299,9 +276,7 @@ func (op *OperationProgress) showCompletionOverlay() {
 		SetTitleColor(borderColor).
 		SetBorderColor(borderColor).
 		SetBackgroundColor(DefaultTheme.Background)
-	// modalLayout.SetBorderPadding(1, 1, 2, 2)
 
-	// Overlay handles Esc to close
 	modalLayout.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEsc {
 			op.app.pages.HidePage("completion-overlay")
@@ -321,27 +296,19 @@ func (op *OperationProgress) showCompletionOverlay() {
 // returnToHome cleans up and returns to home screen.
 func (op *OperationProgress) returnToHome() {
 	pageName := fmt.Sprintf("%s-progress", op.operation)
-	op.app.pages.RemovePage(pageName)
-	op.app.pages.RemovePage("completion-overlay")
-	op.app.pages.SwitchToPage("home")
-	op.app.refreshLists()
 
-	// Special handling for delete operation
-	if op.operation == "Delete" && op.state == StateSuccess {
-		op.app.clearDetailsPanel()
-	}
+	op.app.ResetToHome(ResetOptions{
+		PageNames:     []string{pageName, "completion-overlay"},
+		ClearDetails:  op.operation == "Delete" && op.state == StateSuccess,
+		RefreshFiles:  (op.operation == "Populate" || op.operation == "Clean" || op.operation == "Update") && op.state == StateSuccess,
+		RestoreFocus:  op.operation != "Deploy" || op.state != StateSuccess,
+		ForceEnvFocus: op.operation == "Deploy" && op.state == StateSuccess,
+	})
 
-	if op.wasInDetails && op.operation != "Delete" {
-		// Return to details view
-		op.app.showDetails(op.savedDetailsName, op.savedDetailsType)
-	} else {
-		// Return to envlist
-		if op.app.docker.GetItemCount() > 0 {
-			op.app.tview.SetFocus(op.app.docker)
-		} else {
-			op.app.tview.SetFocus(op.app.createNewButton)
-		}
-		op.app.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
+	// If we were in details and it wasn't a delete, we might need a full update
+	// to show changed information (like new GUIs or updated config).
+	if op.wasInDetails && op.operation != "Delete" && op.state == StateSuccess {
+		op.app.detailsPanel.Update(op.savedDetailsName, op.savedDetailsType)
 	}
 }
 

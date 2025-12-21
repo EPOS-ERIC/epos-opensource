@@ -15,77 +15,72 @@ import (
 	"github.com/rivo/tview"
 )
 
-// App holds the main TUI application state.
-// All screens access shared state through this struct.
+// App manages the global TUI state, coordinator for components and navigation.
 type App struct {
 	tview  *tview.Application
 	pages  *tview.Pages
 	frame  *tview.Frame
 	config config.Config
 
-	// Home screen components
-	docker             *tview.List
-	dockerEmpty        *tview.TextView
-	dockerFlex         *tview.Flex
-	dockerFlexInner    *tview.Flex
-	dockerEnvs         []string // Environment names for docker list (lookup by index)
-	k8s                *tview.List
-	k8sEmpty           *tview.TextView
-	k8sFlex            *tview.Flex
-	k8sFlexInner       *tview.Flex
-	k8sEnvs            []string // Environment names for k8s list (lookup by index)
-	createNewButton    *tview.Button
-	buttonFlex         *tview.Flex
-	createNewButtonK8s *tview.Button
-	buttonFlexK8s      *tview.Flex
-	details            *tview.Flex
-	detailsGrid        *tview.Grid
-	detailsButtons     []*tview.Button
-	nameDirGrid        *tview.Grid
-	nameDirButtons     []*tview.Button
-	buttonsFlex        *tview.Flex
-	deleteButton       *tview.Button
-	cleanButton        *tview.Button
-	updateButton       *tview.Button
-	populateButton     *tview.Button
-	detailsList        *tview.List
-	detailsListEmpty   *tview.TextView
-	detailsListFlex    *tview.Flex
-	detailsEmpty       *tview.TextView
-	currentEnv         tview.Primitive
-	homeFlex           *tview.Flex
-	detailsShown       bool
-	currentDetailsName string
-	currentDetailsType string
-	currentDetailsRows []DetailRow
-	previousFocus      tview.Primitive
+	envList      *EnvList
+	detailsPanel *DetailsPanel
+	homeFlex     *tview.Flex
+	focusStack   []tview.Primitive
 
-	// Background tasks
 	refreshTicker *time.Ticker
 	refreshMutex  sync.Mutex
 
-	// Footer state tracking for FlashMessage
 	currentFooterSection string
 	currentFooterKeys    []string
 	footerMutex          sync.Mutex
 
-	// Output capture for deploy/command screens
 	outputWriter *OutputWriter
 }
 
-// Run initializes and starts the TUI application.
-// This is the main entry point for the TUI.
+// ResetOptions configures the return to home screen.
+type ResetOptions struct {
+	PageNames     []string // Pages to remove
+	ClearDetails  bool     // Clear details panel (e.g., after delete)
+	RefreshFiles  bool     // Refresh files list (e.g., after populate)
+	RestoreFocus  bool     // Restore focus from stack
+	ForceEnvFocus bool     // Explicitly focus environment list
+}
+
+// ConfirmationOptions defines settings for the standardized confirmation modal.
+type ConfirmationOptions struct {
+	PageName           string
+	Title              string
+	Message            string
+	ConfirmLabel       string
+	CancelLabel        string
+	OnConfirm          func()
+	OnCancel           func()
+	Destructive        bool // Use Red border
+	ConfirmDestructive bool // Use Red confirm button
+	Secondary          bool // Use Yellow border (ignored if Destructive)
+	InputCapture       func(leftBtn, rightBtn *tview.Button) func(*tcell.EventKey) *tcell.EventKey
+}
+
+// TaskOptions defines settings for background operations with progress UI.
+type TaskOptions struct {
+	Operation    string
+	EnvName      string
+	IsDocker     bool
+	Task         func() (string, error) // Returns success message or error
+	OnSuccess    func()
+	ClearDetails bool
+}
+
+// Run starts the TUI application.
 func Run() error {
 	app := &App{}
 	app.init()
 	return app.run()
 }
 
-// init sets up the application state and UI components.
 func (a *App) init() {
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		// Log error and use defaults
 		log.Printf("config error: %v, using defaults", err)
 		cfg = config.DefaultConfig()
 	}
@@ -107,35 +102,27 @@ func (a *App) init() {
 	a.pages = tview.NewPages()
 	a.outputWriter = &OutputWriter{}
 
-	// Apply global styles
 	InitStyles()
 
 	a.pages.SetBackgroundColor(tcell.ColorDefault)
 
-	// Redirect CLI output to TUI capture
+	// Redirect command output to TUI
 	display.Stdout = a.outputWriter
 	display.Stderr = a.outputWriter
 	command.Stdout = a.outputWriter
 	command.Stderr = a.outputWriter
 
-	// Build home screen
+	a.envList = NewEnvList(a)
+	a.detailsPanel = NewDetailsPanel(a)
+
 	home := a.createHome()
 	a.pages.AddPage("home", home, true, true)
 
-	// Wrap in frame for footer
 	a.frame = tview.NewFrame(a.pages).SetBorders(0, 0, 0, 0, 0, 0)
 	a.frame.SetBackgroundColor(DefaultTheme.Primary)
 
-	// Set initial focus
-	if a.docker.GetItemCount() > 0 {
-		a.tview.SetFocus(a.docker)
-		a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
-	} else {
-		a.tview.SetFocus(a.createNewButton)
-		a.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
-	}
+	a.envList.SetInitialFocus()
 
-	// Start background refresh
 	a.startRefreshTicker()
 }
 
@@ -150,14 +137,13 @@ func (a *App) startRefreshTicker() {
 	go func() {
 		for range a.refreshTicker.C {
 			a.tview.QueueUpdateDraw(func() {
-				a.refreshLists()
+				a.envList.Refresh()
 			})
 		}
 	}()
 }
 
-// UpdateFooter updates the frame footer with section text and available keys.
-// Called by screens when they become active.
+// UpdateFooter updates the footer section text and shortcut keys.
 func (a *App) UpdateFooter(section string, keys []string) {
 	a.footerMutex.Lock()
 	a.currentFooterSection = section
@@ -176,8 +162,7 @@ func (a *App) drawFooter(section string, keys []string) {
 	a.frame.AddText("[::b]"+keyString, false, tview.AlignCenter, DefaultTheme.OnPrimary)
 
 	version := fmt.Sprintf("epos-opensource [%s]", common.GetVersion())
-	gradient := CreateGradient(version, DefaultTheme.Secondary, DefaultTheme.OnSecondary)
-	a.frame.AddText(gradient, false, tview.AlignRight, DefaultTheme.OnBackground)
+	a.frame.AddText("[::b]"+tview.Escape(version), false, tview.AlignRight, DefaultTheme.Secondary)
 }
 
 // FlashMessage shows a temporary message in the footer for the specified duration.
@@ -203,18 +188,37 @@ func (a *App) FlashMessage(message string, duration time.Duration) {
 	}()
 }
 
+// PushFocus saves the current focus to the stack.
+func (a *App) PushFocus() {
+	current := a.tview.GetFocus()
+	if current != nil {
+		a.focusStack = append(a.focusStack, current)
+	}
+}
+
+// PopFocus restores the last saved focus from the stack.
+// Returns the restored primitive or nil if stack was empty.
+func (a *App) PopFocus() tview.Primitive {
+	if len(a.focusStack) == 0 {
+		return nil
+	}
+	lastIdx := len(a.focusStack) - 1
+	p := a.focusStack[lastIdx]
+	a.focusStack = a.focusStack[:lastIdx]
+	a.tview.SetFocus(p)
+	return p
+}
+
 // ShowError displays an error modal with a message.
 // Press OK or ESC to dismiss.
 func (a *App) ShowError(message string) {
-	a.previousFocus = a.tview.GetFocus()
+	a.PushFocus()
 	modal := tview.NewModal().
 		SetText(DefaultTheme.DestructiveTag("b") + message + "[-]").
 		AddButtons([]string{"OK"}).
 		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
 			a.pages.RemovePage("error")
-			if a.previousFocus != nil {
-				a.tview.SetFocus(a.previousFocus)
-			}
+			a.PopFocus()
 		})
 
 	modal.SetBackgroundColor(DefaultTheme.Background)
@@ -226,6 +230,165 @@ func (a *App) ShowError(message string) {
 
 	a.pages.AddPage("error", modal, true, true)
 	a.tview.SetFocus(modal)
+}
+
+// ResetToHome cleans up pages and returns to the home screen.
+// Handles page removal, refreshing lists, and restoring focus.
+func (a *App) ResetToHome(opts ResetOptions) {
+	for _, page := range opts.PageNames {
+		a.pages.RemovePage(page)
+	}
+
+	a.pages.SwitchToPage("home")
+	a.envList.Refresh()
+
+	if opts.RefreshFiles {
+		a.detailsPanel.RefreshFiles()
+	}
+
+	if opts.ClearDetails {
+		a.detailsPanel.Clear()
+		a.envList.FocusActiveList()
+	} else if opts.ForceEnvFocus {
+		a.envList.FocusActiveList()
+	} else if opts.RestoreFocus && len(a.focusStack) > 0 {
+		a.PopFocus()
+	} else if a.detailsPanel.IsShown() {
+		// If details are shown and we didn't force env or restore prev, focus details
+		key := DetailsK8sKey
+		if a.envList.IsDockerActive() {
+			key = DetailsDockerKey
+		}
+		a.UpdateFooter("[Environment Details]", KeyDescriptions[key])
+		a.tview.SetFocus(a.detailsPanel.GetFlex())
+	} else {
+		// Default fallback
+		a.envList.FocusActiveList()
+	}
+}
+
+// ShowConfirmation displays a standardized confirmation modal.
+func (a *App) ShowConfirmation(opts ConfirmationOptions) {
+	a.PushFocus()
+
+	// Create text view for message
+	textView := tview.NewTextView().
+		SetText(opts.Message).
+		SetDynamicColors(true).
+		SetTextAlign(tview.AlignCenter)
+	textView.SetBorderPadding(1, 0, 1, 1)
+
+	// Create styled buttons
+	confirmBtn := tview.NewButton(opts.ConfirmLabel).SetSelectedFunc(func() {
+		a.pages.RemovePage(opts.PageName)
+		opts.OnConfirm()
+	})
+
+	if opts.ConfirmDestructive {
+		confirmBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Destructive).Foreground(DefaultTheme.OnDestructive))
+		confirmBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Destructive))
+	} else {
+		confirmBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary))
+		confirmBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
+	}
+
+	cancelBtn := tview.NewButton(opts.CancelLabel).SetSelectedFunc(func() {
+		opts.OnCancel()
+	})
+	cancelBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary))
+	cancelBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
+
+	// Navigation
+	buttonInputCapture := func(leftBtn, rightBtn *tview.Button) func(*tcell.EventKey) *tcell.EventKey {
+		return func(event *tcell.EventKey) *tcell.EventKey {
+			switch event.Key() {
+			case tcell.KeyLeft, tcell.KeyBacktab:
+				if a.tview.GetFocus() == leftBtn {
+					a.tview.SetFocus(rightBtn)
+				} else {
+					a.tview.SetFocus(leftBtn)
+				}
+				return nil
+			case tcell.KeyRight, tcell.KeyTab:
+				if a.tview.GetFocus() == rightBtn {
+					a.tview.SetFocus(leftBtn)
+				} else {
+					a.tview.SetFocus(rightBtn)
+				}
+				return nil
+			case tcell.KeyEsc:
+				opts.OnCancel()
+				return nil
+			}
+			return event
+		}
+	}
+	confirmBtn.SetInputCapture(buttonInputCapture(confirmBtn, cancelBtn))
+	cancelBtn.SetInputCapture(buttonInputCapture(confirmBtn, cancelBtn))
+
+	buttonContainer := tview.NewFlex().SetDirection(tview.FlexColumn).
+		AddItem(tview.NewBox(), 0, 1, false).
+		AddItem(confirmBtn, 10, 0, true).
+		AddItem(tview.NewBox(), 2, 0, false).
+		AddItem(cancelBtn, 10, 0, true).
+		AddItem(tview.NewBox(), 0, 1, false)
+	buttonContainer.SetBackgroundColor(tcell.ColorDefault)
+
+	layout := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(textView, 0, 1, false).
+		AddItem(buttonContainer, 1, 0, true)
+
+	borderColor := DefaultTheme.Secondary
+	if opts.Destructive {
+		borderColor = DefaultTheme.Destructive
+	} else if opts.Secondary {
+		borderColor = DefaultTheme.Secondary
+	}
+
+	layout.SetBorder(true).
+		SetTitle(opts.Title).
+		SetTitleColor(DefaultTheme.Secondary).
+		SetBorderColor(borderColor).
+		SetBackgroundColor(DefaultTheme.Background)
+
+	// Center layout
+	innerFlex := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(nil, 0, 1, false).
+		AddItem(layout, 11, 1, true).
+		AddItem(nil, 0, 1, false)
+	innerFlex.SetBackgroundColor(DefaultTheme.Background)
+
+	outerLayout := tview.NewFlex().
+		AddItem(nil, 0, 1, false).
+		AddItem(innerFlex, 60, 1, true).
+		AddItem(nil, 0, 1, false)
+	outerLayout.SetBackgroundColor(DefaultTheme.Background)
+
+	a.pages.AddPage(opts.PageName, outerLayout, true, true)
+	a.tview.SetFocus(confirmBtn)
+}
+
+// RunBackgroundTask runs an operation with a standard progress UI.
+// It starts a new OperationProgress screen and executes the provided task in a goroutine.
+// Handles updating the UI upon completion (success or error).
+func (a *App) RunBackgroundTask(opts TaskOptions) {
+	progress := NewOperationProgress(a, opts.Operation, opts.EnvName)
+	progress.Start()
+
+	go func() {
+		msg, err := opts.Task()
+		if err != nil {
+			progress.Complete(false, err.Error())
+		} else {
+			if msg == "" {
+				msg = fmt.Sprintf("%s completed successfully!", opts.Operation)
+			}
+			if opts.OnSuccess != nil {
+				opts.OnSuccess()
+			}
+			progress.Complete(true, msg)
+		}
+	}()
 }
 
 // CenterPrimitive wraps a primitive in a flex layout that centers it.
