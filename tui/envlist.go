@@ -274,23 +274,17 @@ func (el *EnvList) setupRootInput(envsFlex *tview.Flex) {
 
 // setupListInput configures key handlers for environment lists.
 func (el *EnvList) setupListInput(list *tview.List, isDocker bool) {
-	handler := func(event *tcell.EventKey) *tcell.EventKey {
-		switch {
-		case event.Key() == tcell.KeyEnter:
-			if isDocker && list.GetItemCount() > 0 {
-				name := el.dockerEnvs[list.GetCurrentItem()]
-				el.app.detailsPanel.Update(name, "docker")
-				return nil
-			}
-			if !isDocker && el.k8s.GetItemCount() > 0 {
-				name := el.k8sEnvs[list.GetCurrentItem()]
-				el.app.detailsPanel.Update(name, "k8s")
-				return nil
-			}
+	list.SetSelectedFunc(func(index int, mainText, secondaryText string, shortcut rune) {
+		if isDocker && list.GetItemCount() > 0 {
+			name := el.dockerEnvs[index]
+			el.app.detailsPanel.Update(name, "docker", true)
+		} else if !isDocker && el.k8s.GetItemCount() > 0 {
+			name := el.k8sEnvs[index]
+			el.app.detailsPanel.Update(name, "k8s", true)
 		}
-		return event
-	}
-	list.SetInputCapture(handler)
+	})
+
+	// No InputCapture needed for Enter as SetSelectedFunc handles it
 }
 
 // setupEmptyInput configures key handlers for empty state views.
@@ -308,6 +302,7 @@ func (el *EnvList) setupFocusHandlers() {
 		updateListStyle(el.docker, true)
 		updateBoxStyle(el.dockerFlex, true)
 		el.app.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
+		el.app.detailsPanel.Clear()
 	})
 	el.docker.SetBlurFunc(func() {
 		updateListStyle(el.docker, false)
@@ -319,6 +314,7 @@ func (el *EnvList) setupFocusHandlers() {
 		el.currentEnv = el.dockerFlex
 		updateBoxStyle(el.dockerFlex, true)
 		el.app.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
+		el.app.detailsPanel.Clear()
 	})
 	el.dockerEmpty.SetBlurFunc(func() {
 		updateBoxStyle(el.dockerFlex, false)
@@ -329,6 +325,7 @@ func (el *EnvList) setupFocusHandlers() {
 		el.currentEnv = el.dockerFlex
 		updateBoxStyle(el.dockerFlex, true)
 		el.app.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
+		el.app.detailsPanel.Clear()
 	})
 	el.createNewButton.SetBlurFunc(func() {
 		updateBoxStyle(el.dockerFlex, false)
@@ -340,6 +337,7 @@ func (el *EnvList) setupFocusHandlers() {
 		updateListStyle(el.k8s, true)
 		updateBoxStyle(el.k8sFlex, true)
 		el.app.UpdateFooter("[K8s Environments]", KeyDescriptions["k8s"])
+		el.app.detailsPanel.Clear()
 	})
 	el.k8s.SetBlurFunc(func() {
 		updateListStyle(el.k8s, false)
@@ -352,6 +350,7 @@ func (el *EnvList) setupFocusHandlers() {
 		updateBoxStyle(el.k8sEmpty, true)
 		updateBoxStyle(el.k8sFlex, true)
 		el.app.UpdateFooter("[K8s Environments]", KeyDescriptions["k8s"])
+		el.app.detailsPanel.Clear()
 	})
 	el.k8sEmpty.SetBlurFunc(func() {
 		updateBoxStyle(el.k8sEmpty, false)
@@ -363,6 +362,7 @@ func (el *EnvList) setupFocusHandlers() {
 		el.currentEnv = el.k8sFlex
 		updateBoxStyle(el.k8sFlex, true)
 		el.app.UpdateFooter("[K8s Environments]", KeyDescriptions["k8s"])
+		el.app.detailsPanel.Clear()
 	})
 	el.createNewButtonK8s.SetBlurFunc(func() {
 		updateBoxStyle(el.k8sFlex, false)

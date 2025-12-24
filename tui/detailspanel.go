@@ -173,7 +173,7 @@ func (dp *DetailsPanel) buildUI() {
 }
 
 // Update fetches and displays environment details in the panel.
-func (dp *DetailsPanel) Update(name, envType string) {
+func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 	dp.currentDetailsName = name
 	dp.currentDetailsType = envType
 
@@ -249,8 +249,11 @@ func (dp *DetailsPanel) Update(name, envType string) {
 
 	dp.RefreshFiles()
 
-	dp.app.tview.SetFocus(dp.details)
-	dp.app.UpdateFooter("[Environment Details]", KeyDescriptions["details-"+envType])
+	dp.RefreshFiles()
+	if focus {
+		dp.app.tview.SetFocus(dp.details)
+		dp.app.UpdateFooter("[Environment Details]", KeyDescriptions["details-"+envType])
+	}
 }
 
 // Clear shows the placeholder text in the details panel.

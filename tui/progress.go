@@ -308,7 +308,7 @@ func (op *OperationProgress) returnToHome() {
 	// If we were in details and it wasn't a delete, we might need a full update
 	// to show changed information (like new GUIs or updated config).
 	if op.wasInDetails && op.operation != "Delete" && op.state == StateSuccess {
-		op.app.detailsPanel.Update(op.savedDetailsName, op.savedDetailsType)
+		op.app.detailsPanel.Update(op.savedDetailsName, op.savedDetailsType, true)
 	}
 }
 
