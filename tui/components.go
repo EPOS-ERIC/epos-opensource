@@ -74,10 +74,3 @@ func NewStyledTextView() *tview.TextView {
 	updateBoxStyle(tv, false)
 	return tv
 }
-
-// NewStyledFlex creates a flex with standard styling.
-func NewStyledFlex(direction int) *tview.Flex {
-	f := tview.NewFlex().SetDirection(direction)
-	f.SetBackgroundColor(DefaultTheme.Background)
-	return f
-}

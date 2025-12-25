@@ -107,10 +107,9 @@ func (t *Theme) Tag(color tcell.Color, attrs string) string {
 	return fmt.Sprintf("[%s::%s]", t.Hex(color), attrs)
 }
 
-func (t *Theme) PrimaryTag(attrs string) string     { return t.Tag(t.Primary, attrs) }
-func (t *Theme) SecondaryTag(attrs string) string   { return t.Tag(t.Secondary, attrs) }
-func (t *Theme) ErrorTag(attrs string) string       { return t.Tag(t.Error, attrs) }
-func (t *Theme) SuccessTag(attrs string) string     { return t.Tag(t.Success, attrs) }
+func (t *Theme) PrimaryTag(attrs string) string   { return t.Tag(t.Primary, attrs) }
+func (t *Theme) SecondaryTag(attrs string) string { return t.Tag(t.Secondary, attrs) }
+
 func (t *Theme) DestructiveTag(attrs string) string { return t.Tag(t.Destructive, attrs) }
 func (t *Theme) MutedTag(attrs string) string       { return t.Tag(t.Muted, attrs) }
 

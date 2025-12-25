@@ -84,27 +84,19 @@ func (dp *DetailsPanel) buildUI() {
 	dp.nameDirButtons = []*tview.Button{}
 
 	dp.deleteButton = NewStyledButton("Delete", func() {
-		if dp.app.envList.IsDockerActive() && dp.app.envList.docker.GetItemCount() > 0 {
-			dp.app.showDeleteConfirm()
-		}
+		dp.app.showDeleteConfirm()
 	})
 
 	dp.cleanButton = NewStyledButton("Clean", func() {
-		if dp.app.envList.IsDockerActive() && dp.app.envList.docker.GetItemCount() > 0 {
-			dp.app.showCleanConfirm()
-		}
+		dp.app.showCleanConfirm()
 	})
 
 	dp.updateButton = NewStyledButton("Update", func() {
-		if dp.app.envList.IsDockerActive() && dp.app.envList.docker.GetItemCount() > 0 {
-			dp.app.showUpdateForm()
-		}
+		dp.app.showUpdateForm()
 	})
 
 	dp.populateButton = NewStyledButton("Populate", func() {
-		if dp.app.envList.IsDockerActive() && dp.app.envList.docker.GetItemCount() > 0 {
-			dp.app.showPopulateForm()
-		}
+		dp.app.showPopulateForm()
 	})
 
 	dp.buttonsFlex = tview.NewFlex().SetDirection(tview.FlexColumn)
@@ -253,7 +245,7 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 		dp.details.Clear()
 		dp.details.AddItem(dp.buttonsFlex, 1, 0, true)
 		dp.details.AddItem(dp.nameDirGrid, nameDirGridSize, 0, false)
-		dp.details.AddItem(dp.detailsGrid, detailsGridSize, 0, false) 
+		dp.details.AddItem(dp.detailsGrid, detailsGridSize, 0, false)
 		dp.details.AddItem(dp.detailsListFlex, 0, 1, false)
 		dp.detailsShown = true
 		updateBoxStyle(dp.details, true)

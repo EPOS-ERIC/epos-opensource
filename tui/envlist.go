@@ -165,11 +165,6 @@ func (el *EnvList) IsDockerActive() bool {
 	return el.currentEnv == el.dockerFlex
 }
 
-// GetCurrentEnv returns the currently active environment flex.
-func (el *EnvList) GetCurrentEnv() tview.Primitive {
-	return el.currentEnv
-}
-
 // SwitchFocus toggles focus between Docker and K8s lists.
 func (el *EnvList) SwitchFocus() {
 	if el.currentEnv == el.dockerFlex {
