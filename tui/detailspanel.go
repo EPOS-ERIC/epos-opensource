@@ -405,7 +405,7 @@ func (dp *DetailsPanel) CycleFocusBackward() {
 }
 
 // SetupInput configures key handlers for the details panel.
-func (dp *DetailsPanel) SetupInput(details *tview.Flex) {
+func (dp *DetailsPanel) SetupInput() {
 	handler := func(event *tcell.EventKey) *tcell.EventKey {
 		switch {
 		case event.Key() == tcell.KeyEsc:
@@ -463,7 +463,7 @@ func (dp *DetailsPanel) SetupInput(details *tview.Flex) {
 		}
 		return event
 	}
-	details.SetInputCapture(handler)
+	dp.details.SetInputCapture(handler)
 
 	// Apply directional captures to buttons
 	dp.setupDirectionalNavigation()

@@ -215,8 +215,8 @@ func (el *EnvList) FocusActiveList() {
 }
 
 // SetupInput configures keyboard and focus handlers.
-func (el *EnvList) SetupInput(envsFlex *tview.Flex) {
-	el.setupRootInput(envsFlex)
+func (el *EnvList) SetupInput() {
+	el.setupRootInput(el.flex)
 	el.setupListInput(el.docker, true)
 	el.setupListInput(el.k8s, false)
 	el.setupEmptyInput(el.dockerEmpty)

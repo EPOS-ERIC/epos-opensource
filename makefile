@@ -23,6 +23,7 @@ install: build
 
 clean:
 	rm -f $(BIN) $(BIN)-* || true
+	rm log.log || true
 
 generate:
 	go generate ./...
@@ -47,5 +48,12 @@ test-integration:
 	go test -tags=integration ./...
 
 test-all: test test-race test-integration
+
+debug: generate
+	go build -gcflags "all=-N -l" -o $(BIN) .
+	dlv exec --headless=true --listen=127.0.0.1:2345 --api-version=2 --accept-multiclient ./$(BIN)
+
+run: clean build
+	./$(BIN)
 
 .PHONY: build build-release clean generate fmt lint vet test test-race test-integration test-all install

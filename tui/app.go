@@ -121,14 +121,14 @@ func (a *App) init() {
 	a.frame = tview.NewFrame(a.pages).SetBorders(0, 0, 0, 0, 0, 0)
 	a.frame.SetBackgroundColor(DefaultTheme.Primary)
 
-	a.envList.SetInitialFocus()
-
 	a.startRefreshTicker()
 }
 
 // run starts the tview event loop.
 func (a *App) run() error {
-	return a.tview.SetRoot(a.frame, true).Run()
+	a.tview.SetRoot(a.frame, true)
+	a.envList.SetInitialFocus()
+	return a.tview.Run()
 }
 
 // startRefreshTicker starts background list refresh every second.
