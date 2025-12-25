@@ -7,9 +7,9 @@ import (
 )
 
 var k8sCmd = &cobra.Command{
-	Use:   "kubernetes",
-	Short: "Manage Kubernetes environments.",
-	Long:  "All Kubernetes commands use the current kubectl context configured on your system.",
+	Use:   "k8s",
+	Short: "Manage K8s environments.",
+	Long:  "All K8s commands use the current kubectl context configured on your system.",
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = cmd.Help()
 	},

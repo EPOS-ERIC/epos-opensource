@@ -10,13 +10,13 @@ import (
 	"github.com/epos-eu/epos-opensource/db/sqlc"
 )
 
-// InsertKubernetes adds a new kubernetes entry to the database.
-func InsertKubernetes(name, dir, contextStr, apiURL, guiURL, backofficeURL, protocol string) (*sqlc.Kubernetes, error) {
+// InsertK8s adds a new k8s entry to the database.
+func InsertK8s(name, dir, contextStr, apiURL, guiURL, backofficeURL, protocol string) (*sqlc.K8s, error) {
 	q, err := Get()
 	if err != nil {
 		return nil, fmt.Errorf("error getting db connection: %w", err)
 	}
-	k, err := q.InsertKubernetes(context.Background(), sqlc.InsertKubernetesParams{
+	k, err := q.InsertK8s(context.Background(), sqlc.InsertK8sParams{
 		Name:          name,
 		Directory:     dir,
 		Context:       contextStr,
@@ -26,51 +26,51 @@ func InsertKubernetes(name, dir, contextStr, apiURL, guiURL, backofficeURL, prot
 		BackofficeUrl: backofficeURL,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error inserting kubernetes %s (dir: %s) in db: %w", name, dir, err)
+		return nil, fmt.Errorf("error inserting k8s %s (dir: %s) in db: %w", name, dir, err)
 	}
 	return &k, nil
 }
 
-// DeleteKubernetes removes a kubernetes entry from the database for the given name.
-func DeleteKubernetes(name string) error {
+// DeleteK8s removes a k8s entry from the database for the given name.
+func DeleteK8s(name string) error {
 	q, err := Get()
 	if err != nil {
 		return fmt.Errorf("error getting db connection: %w", err)
 	}
-	err = q.DeleteKubernetes(context.Background(), name)
+	err = q.DeleteK8s(context.Background(), name)
 	if err != nil {
-		return fmt.Errorf("error deleting kubernetes %s from db: %w", name, err)
+		return fmt.Errorf("error deleting k8s %s from db: %w", name, err)
 	}
 	return nil
 }
 
-// GetKubernetesByName retrieves a single kubernetes entry by name from the database.
-func GetKubernetesByName(name string) (*sqlc.Kubernetes, error) {
+// GetK8sByName retrieves a single k8s entry by name from the database.
+func GetK8sByName(name string) (*sqlc.K8s, error) {
 	q, err := Get()
 	if err != nil {
 		return nil, fmt.Errorf("error getting db connection: %w", err)
 	}
-	kube, err := q.GetKubernetesByName(context.Background(), name)
+	k, err := q.GetK8sByName(context.Background(), name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("error getting kubernetes %s: no row found: %w", name, err)
+			return nil, fmt.Errorf("error getting k8s %s: no row found: %w", name, err)
 		}
-		return nil, fmt.Errorf("error getting kubernetes %s: %w", name, err)
+		return nil, fmt.Errorf("error getting k8s %s: %w", name, err)
 	}
-	return &kube, nil
+	return &k, nil
 }
 
-// GetAllKubernetes retrieves all kubernetes entries from the database.
-func GetAllKubernetes() ([]sqlc.Kubernetes, error) {
+// GetAllK8s retrieves all k8s entries from the database.
+func GetAllK8s() ([]sqlc.K8s, error) {
 	q, err := Get()
 	if err != nil {
 		return nil, fmt.Errorf("error getting db connection: %w", err)
 	}
-	kubes, err := q.GetAllKubernetes(context.Background())
+	ks, err := q.GetAllK8s(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("error getting all kubernetes: %w", err)
+		return nil, fmt.Errorf("error getting all k8s: %w", err)
 	}
-	return kubes, nil
+	return ks, nil
 }
 
 // InsertDocker adds a new docker entry to the database.

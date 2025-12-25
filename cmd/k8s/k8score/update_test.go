@@ -37,7 +37,7 @@ func TestUpdateOpts_Validate(t *testing.T) {
 			err := tt.opts.Validate()
 			if err != nil {
 				if !tt.wantErr {
-					t.Fatalf("Update Kubernetes Validation Test Failed error = %v, wantErr %v", err, tt.wantErr)
+					t.Fatalf("Update K8s Validation Test Failed error = %v, wantErr %v", err, tt.wantErr)
 				}
 			}
 		})

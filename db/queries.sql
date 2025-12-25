@@ -1,13 +1,13 @@
--- Kubernetes queries
--- name: GetAllKubernetes :many
+-- K8s queries
+-- name: GetAllK8s :many
 SELECT
     *
 FROM
-    kubernetes;
+    k8s;
 
--- name: InsertKubernetes :one
+-- name: InsertK8s :one
 INSERT INTO
-    kubernetes (
+    k8s (
         name,
         directory,
         context,
@@ -21,17 +21,17 @@ VALUES
 RETURNING
     *;
 
--- name: DeleteKubernetes :exec
+-- name: DeleteK8s :exec
 DELETE FROM
-    kubernetes
+    k8s
 WHERE
     name = ?;
 
--- name: GetKubernetesByName :one
+-- name: GetK8sByName :one
 SELECT
     *
 FROM
-    kubernetes
+    k8s
 WHERE
     name = ?;
 

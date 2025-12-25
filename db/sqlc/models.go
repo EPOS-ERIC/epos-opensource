@@ -26,7 +26,7 @@ type IngestedFile struct {
 	IngestedAt      *time.Time
 }
 
-type Kubernetes struct {
+type K8s struct {
 	Name          string
 	Directory     string
 	Context       string

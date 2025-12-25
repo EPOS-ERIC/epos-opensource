@@ -22,7 +22,7 @@ func (a *App) showHelp() {
 	row++
 
 	// K8s section
-	row = addHelpSection(table, row, "KUBERNETES ENVIRONMENTS", KeyDescriptions["k8s"])
+	row = addHelpSection(table, row, "K8S ENVIRONMENTS", KeyDescriptions["k8s"])
 	row++
 
 	// Environment Details (Docker) section

@@ -15,7 +15,7 @@ func (a *App) showDeleteConfirm() {
 
 	message := "This will permanently remove all containers, volumes, and associated resources.\n\n"
 	if !isDocker {
-		message = "This will permanently remove the namespace and all associated Kubernetes resources.\n\n"
+		message = "This will permanently remove the namespace and all associated K8s resources.\n\n"
 	}
 	message += DefaultTheme.DestructiveTag("b") + "This action cannot be undone." + "[-]"
 

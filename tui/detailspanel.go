@@ -211,7 +211,7 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 			dp.detailsGrid.AddItem(errorTV, 0, 0, 1, 1, 0, 0, false)
 		}
 	case "k8s":
-		if k, err := db.GetKubernetesByName(name); err == nil {
+		if k, err := db.GetK8sByName(name); err == nil {
 			nameDirRows := []DetailRow{
 				{Label: "Name", Value: k.Name, IncludeOpen: false},
 				{Label: "Context", Value: k.Context, IncludeOpen: false},

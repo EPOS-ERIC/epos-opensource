@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	platform           = "kubernetes"
+	platform           = "k8s"
 	embedManifestsPath = "static/manifests"
 )
 

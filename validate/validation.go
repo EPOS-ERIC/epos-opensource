@@ -64,14 +64,14 @@ func EnvironmentExistsDocker(name string) error {
 	return fmt.Errorf("no environment with name'%s' exists", name)
 }
 
-// EnvironmentNotExistK8s checks that Kubernetes environment doesn't exist
+// EnvironmentNotExistK8s checks that K8s environment doesn't exist
 func EnvironmentNotExistK8s(name string) error {
-	_, err := db.GetKubernetesByName(name)
+	_, err := db.GetK8sByName(name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil
 		}
-		return fmt.Errorf("error getting installed kubernetes environment from db: %w", err)
+		return fmt.Errorf("error getting installed k8s environment from db: %w", err)
 	}
 	return fmt.Errorf("an environment with name '%s' already exists", name)
 }

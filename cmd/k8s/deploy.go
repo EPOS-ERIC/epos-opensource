@@ -13,8 +13,8 @@ import (
 
 var DeployCmd = &cobra.Command{
 	Use:   "deploy [env-name]",
-	Short: "Create and deploy a new Kubernetes environment in a dedicated namespace.",
-	Long: `Sets up a new Kubernetes environment in a fresh namespace, applying all required manifests and configuration. Fails if the namespace already exists.
+	Short: "Create and deploy a new K8s environment in a dedicated namespace.",
+	Long: `Sets up a new K8s environment in a fresh namespace, applying all required manifests and configuration. Fails if the namespace already exists.
 NOTE: to execute the deploy it will try to use port-forwarding to the cluster. If that fails it will retry using the external api.`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -39,7 +39,7 @@ NOTE: to execute the deploy it will try to use port-forwarding to the cluster. I
 			os.Exit(1)
 		}
 
-		display.Urls(k.GuiUrl, k.ApiUrl, k.BackofficeUrl, fmt.Sprintf("epos-opensource kubernetes deploy %s", name))
+		display.Urls(k.GuiUrl, k.ApiUrl, k.BackofficeUrl, fmt.Sprintf("epos-opensource k8s deploy %s", name))
 	},
 }
 

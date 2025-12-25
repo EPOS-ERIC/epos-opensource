@@ -1,4 +1,4 @@
-// Package k8score contains the internal functions used by the kubernetes cmd to manage the environments
+// Package k8score contains the internal functions used by the k8s cmd to manage the environments
 package k8score
 
 import (
@@ -32,20 +32,20 @@ type UpdateOpts struct {
 // find the old env, if it does not exist give an error
 // if it exists, create a copy of it in a tmp dir
 // if no custom env/manifests provided and not resetting, use the existing files from the tmp dir as defaults
-// if force is set delete the kubernetes namespace for the original env
-// then remove the contents of the env dir and create the updated env file and kubernetes manifests using existing or embedded files as appropriate
+// if force is set delete the K8s namespace for the original env
+// then remove the contents of the env dir and create the updated env file and K8s manifests using existing or embedded files as appropriate
 // deploy the updated manifests
 // if everything goes right, delete the tmp dir and finish
 // else restore the tmp dir, deploy the old restored env and give an error in output
-func Update(opts UpdateOpts) (*sqlc.Kubernetes, error) {
+func Update(opts UpdateOpts) (*sqlc.K8s, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid parameters for update command: %w", err)
 	}
 	display.Step("Updating environment: %s", opts.Name)
 
-	kube, err := db.GetKubernetesByName(opts.Name)
+	kube, err := db.GetK8sByName(opts.Name)
 	if err != nil {
-		return nil, fmt.Errorf("error getting kubernetes environment from db called '%s': %w", opts.Name, err)
+		return nil, fmt.Errorf("error getting k8s environment from db called '%s': %w", opts.Name, err)
 	}
 
 	display.Info("Environment directory: %s", kube.Directory)
@@ -90,7 +90,7 @@ func Update(opts UpdateOpts) (*sqlc.Kubernetes, error) {
 			if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
 				display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
 			}
-			return nil, fmt.Errorf("kubernetes namespace deletion failed: %w", err)
+			return nil, fmt.Errorf("K8s namespace deletion failed: %w", err)
 		}
 		display.Done("Stopped environment: %s", opts.Name)
 	}

@@ -28,7 +28,7 @@ func (a *App) showUpdateForm() {
 	envName, isDocker := a.envList.GetSelected()
 	title := "Update Docker Environment"
 	if !isDocker {
-		title = "Update Kubernetes Environment"
+		title = "Update K8s Environment"
 	}
 	a.UpdateFooter(fmt.Sprintf("[%s]", title), KeyDescriptions["update-form"])
 

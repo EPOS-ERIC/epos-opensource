@@ -12,3 +12,4 @@ overrides:
   go:
     rename:
       kubernete: Kubernetes
+      k8: K8s

@@ -23,15 +23,15 @@ type PopulateOpts struct {
 	PopulateExamples bool
 }
 
-func Populate(opts PopulateOpts) (*sqlc.Kubernetes, error) {
+func Populate(opts PopulateOpts) (*sqlc.K8s, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid parameters for populate command: %w", err)
 	}
 	display.Step("Populating environment %s with %d directories", opts.Name, len(opts.TTLDirs))
 
-	kube, err := db.GetKubernetesByName(opts.Name)
+	kube, err := db.GetK8sByName(opts.Name)
 	if err != nil {
-		return nil, fmt.Errorf("error getting kubernetes environment from db called '%s': %w", opts.Name, err)
+		return nil, fmt.Errorf("error getting k8s environment from db called '%s': %w", opts.Name, err)
 	}
 
 	port, err := common.FindFreePort()
@@ -77,7 +77,7 @@ func Populate(opts PopulateOpts) (*sqlc.Kubernetes, error) {
 
 		// Insert ingested files into database
 		for _, filePath := range allSuccessfulFiles {
-			if err := db.InsertIngestedFile("kubernetes", opts.Name, filePath); err != nil {
+			if err := db.InsertIngestedFile("k8s", opts.Name, filePath); err != nil {
 				return fmt.Errorf("error inserting ingested file record: %w", err)
 			}
 		}

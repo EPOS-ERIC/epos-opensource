@@ -22,7 +22,7 @@ type DeployOpts struct {
 	Path string
 	// Required. name of the environment
 	Name string
-	// Optional. the kubernetes context to be used. uses current kubeclt default if not set
+	// Optional. the K8s context to be used. uses current kubeclt default if not set
 	Context string
 	// Optional. the protocol to use for the deployment. currently supports http and https
 	Protocol string
@@ -30,7 +30,7 @@ type DeployOpts struct {
 	CustomHost string
 }
 
-func Deploy(opts DeployOpts) (*sqlc.Kubernetes, error) {
+func Deploy(opts DeployOpts) (*sqlc.K8s, error) {
 	if opts.Context == "" {
 		cmd := exec.Command("kubectl", "config", "current-context")
 		out, err := command.RunCommand(cmd, true)
@@ -62,7 +62,7 @@ func Deploy(opts DeployOpts) (*sqlc.Kubernetes, error) {
 
 	display.Done("Environment created in directory: %s", dir)
 
-	handleFailure := func(msg string, mainErr error) (*sqlc.Kubernetes, error) {
+	handleFailure := func(msg string, mainErr error) (*sqlc.K8s, error) {
 		if err := deleteNamespace(opts.Name, opts.Context); err != nil {
 			display.Warn("error deleting namespace %s, %v", opts.Name, err)
 		}
@@ -112,10 +112,10 @@ func Deploy(opts DeployOpts) (*sqlc.Kubernetes, error) {
 		}
 	}
 
-	kube, err := db.InsertKubernetes(opts.Name, dir, opts.Context, gatewayURL, portalURL, backofficeURL, opts.Protocol)
+	kube, err := db.InsertK8s(opts.Name, dir, opts.Context, gatewayURL, portalURL, backofficeURL, opts.Protocol)
 	if err != nil {
-		display.Error("failed to insert kubernetes in db: %v", err)
-		return handleFailure("failed to insert kubernetes %s (dir: %s) in db: %w", fmt.Errorf("%s, %s, %w", opts.Name, dir, err))
+		display.Error("failed to insert k8s in db: %v", err)
+		return handleFailure("failed to insert k8s %s (dir: %s) in db: %w", fmt.Errorf("%s, %s, %w", opts.Name, dir, err))
 	}
 
 	return kube, nil
@@ -164,7 +164,7 @@ func (d *DeployOpts) Validate() error {
 		}
 	}
 	if !contextFound {
-		return fmt.Errorf("kubernetes context %q is not an available context", d.Context)
+		return fmt.Errorf("K8s context %q is not an available context", d.Context)
 	}
 
 	return nil

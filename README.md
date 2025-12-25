@@ -109,7 +109,7 @@ make build
 
 ## Commands
 
-The CLI is organized into two main commands: `docker` and `kubernetes`. Each has its own set of subcommands for managing environments.
+The CLI is organized into two main commands: `docker` and `k8s`. Each has its own set of subcommands for managing environments.
 
 ### Docker Commands
 
@@ -133,25 +133,25 @@ epos-opensource docker deploy my-test
 epos-opensource docker populate my-test /path/to/my/data
 ```
 
-### Kubernetes Commands
+### K8s Commands
 
 | Command | Description |
 | :--- | :--- |
-| `deploy` | Create and deploy a new Kubernetes environment in a dedicated namespace. |
+| `deploy` | Create and deploy a new K8s environment in a dedicated namespace. |
 | `populate` | Ingest TTL files from directories or files into an environment. |
-| `delete` | Removes Kubernetes environmentas and all their namespaces. |
+| `delete` | Removes K8s environmentas and all their namespaces. |
 | `export` | Export default environment files and manifests. |
-| `list` | List installed Kubernetes environments. |
-| `update` | Update and redeploy an existing Kubernetes environment. |
+| `list` | List installed K8s environments. |
+| `update` | Update and redeploy an existing K8s environment. |
 
 **Example:**
 
 ```shell
-# Deploy a new Kubernetes environment named "my-cluster"
-epos-opensource kubernetes deploy my-cluster
+# Deploy a new K8s environment named "my-cluster"
+epos-opensource k8s deploy my-cluster
 
 # Populate it with data
-epos-opensource kubernetes populate my-cluster /path/to/my/data
+epos-opensource k8s populate my-cluster /path/to/my/data
 ```
 
 ### Getting Help
@@ -161,7 +161,7 @@ For more details on any command, use the `--help` flag:
 ```shell
 epos-opensource --help
 epos-opensource docker --help
-epos-opensource kubernetes deploy --help
+epos-opensource k8s deploy --help
 ```
 
 

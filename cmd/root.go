@@ -23,7 +23,7 @@ var rootCmd = &cobra.Command{
 	Use:   "epos-opensource",
 	Short: "Manage EPOS environments and utilities.",
 	Long: `epos-opensource provides commands for managing local EPOS environments
-using Docker Compose or Kubernetes. Use the "docker" and "kubernetes" command
+using Docker Compose or K8s. Use the "docker" and "k8s" command
 groups to deploy, populate, update, or delete an environment.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if cmd.Name() == "update" || cmd.Name() == "completion" {

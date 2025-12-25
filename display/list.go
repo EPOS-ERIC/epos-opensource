@@ -68,7 +68,7 @@ func DockerList(dockers []sqlc.Docker, title string) {
 	InfraList(rows, headers, title)
 }
 
-func KubernetesList(kubes []sqlc.Kubernetes, title string) {
+func K8sList(kubes []sqlc.K8s, title string) {
 	rows := make([][]any, len(kubes))
 	for i, k := range kubes {
 		gatewayURL, err := url.JoinPath(k.ApiUrl, "ui")

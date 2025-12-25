@@ -32,7 +32,7 @@ func (a *App) showDeployForm() {
 	title := "New Docker Environment"
 	footer := "deploy-form"
 	if !isDocker {
-		title = "New Kubernetes Environment"
+		title = "New K8s Environment"
 	}
 	a.UpdateFooter(fmt.Sprintf("[%s]", title), KeyDescriptions[footer])
 

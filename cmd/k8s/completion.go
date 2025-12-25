@@ -8,12 +8,12 @@ import (
 
 func validArgsFunction(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	return common.SharedValidArgsFunction(cmd, args, toComplete, func() ([]string, error) {
-		kubernetes, err := db.GetAllKubernetes()
+		k8sEnvs, err := db.GetAllK8s()
 		if err != nil {
 			return nil, err
 		}
-		names := make([]string, len(kubernetes))
-		for i, k := range kubernetes {
+		names := make([]string, len(k8sEnvs))
+		for i, k := range k8sEnvs {
 			names[i] = k.Name
 		}
 		return names, nil

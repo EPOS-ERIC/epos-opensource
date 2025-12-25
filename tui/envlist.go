@@ -53,7 +53,7 @@ func (el *EnvList) buildUI() *tview.Flex {
 
 	el.k8sEmpty = NewStyledTextView()
 	el.k8sEmpty.SetTextAlign(tview.AlignCenter)
-	el.k8sEmpty.SetText(DefaultTheme.MutedTag("i") + "No Kubernetes environments found")
+	el.k8sEmpty.SetText(DefaultTheme.MutedTag("i") + "No K8s environments found")
 
 	el.k8sFlexInner = tview.NewFlex().SetDirection(tview.FlexRow)
 
@@ -127,7 +127,7 @@ func (el *EnvList) Refresh() {
 	el.k8sFlexInner.Clear()
 	el.k8s.Clear()
 	el.k8sEnvs = nil
-	if k8sEnvs, err := db.GetAllKubernetes(); err == nil {
+	if k8sEnvs, err := db.GetAllK8s(); err == nil {
 		if len(k8sEnvs) == 0 {
 			el.k8sFlexInner.AddItem(el.k8sEmpty, 0, 1, false)
 		} else {
