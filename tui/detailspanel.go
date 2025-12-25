@@ -79,7 +79,7 @@ func (dp *DetailsPanel) buildUI() {
 	dp.nameDirGrid = tview.NewGrid()
 	dp.nameDirGrid.SetBorders(true)
 	dp.nameDirGrid.SetBordersColor(DefaultTheme.Secondary)
-	dp.nameDirGrid.SetBorderPadding(1, 1, 0, 0)
+	dp.nameDirGrid.SetBorderPadding(1, 0, 0, 0)
 
 	dp.nameDirButtons = []*tview.Button{}
 
@@ -177,15 +177,8 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 	dp.currentDetailsName = name
 	dp.currentDetailsType = envType
 
-	if !dp.detailsShown {
-		dp.details.Clear()
-		dp.details.AddItem(dp.buttonsFlex, 1, 0, true)
-		dp.details.AddItem(dp.nameDirGrid, 0, 1, false)
-		dp.details.AddItem(dp.detailsGrid, 0, 1, false)
-		dp.details.AddItem(dp.detailsListFlex, 0, 1, false)
-		dp.detailsShown = true
-		updateBoxStyle(dp.details, true)
-	}
+	nameDirGridCount := 2
+	detailsGridCount := 2
 
 	switch envType {
 	case "docker":
@@ -206,12 +199,15 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 				{Label: "Name", Value: d.Name, IncludeOpen: false},
 				{Label: "Directory", Value: d.Directory, IncludeOpen: true},
 			}
+			nameDirGridCount = len(nameDirRows)
 			dp.createGridRows(dp.nameDirGrid, nameDirRows, &dp.nameDirButtons, "Basic Information")
+
 			rows := []DetailRow{
 				{Label: "GUI", Value: d.GuiUrl, IncludeOpen: true},
 				{Label: "Backoffice", Value: backofficeURL, IncludeOpen: true},
 				{Label: "API", Value: apiURL, IncludeOpen: true},
 			}
+			detailsGridCount = len(rows)
 			dp.currentDetailsRows = rows
 			dp.createDetailsRows(rows)
 		} else {
@@ -229,12 +225,15 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 				{Label: "Context", Value: k.Context, IncludeOpen: false},
 				{Label: "Directory", Value: k.Directory, IncludeOpen: true},
 			}
+			nameDirGridCount = len(nameDirRows)
 			dp.createGridRows(dp.nameDirGrid, nameDirRows, &dp.nameDirButtons, "Basic Information")
+
 			rows := []DetailRow{
 				{Label: "GUI", Value: k.GuiUrl, IncludeOpen: true},
 				{Label: "Backoffice", Value: k.BackofficeUrl, IncludeOpen: true},
 				{Label: "API", Value: k.ApiUrl, IncludeOpen: true},
 			}
+			detailsGridCount = len(rows)
 			dp.currentDetailsRows = rows
 			dp.createDetailsRows(rows)
 		} else {
@@ -245,6 +244,19 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 			errorTV := tview.NewTextView().SetText(fmt.Sprintf("Error fetching details for %s: %v", name, err)).SetTextColor(DefaultTheme.Destructive)
 			dp.detailsGrid.AddItem(errorTV, 0, 0, 1, 1, 0, 0, false)
 		}
+	}
+
+	if !dp.detailsShown {
+		// calculate the height of the grids based on the number of rows + header + padding
+		nameDirGridSize := (nameDirGridCount * 2) + 3 + 1
+		detailsGridSize := (detailsGridCount * 2) + 3
+		dp.details.Clear()
+		dp.details.AddItem(dp.buttonsFlex, 1, 0, true)
+		dp.details.AddItem(dp.nameDirGrid, nameDirGridSize, 0, false)
+		dp.details.AddItem(dp.detailsGrid, detailsGridSize, 0, false) 
+		dp.details.AddItem(dp.detailsListFlex, 0, 1, false)
+		dp.detailsShown = true
+		updateBoxStyle(dp.details, true)
 	}
 
 	dp.RefreshFiles()
