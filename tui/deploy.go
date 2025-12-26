@@ -7,8 +7,6 @@ import (
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
 	"github.com/epos-eu/epos-opensource/cmd/k8s/k8score"
 	"github.com/epos-eu/epos-opensource/common"
-	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 )
 
 // deployFormData holds the form field values.
@@ -39,15 +37,38 @@ func (a *App) showDeployForm() {
 		protocol: "http",
 	}
 
-	form := NewStyledForm()
-	form.AddInputField("Name *", "", 0, nil, func(text string) { data.name = text })
+	fields := []FormField{
+		{Type: "input", Label: "Name *", InputChangedFunc: func(text string) { data.name = text }},
+	}
 
 	if isDocker {
-		form.AddInputField("Env File", "", 0, nil, func(text string) { data.envFile = text }).
-			AddInputField("Compose File", "", 0, nil, func(text string) { data.composeFile = text }).
-			AddInputField("Path", "", 0, nil, func(text string) { data.path = text }).
-			AddInputField("Host", "", 0, nil, func(text string) { data.host = text }).
-			AddCheckbox("Update Images", false, func(checked bool) { data.pullImages = checked })
+		fields = append(fields,
+			FormField{
+				Type:             "input",
+				Label:            "Env File",
+				InputChangedFunc: func(text string) { data.envFile = text },
+			},
+			FormField{
+				Type:             "input",
+				Label:            "Compose File",
+				InputChangedFunc: func(text string) { data.composeFile = text },
+			},
+			FormField{
+				Type:             "input",
+				Label:            "Path",
+				InputChangedFunc: func(text string) { data.path = text },
+			},
+			FormField{
+				Type:             "input",
+				Label:            "Host",
+				InputChangedFunc: func(text string) { data.host = text },
+			},
+			FormField{
+				Type:                "checkbox",
+				Label:               "Update Images",
+				CheckboxChangedFunc: func(checked bool) { data.pullImages = checked },
+			},
+		)
 	} else {
 		currentContext := ""
 		if ctx, err := common.GetCurrentKubeContext(); err == nil {
@@ -57,56 +78,66 @@ func (a *App) showDeployForm() {
 
 		contexts, err := common.GetKubeContexts()
 		if err != nil {
-			form.AddInputField("Context", currentContext, 0, nil, func(text string) { data.context = text })
+			fields = append(fields, FormField{
+				Type:             "input",
+				Label:            "Context",
+				Value:            currentContext,
+				InputChangedFunc: func(text string) { data.context = text },
+			})
 		} else {
-			currentIndex := 0
-			for i, ctx := range contexts {
-				if ctx == currentContext {
-					currentIndex = i
-					break
-				}
-			}
-			form.AddDropDown("Context", contexts, currentIndex, func(option string, optionIndex int) {
-				data.context = option
+			fields = append(fields, FormField{
+				Type:         "dropdown",
+				Label:        "Context",
+				Value:        currentContext,
+				Options:      contexts,
+				SelectedFunc: func(option string, index int) { data.context = option },
 			})
-			dd := form.GetFormItem(form.GetFormItemCount() - 1).(*tview.DropDown)
-			ApplyDropDownStyle(dd)
 		}
-		form.AddInputField("Env File", "", 0, nil, func(text string) { data.envFile = text }).
-			AddInputField("Manifest Dir", "", 0, nil, func(text string) { data.manifestDir = text }).
-			AddInputField("Path", "", 0, nil, func(text string) { data.path = text }).
-			AddInputField("Host", "", 0, nil, func(text string) { data.host = text }).
-			AddDropDown("Protocol", []string{"http", "https"}, 0, func(option string, optionIndex int) {
-				data.protocol = option
-			})
-		dd := form.GetFormItem(form.GetFormItemCount() - 1).(*tview.DropDown)
-		ApplyDropDownStyle(dd)
+		fields = append(fields,
+			FormField{
+				Type:             "input",
+				Label:            "Env File",
+				InputChangedFunc: func(text string) { data.envFile = text },
+			},
+			FormField{
+				Type:             "input",
+				Label:            "Manifest Dir",
+				InputChangedFunc: func(text string) { data.manifestDir = text },
+			},
+			FormField{
+				Type:             "input",
+				Label:            "Path",
+				InputChangedFunc: func(text string) { data.path = text },
+			},
+			FormField{
+				Type:             "input",
+				Label:            "Host",
+				InputChangedFunc: func(text string) { data.host = text },
+			},
+			FormField{
+				Type:         "dropdown",
+				Label:        "Protocol",
+				Value:        "http",
+				Options:      []string{"http", "https"},
+				SelectedFunc: func(option string, index int) { data.protocol = option },
+			},
+		)
 	}
 
-	form.AddButton("Deploy", func() { a.handleDeploy(data, isDocker) }).
-		AddButton("Cancel", func() { a.returnFromDeploy() }).
-		SetButtonsAlign(tview.AlignCenter)
+	buttons := []FormButton{
+		{Label: "Deploy", SelectedFunc: func() { a.handleDeploy(data, isDocker) }},
+		{Label: "Cancel", SelectedFunc: func() { a.returnFromDeploy() }},
+	}
 
-	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEsc {
-			a.returnFromDeploy()
-			return nil
-		}
-		return event
-	})
+	opts := ModalFormOptions{
+		PageName: "deploy",
+		Title:    title,
+		Fields:   fields,
+		Buttons:  buttons,
+		OnCancel: func() { a.returnFromDeploy() },
+	}
 
-	content := tview.NewFlex().
-		SetDirection(tview.FlexRow).
-		AddItem(form, 0, 1, true)
-
-	content.SetBorder(true).
-		SetBorderColor(DefaultTheme.Primary).
-		SetTitle(fmt.Sprintf(" [::b]%s ", title)).
-		SetTitleColor(DefaultTheme.Secondary)
-
-	a.pages.AddPage("deploy", CenterPrimitiveFixed(content, 65, 16), true, true)
-	a.currentPage = "deploy"
-	a.tview.SetFocus(form)
+	a.ShowModalForm(opts)
 }
 
 // handleDeploy validates the form and starts deployment.

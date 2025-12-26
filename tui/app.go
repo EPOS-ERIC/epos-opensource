@@ -75,6 +75,34 @@ type TaskOptions struct {
 	ClearDetails bool
 }
 
+// FormField represents a field in a modal form.
+type FormField struct {
+	Type                string // "input", "checkbox", "dropdown"
+	Label               string
+	Value               string
+	Options             []string          // For dropdowns
+	InputChangedFunc    func(string)      // For inputs
+	CheckboxChangedFunc func(bool)        // For checkboxes
+	SelectedFunc        func(string, int) // For dropdowns
+}
+
+// FormButton represents a button in a modal form.
+type FormButton struct {
+	Label        string
+	SelectedFunc func()
+}
+
+// ModalFormOptions defines settings for modal forms.
+type ModalFormOptions struct {
+	PageName string
+	Title    string
+	Fields   []FormField
+	Buttons  []FormButton
+	Width    int
+	Height   int
+	OnCancel func()
+}
+
 // Run starts the TUI application.
 func Run() error {
 	app := &App{}
@@ -225,51 +253,6 @@ func (a *App) FlashMessage(message string, duration time.Duration) {
 	}()
 }
 
-// PushFocus saves the current focus to the stack.
-func (a *App) PushFocus() {
-	current := a.tview.GetFocus()
-	if current != nil {
-		a.focusStack = append(a.focusStack, current)
-	}
-}
-
-// PopFocus restores the last saved focus from the stack.
-// Returns the restored primitive or nil if stack was empty.
-func (a *App) PopFocus() tview.Primitive {
-	if len(a.focusStack) == 0 {
-		return nil
-	}
-	lastIdx := len(a.focusStack) - 1
-	p := a.focusStack[lastIdx]
-	a.focusStack = a.focusStack[:lastIdx]
-	a.tview.SetFocus(p)
-	return p
-}
-
-// ShowError displays an error modal with a message.
-// Press OK or ESC to dismiss.
-func (a *App) ShowError(message string) {
-	a.PushFocus()
-	modal := tview.NewModal().
-		SetText(DefaultTheme.DestructiveTag("b") + message + "[-]").
-		AddButtons([]string{"OK"}).
-		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
-			a.pages.RemovePage("error")
-			a.PopFocus()
-		})
-
-	modal.SetBackgroundColor(DefaultTheme.Background)
-	modal.Box.SetBackgroundColor(DefaultTheme.Background)
-	modal.SetBorderColor(DefaultTheme.Destructive)
-	modal.SetTitle(" [::b]Error ")
-	modal.SetTitleColor(DefaultTheme.Destructive)
-	modal.SetButtonActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
-
-	a.pages.AddPage("error", modal, true, true)
-	a.currentPage = "error"
-	a.tview.SetFocus(modal)
-}
-
 // ResetToHome cleans up pages and returns to the home screen.
 // Handles page removal, refreshing lists, and restoring focus.
 func (a *App) ResetToHome(opts ResetOptions) {
@@ -307,18 +290,40 @@ func (a *App) ResetToHome(opts ResetOptions) {
 	}
 }
 
+// ShowError displays an error modal with a message.
+// Press OK or ESC to dismiss.
+func (a *App) ShowError(message string) {
+	a.PushFocus()
+	modal := tview.NewModal().
+		SetText(DefaultTheme.DestructiveTag("b") + message + "[-]").
+		AddButtons([]string{"OK"}).
+		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+			a.pages.RemovePage("error")
+			a.PopFocus()
+		})
+
+	modal.SetBackgroundColor(DefaultTheme.Background)
+	modal.Box.SetBackgroundColor(DefaultTheme.Background)
+	modal.SetBorderColor(DefaultTheme.Destructive)
+	modal.SetTitle(" [::b]Error ")
+	modal.SetTitleColor(DefaultTheme.Destructive)
+	modal.SetButtonActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
+
+	a.pages.AddPage("error", modal, true, true)
+	a.currentPage = "error"
+	a.tview.SetFocus(modal)
+}
+
 // ShowConfirmation displays a standardized confirmation modal.
 func (a *App) ShowConfirmation(opts ConfirmationOptions) {
 	a.PushFocus()
 
-	// Create text view for message
 	textView := tview.NewTextView().
 		SetText(opts.Message).
 		SetDynamicColors(true).
 		SetTextAlign(tview.AlignCenter)
 	textView.SetBorderPadding(1, 0, 1, 1)
 
-	// Create styled buttons
 	confirmBtn := tview.NewButton(opts.ConfirmLabel).SetSelectedFunc(func() {
 		a.pages.RemovePage(opts.PageName)
 		opts.OnConfirm()
@@ -338,7 +343,6 @@ func (a *App) ShowConfirmation(opts ConfirmationOptions) {
 	cancelBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary))
 	cancelBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.OnSecondary))
 
-	// Navigation
 	buttonInputCapture := func(leftBtn, rightBtn *tview.Button) func(*tcell.EventKey) *tcell.EventKey {
 		return func(event *tcell.EventKey) *tcell.EventKey {
 			switch event.Key() {
@@ -391,7 +395,6 @@ func (a *App) ShowConfirmation(opts ConfirmationOptions) {
 		SetBorderColor(borderColor).
 		SetBackgroundColor(DefaultTheme.Background)
 
-	// Center layout
 	innerFlex := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(nil, 0, 1, false).
 		AddItem(layout, 11, 1, true).
@@ -432,6 +435,87 @@ func (a *App) RunBackgroundTask(opts TaskOptions) {
 	}()
 }
 
+// PushFocus saves the current focus to the stack.
+func (a *App) PushFocus() {
+	current := a.tview.GetFocus()
+	if current != nil {
+		a.focusStack = append(a.focusStack, current)
+	}
+}
+
+// PopFocus restores the last saved focus from the stack.
+// Returns the restored primitive or nil if stack was empty.
+func (a *App) PopFocus() tview.Primitive {
+	if len(a.focusStack) == 0 {
+		return nil
+	}
+	lastIdx := len(a.focusStack) - 1
+	p := a.focusStack[lastIdx]
+	a.focusStack = a.focusStack[:lastIdx]
+	a.tview.SetFocus(p)
+	return p
+}
+
+// ShowModalForm displays a standardized modal form with fields and buttons.
+func (a *App) ShowModalForm(opts ModalFormOptions) {
+	if opts.Width == 0 {
+		opts.Width = 65
+	}
+	if opts.Height == 0 {
+		opts.Height = 16
+	}
+
+	form := NewStyledForm()
+	fieldIndex := 0
+	for _, field := range opts.Fields {
+		switch field.Type {
+		case "input":
+			form.AddInputField(field.Label, field.Value, 0, nil, field.InputChangedFunc)
+		case "checkbox":
+			checked := field.Value == "true"
+			form.AddCheckbox(field.Label, checked, field.CheckboxChangedFunc)
+		case "dropdown":
+			currentIndex := 0
+			for i, opt := range field.Options {
+				if opt == field.Value {
+					currentIndex = i
+					break
+				}
+			}
+			form.AddDropDown(field.Label, field.Options, currentIndex, field.SelectedFunc)
+			if dd, ok := form.GetFormItem(fieldIndex).(*tview.DropDown); ok {
+				ApplyDropDownStyle(dd)
+			}
+		}
+		fieldIndex++
+	}
+
+	for _, btn := range opts.Buttons {
+		form.AddButton(btn.Label, btn.SelectedFunc)
+	}
+	form.SetButtonsAlign(tview.AlignCenter)
+
+	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEsc && opts.OnCancel != nil {
+			opts.OnCancel()
+			return nil
+		}
+		return event
+	})
+
+	content := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(form, 0, 1, true)
+
+	content.SetBorder(true).
+		SetBorderColor(DefaultTheme.Primary).
+		SetTitle(fmt.Sprintf(" [::b]%s ", opts.Title)).
+		SetTitleColor(DefaultTheme.Secondary)
+
+	a.pages.AddPage(opts.PageName, CenterPrimitiveFixed(content, opts.Width, opts.Height), true, true)
+	a.currentPage = opts.PageName
+	a.tview.SetFocus(form)
+}
+
 // CenterPrimitive wraps a primitive in a flex layout that centers it.
 // Use width/height as proportions (1 = minimal, higher = more space).
 func CenterPrimitive(p tview.Primitive, width, height int) tview.Primitive {
@@ -450,8 +534,8 @@ func CenterPrimitiveFixed(p tview.Primitive, width, height int) tview.Primitive 
 		AddItem(nil, 0, 1, false).
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
 			AddItem(nil, 0, 1, false).
-			AddItem(p, height, 0, true).                // height=fixed, proportion=0
-			AddItem(nil, 0, 1, false), width, 0, true). // width=fixed, proportion=0
+			AddItem(p, height, 0, true).
+			AddItem(nil, 0, 1, false), width, 0, true).
 		AddItem(nil, 0, 1, false)
 }
 

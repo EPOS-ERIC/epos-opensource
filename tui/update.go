@@ -6,8 +6,6 @@ import (
 
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
 	"github.com/epos-eu/epos-opensource/cmd/k8s/k8score"
-	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 )
 
 // updateFormData holds the form field values.
@@ -40,55 +38,53 @@ func (a *App) showUpdateForm() {
 		name: envName,
 	}
 
-	form := NewStyledForm()
-	form.AddInputField("Env File", "", 0, nil, func(text string) { data.envFile = text })
-
-	if isDocker {
-		form.AddInputField("Compose File", "", 0, nil, func(text string) { data.composeFile = text }).
-			AddInputField("Custom Host", "", 0, nil, func(text string) { data.customHost = text }).
-			AddCheckbox("Pull Images", false, func(checked bool) { data.pullImages = checked }).
-			AddCheckbox("Force (reset DB)", false, func(checked bool) { data.force = checked })
-	} else {
-		form.AddInputField("Manifest Dir", "", 0, nil, func(text string) { data.manifestDir = text }).
-			AddInputField("Custom Host", "", 0, nil, func(text string) { data.customHost = text }).
-			AddCheckbox("Force (reset namespace)", false, func(checked bool) { data.force = checked })
+	fields := []FormField{
+		{Type: "input", Label: "Env File", InputChangedFunc: func(text string) { data.envFile = text }},
 	}
 
-	form.AddCheckbox("Reset Config", false, func(checked bool) { data.reset = checked }).
-		AddButton("Update", func() { a.handleUpdate(data, isDocker) }).
-		AddButton("Cancel", func() {
+	if isDocker {
+		fields = append(fields,
+			FormField{Type: "input", Label: "Compose File", InputChangedFunc: func(text string) { data.composeFile = text }},
+			FormField{Type: "input", Label: "Custom Host", InputChangedFunc: func(text string) { data.customHost = text }},
+			FormField{Type: "checkbox", Label: "Pull Images", CheckboxChangedFunc: func(checked bool) { data.pullImages = checked }},
+			FormField{Type: "checkbox", Label: "Force (reset DB)", CheckboxChangedFunc: func(checked bool) { data.force = checked }},
+		)
+	} else {
+		fields = append(fields,
+			FormField{Type: "input", Label: "Manifest Dir", InputChangedFunc: func(text string) { data.manifestDir = text }},
+			FormField{Type: "input", Label: "Custom Host", InputChangedFunc: func(text string) { data.customHost = text }},
+			FormField{Type: "checkbox", Label: "Force (reset namespace)", CheckboxChangedFunc: func(checked bool) { data.force = checked }},
+		)
+	}
+
+	fields = append(fields, FormField{Type: "checkbox", Label: "Reset Config", CheckboxChangedFunc: func(checked bool) { data.reset = checked }})
+
+	buttons := []FormButton{
+		{Label: "Update", SelectedFunc: func() { a.handleUpdate(data, isDocker) }},
+		{Label: "Cancel", SelectedFunc: func() {
 			a.ResetToHome(ResetOptions{
 				PageNames:    []string{"update"},
 				RefreshFiles: true,
 				RestoreFocus: true,
 			})
-		}).
-		SetButtonsAlign(tview.AlignCenter)
+		}},
+	}
 
-	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEsc {
+	opts := ModalFormOptions{
+		PageName: "update",
+		Title:    title,
+		Fields:   fields,
+		Buttons:  buttons,
+		OnCancel: func() {
 			a.ResetToHome(ResetOptions{
 				PageNames:    []string{"update"},
 				RefreshFiles: true,
 				RestoreFocus: true,
 			})
-			return nil
-		}
-		return event
-	})
+		},
+	}
 
-	content := tview.NewFlex().
-		SetDirection(tview.FlexRow).
-		AddItem(form, 0, 1, true)
-
-	content.SetBorder(true).
-		SetBorderColor(DefaultTheme.Primary).
-		SetTitle(fmt.Sprintf(" [::b]%s ", title)).
-		SetTitleColor(DefaultTheme.Secondary)
-
-	a.pages.AddPage("update", CenterPrimitiveFixed(content, 65, 16), true, true)
-	a.currentPage = "update"
-	a.tview.SetFocus(form)
+	a.ShowModalForm(opts)
 }
 
 // handleUpdate validates the form and starts update.
