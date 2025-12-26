@@ -546,3 +546,16 @@ func (a *App) Quit() {
 	}
 	a.tview.Stop()
 }
+
+// copyToClipboardWithFeedback asynchronously copies text to clipboard and provides user feedback.
+func (a *App) copyToClipboardWithFeedback(text, successMsg, errorMsg string) {
+	go func() {
+		if err := common.CopyToClipboard(text); err != nil {
+			a.tview.QueueUpdateDraw(func() {
+				a.ShowError(errorMsg)
+			})
+		} else {
+			a.FlashMessage(successMsg, 2*time.Second)
+		}
+	}()
+}

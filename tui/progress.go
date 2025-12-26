@@ -5,7 +5,6 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/epos-eu/epos-opensource/common"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -330,16 +329,7 @@ func (op *OperationProgress) handleInput(event *tcell.EventKey) *tcell.EventKey 
 
 // copyLogs copies the clean log output to the clipboard and updates the footer.
 func (op *OperationProgress) copyLogs() {
-	go func() {
-		logs := op.app.outputWriter.GetBuffer()
-		cleanLogs := stripANSI(logs)
-		if err := common.CopyToClipboard(cleanLogs); err != nil {
-			op.app.tview.QueueUpdateDraw(func() {
-				op.app.ShowError(fmt.Sprintf("Failed to copy logs: %v", err))
-			})
-		} else {
-			// Show success notification and restore footer after 2s
-			op.app.FlashMessage("Logs copied to clipboard!", 2*time.Second)
-		}
-	}()
+	logs := op.app.outputWriter.GetBuffer()
+	cleanLogs := stripANSI(logs)
+	op.app.copyToClipboardWithFeedback(cleanLogs, "Logs copied to clipboard!", "Failed to copy logs")
 }

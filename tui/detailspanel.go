@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
@@ -463,41 +462,17 @@ func (dp *DetailsPanel) SetupInput() {
 			}
 		case event.Rune() == 'G':
 			if dp.detailsShown && len(dp.currentDetailsRows) > 0 {
-				go func() {
-					if err := common.CopyToClipboard(dp.currentDetailsRows[0].Value); err != nil {
-						dp.app.tview.QueueUpdateDraw(func() {
-							dp.app.ShowError("Failed to copy to clipboard")
-						})
-					} else {
-						dp.app.FlashMessage("Copied to clipboard", 2*time.Second)
-					}
-				}()
+				dp.app.copyToClipboardWithFeedback(dp.currentDetailsRows[0].Value, "Copied to clipboard", "Failed to copy to clipboard")
 				return nil
 			}
 		case event.Rune() == 'B':
 			if dp.detailsShown && len(dp.currentDetailsRows) > 1 {
-				go func() {
-					if err := common.CopyToClipboard(dp.currentDetailsRows[1].Value); err != nil {
-						dp.app.tview.QueueUpdateDraw(func() {
-							dp.app.ShowError("Failed to copy to clipboard")
-						})
-					} else {
-						dp.app.FlashMessage("Copied to clipboard", 2*time.Second)
-					}
-				}()
+				dp.app.copyToClipboardWithFeedback(dp.currentDetailsRows[1].Value, "Copied to clipboard", "Failed to copy to clipboard")
 				return nil
 			}
 		case event.Rune() == 'A':
 			if dp.detailsShown && len(dp.currentDetailsRows) > 2 {
-				go func() {
-					if err := common.CopyToClipboard(dp.currentDetailsRows[2].Value); err != nil {
-						dp.app.tview.QueueUpdateDraw(func() {
-							dp.app.ShowError("Failed to copy to clipboard")
-						})
-					} else {
-						dp.app.FlashMessage("Copied to clipboard", 2*time.Second)
-					}
-				}()
+				dp.app.copyToClipboardWithFeedback(dp.currentDetailsRows[2].Value, "Copied to clipboard", "Failed to copy to clipboard")
 				return nil
 			}
 		case event.Rune() == 'e':
@@ -507,15 +482,7 @@ func (dp *DetailsPanel) SetupInput() {
 			}
 		case event.Rune() == 'E':
 			if dp.detailsShown && dp.currentDirectory != "" {
-				go func() {
-					if err := common.CopyToClipboard(dp.currentDirectory); err != nil {
-						dp.app.tview.QueueUpdateDraw(func() {
-							dp.app.ShowError("Failed to copy to clipboard")
-						})
-					} else {
-						dp.app.FlashMessage("Copied to clipboard", 2*time.Second)
-					}
-				}()
+				dp.app.copyToClipboardWithFeedback(dp.currentDirectory, "Copied to clipboard", "Failed to copy to clipboard")
 				return nil
 			}
 		case event.Rune() == 'y':
@@ -525,15 +492,7 @@ func (dp *DetailsPanel) SetupInput() {
 				parts := strings.SplitN(mainText, ". ", 2)
 				if len(parts) == 2 {
 					filepath := parts[1]
-					go func() {
-						if err := common.CopyToClipboard(filepath); err != nil {
-							dp.app.tview.QueueUpdateDraw(func() {
-								dp.app.ShowError("Failed to copy to clipboard")
-							})
-						} else {
-							dp.app.FlashMessage("Copied to clipboard", 2*time.Second)
-						}
-					}()
+					dp.app.copyToClipboardWithFeedback(filepath, "Copied to clipboard", "Failed to copy to clipboard")
 					return nil
 				}
 			}
@@ -662,15 +621,7 @@ func (dp *DetailsPanel) createGridRows(grid *tview.Grid, rows []DetailRow, butto
 
 		// Add spacing around buttons
 		copyBtn := NewStyledButton("Copy", func() {
-			go func() {
-				if err := common.CopyToClipboard(row.Value); err != nil {
-					dp.app.tview.QueueUpdateDraw(func() {
-						dp.app.ShowError("Failed to copy to clipboard")
-					})
-				} else {
-					dp.app.FlashMessage("Copied to clipboard", 2*time.Second)
-				}
-			}()
+			dp.app.copyToClipboardWithFeedback(row.Value, "Copied to clipboard", "Failed to copy to clipboard")
 		})
 
 		// Wrap button in a box with padding to create spacing
