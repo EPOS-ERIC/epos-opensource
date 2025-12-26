@@ -13,7 +13,7 @@ func (a *App) showHelp() {
 	a.PushFocus()
 	prevContext := a.currentContext
 	prevPage := a.currentPage
-	a.UpdateFooter(GetFooterText(HelpKey), HelpKey)
+	a.UpdateFooter(HelpKey)
 
 	textView := tview.NewTextView().
 		SetDynamicColors(true).
@@ -129,8 +129,7 @@ func (a *App) showHelp() {
 			a.currentPage = prevPage
 			a.PopFocus()
 			footerKey := prevContext
-			footerText := GetFooterText(footerKey)
-			a.UpdateFooter(footerText, footerKey)
+			a.UpdateFooter(footerKey)
 			return nil
 		}
 		return event
@@ -143,8 +142,8 @@ func (a *App) showHelp() {
 	height := lineCount + 4
 
 	// Cap at maximums
-	if width > 70 {
-		width = 70
+	if width > 80 {
+		width = 80
 	}
 	if height > 25 {
 		height = 25
@@ -158,7 +157,7 @@ func (a *App) showHelp() {
 		height = 12
 	}
 
-	a.UpdateFooter(GetFooterText(HelpKey), HelpKey)
+	a.UpdateFooter(HelpKey)
 	a.pages.AddPage("help", CenterPrimitiveFixed(container, width, height), true, true)
 	a.currentPage = "help"
 	a.tview.SetFocus(container)

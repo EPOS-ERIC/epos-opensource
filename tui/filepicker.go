@@ -181,7 +181,7 @@ func (f *FilePicker) submit() {
 		}
 	}
 	f.app.pages.RemovePage("file-picker")
-	f.app.UpdateFooter(GetFooterText(PopulateFormKey), PopulateFormKey)
+	f.app.UpdateFooter(PopulateFormKey)
 	if f.onSelect != nil {
 		f.onSelect(result)
 	}
@@ -329,7 +329,7 @@ func (f *FilePicker) setupInput(layout *tview.Flex, searchField *tview.InputFiel
 				return nil
 			}
 			f.app.pages.RemovePage("file-picker")
-			f.app.UpdateFooter(GetFooterText(PopulateFormKey), PopulateFormKey)
+			f.app.UpdateFooter(PopulateFormKey)
 			return nil
 
 		case key == tcell.KeyEnter:
@@ -384,7 +384,7 @@ func (f *FilePicker) setupInput(layout *tview.Flex, searchField *tview.InputFiel
 			layout.ResizeItem(searchField, 0, 0)
 			f.lastSearch = ""
 			f.app.tview.SetFocus(f.view)
-			f.app.UpdateFooter(GetFooterText(FilePickerKey), FilePickerKey)
+			f.app.UpdateFooter(FilePickerKey)
 		}
 	})
 }
@@ -515,7 +515,7 @@ func (a *App) showTUIFilePicker(startPath string, selectedPaths []string, onSele
 	absPath := resolveStartPath(startPath)
 	picker := newFilePicker(a, absPath, selectedPaths, onSelect)
 
-	a.UpdateFooter("[File Picker]", "file-picker")
+	a.UpdateFooter(FilePickerKey)
 
 	picker.view.SetSelectedFunc(func(node *tview.TreeNode) {
 		ref := node.GetReference()
@@ -541,7 +541,7 @@ func (a *App) showTUIFilePicker(startPath string, selectedPaths []string, onSele
 
 	btnCancel := NewStyledButton("Cancel", func() {
 		a.pages.RemovePage("file-picker")
-		a.UpdateFooter(GetFooterText(PopulateFormKey), PopulateFormKey)
+		a.UpdateFooter(PopulateFormKey)
 	})
 
 	buttonBar := tview.NewFlex().SetDirection(tview.FlexColumn).

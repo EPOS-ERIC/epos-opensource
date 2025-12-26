@@ -27,11 +27,10 @@ func (a *App) showDeployForm() {
 	a.PushFocus()
 	isDocker := a.envList.IsDockerActive()
 	title := "New Docker Environment"
-	footer := DeployFormKey
 	if !isDocker {
 		title = "New K8s Environment"
 	}
-	a.UpdateFooter(fmt.Sprintf("[%s]", title), footer)
+	a.UpdateFooter(DeployFormKey)
 
 	data := &deployFormData{
 		protocol: "http",

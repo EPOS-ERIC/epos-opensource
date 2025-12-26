@@ -19,6 +19,7 @@ const (
 	CleanConfirmKey  ScreenKey = "clean-confirm"
 	HelpKey          ScreenKey = "help"
 	DeployFormKey    ScreenKey = "deploy-form"
+	UpdateFormKey    ScreenKey = "update-form"
 )
 
 const (
@@ -31,6 +32,8 @@ const (
 	DeleteFooter     FooterText = "[Delete Environment]"
 	CleanFooter      FooterText = "[Clean Environment]"
 	HelpFooter       FooterText = "[Help]"
+	UpdateFooter     FooterText = "[Update Environment]"
+	NewFooter        FooterText = "[New Environment]"
 )
 
 // getDetailsKey returns the appropriate details screen key based on environment type.

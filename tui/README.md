@@ -26,6 +26,12 @@ Long-running operations (Deploy, Update, etc.) execute in separate goroutines to
 - **Output Capture**: The `OutputWriter` redirects stdout/stderr from core commands to a buffer.
 - **UI Updates**: All background tasks must use `a.tview.QueueUpdateDraw` when updating UI components to ensure thread safety during the `tview` event loop.
 
+### Footer Management
+The footer displays the current section prefix (e.g., "[Docker Environments]") coupled with context-specific keyboard shortcuts.
+- **Design Principle**: Each `ScreenKey` determines both the footer section text (via `GetFooterText`) and the available keys (via `getFooterHints`). This ensures consistency and prevents mismatches.
+- **Usage**: Call `UpdateFooter(contextKey)` to set the footer based on the current screen/context. `UpdateFooterCustom` is used only for dynamic/custom sections or keys not tied to a standard context.
+- **Why?**: Keeps footer content tightly coupled to the UI state, making it easy to maintain and extend without manual synchronization.
+
 ## Standardized Workflow Patterns
 
 Most operations follow a strict **"Trigger -> Confirmation/Form -> Progress -> Result"** flow.

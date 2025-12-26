@@ -61,13 +61,15 @@ var FooterTexts = map[ScreenKey]FooterText{
 	DeleteConfirmKey: DeleteFooter,
 	CleanConfirmKey:  CleanFooter,
 	HelpKey:          HelpFooter,
+	UpdateFormKey:    UpdateFooter,
+	DeployFormKey:    NewFooter,
 }
 
-func GetFooterText(key ScreenKey) string {
+func GetFooterText(key ScreenKey) FooterText {
 	if text, ok := FooterTexts[key]; ok {
-		return string(text)
+		return text
 	}
-	return "[Unknown]"
+	return FooterText("[Unknown]")
 }
 
 // KeyHint represents a keyboard shortcut hint.

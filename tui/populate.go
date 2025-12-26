@@ -37,7 +37,7 @@ func (a *App) showPopulateForm() {
 		return
 	}
 
-	a.UpdateFooter(GetFooterText(PopulateFormKey), PopulateFormKey)
+	a.UpdateFooter(PopulateFormKey)
 
 	state := &populateState{
 		paths:    []string{""},

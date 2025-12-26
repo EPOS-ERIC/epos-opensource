@@ -187,15 +187,16 @@ func (a *App) startRefreshTicker() {
 }
 
 // UpdateFooter updates the footer section text and shortcut keys.
-func (a *App) UpdateFooter(section string, contextKey ScreenKey) {
+func (a *App) UpdateFooter(contextKey ScreenKey) {
+	section := GetFooterText(contextKey)
 	keys := getFooterHints(contextKey)
 	a.footerMutex.Lock()
-	a.currentFooterSection = section
+	a.currentFooterSection = string(section)
 	a.currentFooterKeys = keys
 	a.setContext(contextKey)
 	a.footerMutex.Unlock()
 
-	a.drawFooter(section, keys)
+	a.drawFooter(string(section), keys)
 }
 
 // UpdateFooterCustom updates the footer with custom keys (not from context).
@@ -277,15 +278,15 @@ func (a *App) ResetToHome(opts ResetOptions) {
 		a.PopFocus()
 		if a.detailsPanel.IsShown() {
 			key := getDetailsKey(a.detailsPanel.GetCurrentDetailsType())
-			a.UpdateFooter(GetFooterText(key), key)
+			a.UpdateFooter(key)
 		}
 	} else if a.detailsPanel.IsShown() {
-		// If details are shown and we didn't force env or restore prev, focus details
+		// if details are shown and we didn't force env or restore prev, focus details
 		key := getDetailsKey(a.detailsPanel.GetCurrentDetailsType())
-		a.UpdateFooter("[Environment Details]", key)
+		a.UpdateFooter(key)
 		a.tview.SetFocus(a.detailsPanel.GetFlex())
 	} else {
-		// Default fallback
+		// fallback
 		a.envList.FocusActiveList()
 	}
 }

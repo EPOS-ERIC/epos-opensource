@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
@@ -28,7 +27,7 @@ func (a *App) showUpdateForm() {
 	if !isDocker {
 		title = "Update K8s Environment"
 	}
-	a.UpdateFooter(fmt.Sprintf("[%s]", title), "update-form")
+	a.UpdateFooter(UpdateFormKey)
 
 	if envName == "" {
 		return
