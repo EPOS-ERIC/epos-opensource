@@ -351,13 +351,7 @@ func (dp *DetailsPanel) CycleFocusBackward() {
 	focus := dp.app.tview.GetFocus()
 	switch focus {
 	case dp.detailsListFlex:
-		if len(dp.detailsButtons) > 0 {
-			dp.app.tview.SetFocus(dp.detailsButtons[len(dp.detailsButtons)-1])
-		} else if len(dp.nameDirButtons) > 0 {
-			dp.app.tview.SetFocus(dp.nameDirButtons[len(dp.nameDirButtons)-1])
-		} else {
-			dp.app.tview.SetFocus(dp.deleteButton)
-		}
+		dp.app.tview.SetFocus(dp.populateButton)
 	case dp.deleteButton:
 		dp.app.tview.SetFocus(dp.cleanButton)
 	case dp.cleanButton:
