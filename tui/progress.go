@@ -232,14 +232,11 @@ func (op *OperationProgress) showCompletionOverlay() {
 	ApplyButtonStyle(closeBtn)
 	ApplyButtonStyle(viewBtn)
 
-	buttonInputCapture := func(prev, next *tview.Button) func(*tcell.EventKey) *tcell.EventKey {
+	buttonInputCapture := func(other *tview.Button) func(*tcell.EventKey) *tcell.EventKey {
 		return func(event *tcell.EventKey) *tcell.EventKey {
 			switch event.Key() {
-			case tcell.KeyLeft, tcell.KeyBacktab:
-				op.app.tview.SetFocus(prev)
-				return nil
-			case tcell.KeyRight, tcell.KeyTab:
-				op.app.tview.SetFocus(next)
+			case tcell.KeyLeft, tcell.KeyRight, tcell.KeyTab, tcell.KeyBacktab:
+				op.app.tview.SetFocus(other)
 				return nil
 			case tcell.KeyEsc:
 				// Hide overlay and show logs
@@ -252,8 +249,8 @@ func (op *OperationProgress) showCompletionOverlay() {
 			return event
 		}
 	}
-	closeBtn.SetInputCapture(buttonInputCapture(viewBtn, closeBtn))
-	viewBtn.SetInputCapture(buttonInputCapture(viewBtn, closeBtn))
+	closeBtn.SetInputCapture(buttonInputCapture(viewBtn))
+	viewBtn.SetInputCapture(buttonInputCapture(closeBtn))
 
 	buttonContainer := tview.NewFlex().SetDirection(tview.FlexColumn).
 		AddItem(tview.NewBox(), 0, 1, false).
