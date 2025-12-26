@@ -22,12 +22,13 @@ func (a *App) showDeleteConfirm() {
 	a.UpdateFooter(GetFooterText(DeleteConfirmKey), DeleteConfirmKey)
 
 	a.ShowConfirmation(ConfirmationOptions{
-		PageName:     "delete-confirm",
-		Title:        " [::b]Delete Environment ",
-		Message:      message,
-		ConfirmLabel: "Delete",
-		CancelLabel:  "Cancel",
-		Destructive:  true,
+		PageName:           "delete-confirm",
+		Title:              " [::b]Delete Environment ",
+		Message:            message,
+		ConfirmLabel:       "Delete",
+		CancelLabel:        "Cancel",
+		Destructive:        true,
+		ConfirmDestructive: true,
 		OnConfirm: func() {
 			a.showDeleteProgress(envName, isDocker)
 		},

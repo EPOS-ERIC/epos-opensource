@@ -13,7 +13,7 @@ func NewStyledForm() *tview.Form {
 	form.SetLabelColor(DefaultTheme.Secondary)
 	form.SetButtonBackgroundColor(DefaultTheme.Primary)
 	form.SetButtonTextColor(DefaultTheme.OnPrimary)
-	form.SetButtonActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
+	form.SetButtonActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.OnSecondary))
 	form.SetBorderPadding(1, 0, 2, 2)
 	return form
 }
@@ -31,7 +31,7 @@ func NewStyledButton(label string, selected func()) *tview.Button {
 // ApplyButtonStyle applies standard button styles.
 func ApplyButtonStyle(btn *tview.Button) {
 	btn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary))
-	btn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
+	btn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.OnSecondary))
 }
 
 // ApplyDropDownStyle applies theme colors to a dropdown.
@@ -60,7 +60,7 @@ func NewStyledInactiveButton(label string, selected func()) *tview.Button {
 		btn.SetSelectedFunc(selected)
 	}
 	btn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Surface).Foreground(DefaultTheme.Secondary))
-	btn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
+	btn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.OnSecondary))
 	return btn
 }
 

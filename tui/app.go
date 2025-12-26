@@ -199,7 +199,7 @@ func (a *App) drawFooter(section string, keys []string) {
 	a.frame.AddText("[::b]"+keyString, false, tview.AlignCenter, DefaultTheme.OnPrimary)
 
 	version := fmt.Sprintf("epos-opensource [%s]", common.GetVersion())
-	a.frame.AddText("[::b]"+tview.Escape(version), false, tview.AlignRight, DefaultTheme.Secondary)
+	a.frame.AddText("[::b]"+tview.Escape(version), false, tview.AlignRight, DefaultTheme.OnPrimary)
 }
 
 // FlashMessage shows a temporary message in the footer for the specified duration.
@@ -326,17 +326,17 @@ func (a *App) ShowConfirmation(opts ConfirmationOptions) {
 
 	if opts.ConfirmDestructive {
 		confirmBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Destructive).Foreground(DefaultTheme.OnDestructive))
-		confirmBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Destructive))
+		confirmBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.OnSecondary))
 	} else {
 		confirmBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary))
-		confirmBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
+		confirmBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.OnSecondary))
 	}
 
 	cancelBtn := tview.NewButton(opts.CancelLabel).SetSelectedFunc(func() {
 		opts.OnCancel()
 	})
 	cancelBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Primary).Foreground(DefaultTheme.OnPrimary))
-	cancelBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
+	cancelBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.OnSecondary))
 
 	// Navigation
 	buttonInputCapture := func(leftBtn, rightBtn *tview.Button) func(*tcell.EventKey) *tcell.EventKey {
