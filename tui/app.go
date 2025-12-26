@@ -15,6 +15,8 @@ import (
 	"github.com/rivo/tview"
 )
 
+const homePageName = "home"
+
 // App manages the global TUI state, coordinator for components and navigation.
 type App struct {
 	tview  *tview.Application
@@ -33,6 +35,7 @@ type App struct {
 	currentFooterSection string
 	currentFooterKeys    []string
 	currentContext       string
+	currentPage          string
 	footerMutex          sync.Mutex
 
 	outputWriter *OutputWriter
@@ -103,7 +106,7 @@ func (a *App) init() {
 			a.Quit()
 			return nil
 		case '?':
-			if a.pages.GetPageCount() == 1 && a.currentContext != "help" {
+			if (a.currentPage == homePageName || a.currentPage == "file-picker") && a.currentContext != "help" {
 				a.showHelp()
 			}
 			return nil
@@ -127,7 +130,8 @@ func (a *App) init() {
 	a.detailsPanel = NewDetailsPanel(a)
 
 	home := a.createHome()
-	a.pages.AddPage("home", home, true, true)
+	a.pages.AddPage(homePageName, home, true, true)
+	a.currentPage = homePageName
 
 	a.frame = tview.NewFrame(a.pages).SetBorders(0, 0, 0, 0, 0, 0)
 	a.frame.SetBackgroundColor(DefaultTheme.Primary)
@@ -262,6 +266,7 @@ func (a *App) ShowError(message string) {
 	modal.SetButtonActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
 
 	a.pages.AddPage("error", modal, true, true)
+	a.currentPage = "error"
 	a.tview.SetFocus(modal)
 }
 
@@ -272,7 +277,8 @@ func (a *App) ResetToHome(opts ResetOptions) {
 		a.pages.RemovePage(page)
 	}
 
-	a.pages.SwitchToPage("home")
+	a.pages.SwitchToPage(homePageName)
+	a.currentPage = homePageName
 	a.envList.Refresh()
 
 	if opts.RefreshFiles {
@@ -288,7 +294,7 @@ func (a *App) ResetToHome(opts ResetOptions) {
 		a.PopFocus()
 		if a.detailsPanel.IsShown() {
 			key := "details-" + a.detailsPanel.GetCurrentDetailsType()
-			a.UpdateFooter("[Environment Details]", key)
+			a.UpdateFooter(GetFooterText(key), key)
 		}
 	} else if a.detailsPanel.IsShown() {
 		// If details are shown and we didn't force env or restore prev, focus details
@@ -399,6 +405,7 @@ func (a *App) ShowConfirmation(opts ConfirmationOptions) {
 	outerLayout.SetBackgroundColor(DefaultTheme.Background)
 
 	a.pages.AddPage(opts.PageName, outerLayout, true, true)
+	a.currentPage = opts.PageName
 	a.tview.SetFocus(confirmBtn)
 }
 

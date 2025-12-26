@@ -27,7 +27,7 @@ func (a *App) showPopulateForm() {
 		return
 	}
 
-	a.UpdateFooter("[Populate Environment]", "populate-form")
+	a.UpdateFooter(GetFooterText(PopulateFormKey), PopulateFormKey)
 
 	// Initial state with one empty path
 	state := &populateState{
@@ -194,6 +194,7 @@ func (a *App) showPopulateForm() {
 	rebuildUI()
 
 	a.pages.AddPage("populate", CenterPrimitive(formFlex, 1, 2), true, true)
+	a.currentPage = "populate"
 	if len(state.inputs) > 0 {
 		a.tview.SetFocus(state.inputs[0])
 	}

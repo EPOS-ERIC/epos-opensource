@@ -86,6 +86,7 @@ func (a *App) showUpdateForm() {
 		SetTitleColor(DefaultTheme.Secondary)
 
 	a.pages.AddPage("update", CenterPrimitive(content, 2, 3), true, true)
+	a.currentPage = "update"
 	a.tview.SetFocus(form)
 }
 

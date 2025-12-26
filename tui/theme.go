@@ -53,7 +53,45 @@ var DefaultTheme = &Theme{
 const (
 	DetailsDockerKey = "details-docker"
 	DetailsK8sKey    = "details-k8s"
+	DockerKey        = "docker"
+	K8sKey           = "k8s"
+	FilePickerKey    = "file-picker"
+	HomeKey          = "home"
+	PopulateFormKey  = "populate-form"
+	DeleteConfirmKey = "delete-confirm"
+	CleanConfirmKey  = "clean-confirm"
+	HelpKey          = "help"
+
+	DockerFooter     = "[Docker Environments]"
+	K8sFooter        = "[K8s Environments]"
+	DetailsFooter    = "[Environment Details]"
+	FilePickerFooter = "[File Picker]"
+	HomeFooter       = "[Home]"
+	PopulateFooter   = "[Populate Environment]"
+	DeleteFooter     = "[Delete Environment]"
+	CleanFooter      = "[Clean Environment]"
+	HelpFooter       = "[Help]"
 )
+
+var FooterTexts = map[string]string{
+	DockerKey:        DockerFooter,
+	K8sKey:           K8sFooter,
+	DetailsDockerKey: DetailsFooter,
+	DetailsK8sKey:    DetailsFooter,
+	FilePickerKey:    FilePickerFooter,
+	HomeKey:          HomeFooter,
+	PopulateFormKey:  PopulateFooter,
+	DeleteConfirmKey: DeleteFooter,
+	CleanConfirmKey:  CleanFooter,
+	HelpKey:          HelpFooter,
+}
+
+func GetFooterText(key string) string {
+	if text, ok := FooterTexts[key]; ok {
+		return text
+	}
+	return "[Unknown]"
+}
 
 // KeyHint represents a keyboard shortcut hint.
 type KeyHint struct {

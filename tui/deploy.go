@@ -104,6 +104,7 @@ func (a *App) showDeployForm() {
 		SetTitleColor(DefaultTheme.Secondary)
 
 	a.pages.AddPage("deploy", CenterPrimitive(content, 2, 3), true, true)
+	a.currentPage = "deploy"
 	a.tview.SetFocus(form)
 }
 

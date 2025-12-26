@@ -12,7 +12,8 @@ import (
 func (a *App) showHelp() {
 	a.PushFocus()
 	prevContext := a.currentContext
-	a.UpdateFooter("[Help]", "help")
+	prevPage := a.currentPage
+	a.UpdateFooter(GetFooterText(HelpKey), HelpKey)
 
 	textView := tview.NewTextView().
 		SetDynamicColors(true).
@@ -36,7 +37,7 @@ func (a *App) showHelp() {
 	case "details-k8s":
 		title = "Environment Details (K8s)"
 		groupedHints = getHelpHints("details-k8s")
-	case "file-picker":
+	case FilePickerKey:
 		title = "File Picker"
 		groupedHints = getHelpHints("file-picker")
 	default:
@@ -124,10 +125,12 @@ func (a *App) showHelp() {
 
 	container.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEsc || event.Rune() == 'q' {
-			a.ResetToHome(ResetOptions{
-				PageNames:    []string{"help"},
-				RestoreFocus: true,
-			})
+			a.pages.RemovePage("help")
+			a.currentPage = prevPage
+			a.PopFocus()
+			footerKey := prevContext
+			footerText := GetFooterText(footerKey)
+			a.UpdateFooter(footerText, footerKey)
 			return nil
 		}
 		return event
@@ -155,7 +158,8 @@ func (a *App) showHelp() {
 		height = 12
 	}
 
-	a.UpdateFooter("[Help]", "help")
+	a.UpdateFooter(GetFooterText(HelpKey), HelpKey)
 	a.pages.AddPage("help", CenterPrimitiveFixed(container, width, height), true, true)
+	a.currentPage = "help"
 	a.tview.SetFocus(container)
 }

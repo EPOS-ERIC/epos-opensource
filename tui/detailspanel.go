@@ -245,7 +245,7 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 	dp.RefreshFiles()
 	if focus {
 		dp.app.tview.SetFocus(dp.details)
-		dp.app.UpdateFooter("[Environment Details]", "details-"+envType)
+		dp.app.UpdateFooter(GetFooterText("details-"+envType), "details-"+envType)
 	}
 }
 

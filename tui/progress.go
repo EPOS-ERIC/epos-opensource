@@ -140,6 +140,7 @@ func (op *OperationProgress) Start() {
 
 	pageName := fmt.Sprintf("%s-progress", op.operation)
 	op.app.pages.AddAndSwitchToPage(pageName, op.layout, true)
+	op.app.currentPage = pageName
 }
 
 // updateHeader updates the header with current elapsed time.
@@ -286,7 +287,8 @@ func (op *OperationProgress) showCompletionOverlay() {
 	})
 
 	op.overlay = modalLayout
-	op.app.pages.AddPage("completion-overlay", CenterPrimitive(modalLayout, 0, 1), true, true)
+	op.app.pages.AddPage("completion-overlay", CenterPrimitiveFixed(modalLayout, 50, 10), true, true)
+	op.app.currentPage = "completion-overlay"
 	op.app.tview.SetFocus(closeBtn)
 }
 

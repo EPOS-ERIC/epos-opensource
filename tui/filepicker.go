@@ -180,7 +180,7 @@ func (f *FilePicker) submit() {
 		}
 	}
 	f.app.pages.RemovePage("file-picker")
-	f.app.UpdateFooter("[Populate Environment]", "populate-form")
+	f.app.UpdateFooter(GetFooterText(PopulateFormKey), PopulateFormKey)
 	if f.onSelect != nil {
 		f.onSelect(result)
 	}
@@ -328,7 +328,7 @@ func (f *FilePicker) setupInput(layout *tview.Flex, searchField *tview.InputFiel
 				return nil
 			}
 			f.app.pages.RemovePage("file-picker")
-			f.app.UpdateFooter("[Populate Environment]", "populate-form")
+			f.app.UpdateFooter(GetFooterText(PopulateFormKey), PopulateFormKey)
 			return nil
 
 		case key == tcell.KeyEnter:
@@ -383,7 +383,7 @@ func (f *FilePicker) setupInput(layout *tview.Flex, searchField *tview.InputFiel
 			layout.ResizeItem(searchField, 0, 0)
 			f.lastSearch = ""
 			f.app.tview.SetFocus(f.view)
-			f.app.UpdateFooter("[File Picker]", "file-picker")
+			f.app.UpdateFooter(GetFooterText(FilePickerKey), FilePickerKey)
 		}
 	})
 }
@@ -455,7 +455,7 @@ func (a *App) showFilePicker(initialPaths []string, onSelect func([]string)) {
 
 	btnCancel := tview.NewButton("Cancel").SetSelectedFunc(func() {
 		a.pages.RemovePage("file-picker")
-		a.UpdateFooter("[Populate Environment]", "populate-form")
+		a.UpdateFooter(GetFooterText(PopulateFormKey), PopulateFormKey)
 	})
 	btnCancel.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Surface).Foreground(DefaultTheme.OnSurface))
 	btnCancel.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Error).Foreground(DefaultTheme.OnError))
@@ -514,6 +514,7 @@ func (a *App) showFilePicker(initialPaths []string, onSelect func([]string)) {
 		AddItem(layout, 0, 1, true)
 
 	a.pages.AddPage("file-picker", CenterPrimitive(pickerLayout, 2, 4), true, true)
+	a.currentPage = "file-picker"
 	a.tview.SetFocus(picker.view)
 }
 
