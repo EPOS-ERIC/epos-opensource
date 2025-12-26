@@ -450,15 +450,14 @@ func (a *App) showFilePicker(initialPaths []string, onSelect func([]string)) {
 		}
 	})
 
-	btnSubmit := tview.NewButton("Submit").SetSelectedFunc(func() { picker.submit() })
-	ApplyButtonStyle(btnSubmit)
+	btnSubmit := NewStyledButton("Submit", func() {
+		picker.submit()
+	})
 
-	btnCancel := tview.NewButton("Cancel").SetSelectedFunc(func() {
+	btnCancel := NewStyledButton("Cancel", func() {
 		a.pages.RemovePage("file-picker")
 		a.UpdateFooter(GetFooterText(PopulateFormKey), PopulateFormKey)
 	})
-	btnCancel.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Surface).Foreground(DefaultTheme.OnSurface))
-	btnCancel.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Error).Foreground(DefaultTheme.OnError))
 
 	buttonBar := tview.NewFlex().SetDirection(tview.FlexColumn).
 		AddItem(tview.NewBox(), 0, 1, false).

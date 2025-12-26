@@ -193,7 +193,7 @@ func (a *App) showPopulateForm() {
 
 	rebuildUI()
 
-	a.pages.AddPage("populate", CenterPrimitive(formFlex, 1, 2), true, true)
+	a.pages.AddPage("populate", CenterPrimitiveFixed(formFlex, 65, 20), true, true)
 	a.currentPage = "populate"
 	if len(state.inputs) > 0 {
 		a.tview.SetFocus(state.inputs[0])

@@ -368,9 +368,9 @@ func (a *App) ShowConfirmation(opts ConfirmationOptions) {
 
 	buttonContainer := tview.NewFlex().SetDirection(tview.FlexColumn).
 		AddItem(tview.NewBox(), 0, 1, false).
-		AddItem(confirmBtn, 10, 0, true).
+		AddItem(confirmBtn, len(opts.ConfirmLabel)+4, 0, true).
 		AddItem(tview.NewBox(), 2, 0, false).
-		AddItem(cancelBtn, 10, 0, true).
+		AddItem(cancelBtn, len(opts.CancelLabel)+4, 0, true).
 		AddItem(tview.NewBox(), 0, 1, false)
 	buttonContainer.SetBackgroundColor(tcell.ColorDefault)
 

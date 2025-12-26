@@ -84,7 +84,8 @@ func (a *App) showDeployForm() {
 	}
 
 	form.AddButton("Deploy", func() { a.handleDeploy(data, isDocker) }).
-		AddButton("Cancel", func() { a.returnFromDeploy() })
+		AddButton("Cancel", func() { a.returnFromDeploy() }).
+		SetButtonsAlign(tview.AlignCenter)
 
 	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEsc {
@@ -103,7 +104,7 @@ func (a *App) showDeployForm() {
 		SetTitle(fmt.Sprintf(" [::b]%s ", title)).
 		SetTitleColor(DefaultTheme.Secondary)
 
-	a.pages.AddPage("deploy", CenterPrimitive(content, 2, 3), true, true)
+	a.pages.AddPage("deploy", CenterPrimitiveFixed(content, 65, 16), true, true)
 	a.currentPage = "deploy"
 	a.tview.SetFocus(form)
 }

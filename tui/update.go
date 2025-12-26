@@ -62,7 +62,8 @@ func (a *App) showUpdateForm() {
 				RefreshFiles: true,
 				RestoreFocus: true,
 			})
-		})
+		}).
+		SetButtonsAlign(tview.AlignCenter)
 
 	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEsc {
@@ -85,7 +86,7 @@ func (a *App) showUpdateForm() {
 		SetTitle(fmt.Sprintf(" [::b]%s ", title)).
 		SetTitleColor(DefaultTheme.Secondary)
 
-	a.pages.AddPage("update", CenterPrimitive(content, 2, 3), true, true)
+	a.pages.AddPage("update", CenterPrimitiveFixed(content, 65, 16), true, true)
 	a.currentPage = "update"
 	a.tview.SetFocus(form)
 }
