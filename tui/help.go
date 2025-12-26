@@ -25,21 +25,21 @@ func (a *App) showHelp() {
 	var groupedHints map[string][]string
 
 	switch prevContext {
-	case "docker":
+	case DockerKey:
 		title = "Docker Environments"
-		groupedHints = getHelpHints("docker")
-	case "k8s":
+		groupedHints = getHelpHints(DockerKey)
+	case K8sKey:
 		title = "K8s Environments"
-		groupedHints = getHelpHints("k8s")
-	case "details-docker":
+		groupedHints = getHelpHints(K8sKey)
+	case DetailsDockerKey:
 		title = "Environment Details (Docker)"
-		groupedHints = getHelpHints("details-docker")
-	case "details-k8s":
+		groupedHints = getHelpHints(DetailsDockerKey)
+	case DetailsK8sKey:
 		title = "Environment Details (K8s)"
-		groupedHints = getHelpHints("details-k8s")
+		groupedHints = getHelpHints(DetailsK8sKey)
 	case FilePickerKey:
 		title = "File Picker"
-		groupedHints = getHelpHints("file-picker")
+		groupedHints = getHelpHints(FilePickerKey)
 	default:
 		title = "General"
 		groupedHints = map[string][]string{"Generic": {"?: show this help", "q: quit application"}}

@@ -50,30 +50,7 @@ var DefaultTheme = &Theme{
 	HeaderBackground: tcell.NewRGBColor(40, 48, 43),
 }
 
-const (
-	DetailsDockerKey = "details-docker"
-	DetailsK8sKey    = "details-k8s"
-	DockerKey        = "docker"
-	K8sKey           = "k8s"
-	FilePickerKey    = "file-picker"
-	HomeKey          = "home"
-	PopulateFormKey  = "populate-form"
-	DeleteConfirmKey = "delete-confirm"
-	CleanConfirmKey  = "clean-confirm"
-	HelpKey          = "help"
-
-	DockerFooter     = "[Docker Environments]"
-	K8sFooter        = "[K8s Environments]"
-	DetailsFooter    = "[Environment Details]"
-	FilePickerFooter = "[File Picker]"
-	HomeFooter       = "[Home]"
-	PopulateFooter   = "[Populate Environment]"
-	DeleteFooter     = "[Delete Environment]"
-	CleanFooter      = "[Clean Environment]"
-	HelpFooter       = "[Help]"
-)
-
-var FooterTexts = map[string]string{
+var FooterTexts = map[ScreenKey]FooterText{
 	DockerKey:        DockerFooter,
 	K8sKey:           K8sFooter,
 	DetailsDockerKey: DetailsFooter,
@@ -86,9 +63,9 @@ var FooterTexts = map[string]string{
 	HelpKey:          HelpFooter,
 }
 
-func GetFooterText(key string) string {
+func GetFooterText(key ScreenKey) string {
 	if text, ok := FooterTexts[key]; ok {
-		return text
+		return string(text)
 	}
 	return "[Unknown]"
 }
@@ -103,7 +80,7 @@ type KeyHint struct {
 
 // KeyHints maps screen names to their available keyboard shortcuts.
 // Used by updateFooter() and help screen.
-var KeyHints = map[string][]KeyHint{
+var KeyHints = map[ScreenKey][]KeyHint{
 	"docker": {
 		{"tab: switch", "tab: switch between docker and k8s environments", true, "Navigation"},
 		{"↑↓: nav", "↑↓: navigate through docker environments", true, "Navigation"},
@@ -143,6 +120,8 @@ var KeyHints = map[string][]KeyHint{
 		{"A: copy api", "A: copy api url to clipboard", false, "Browser"},
 		{"e: directory", "e: open directory in browser", true, "Browser"},
 		{"E: copy directory", "E: copy directory url to clipboard", false, "Browser"},
+		{"enter: open file", "enter: open the selected ingested file/directory/url", false, "Browser"},
+		{"y: copy file", "y: copy the selected ingested file path to clipboard", false, "Browser"},
 		{"?: help", "?: show help for current context", true, "Generic"},
 		{"q: quit", "q: quit the application", false, "Generic"},
 	},
@@ -161,6 +140,8 @@ var KeyHints = map[string][]KeyHint{
 		{"A: copy api", "A: copy api url to clipboard", false, "Browser"},
 		{"e: directory", "e: open directory in browser", true, "Browser"},
 		{"E: copy directory", "E: copy directory url to clipboard", false, "Browser"},
+		{"enter: open file", "enter: open the selected ingested file/directory/url", false, "Browser"},
+		{"y: copy file", "y: copy the selected file path to clipboard", false, "Browser"},
 		{"?: help", "?: show help for current context", true, "Generic"},
 		{"q: quit", "q: quit the application", false, "Generic"},
 	},
@@ -242,7 +223,7 @@ var KeyHints = map[string][]KeyHint{
 }
 
 // getFooterHints returns key hints for the footer, filtered by ShowInFooter.
-func getFooterHints(key string) []string {
+func getFooterHints(key ScreenKey) []string {
 	hints, ok := KeyHints[key]
 	if !ok {
 		return nil
@@ -257,7 +238,7 @@ func getFooterHints(key string) []string {
 }
 
 // getHelpHints returns grouped key hints for the help screen.
-func getHelpHints(key string) map[string][]string {
+func getHelpHints(key ScreenKey) map[string][]string {
 	hints, ok := KeyHints[key]
 	if !ok {
 		return nil

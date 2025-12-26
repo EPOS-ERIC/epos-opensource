@@ -29,7 +29,7 @@ func (a *App) showDeployForm() {
 	a.PushFocus()
 	isDocker := a.envList.IsDockerActive()
 	title := "New Docker Environment"
-	footer := "deploy-form"
+	footer := DeployFormKey
 	if !isDocker {
 		title = "New K8s Environment"
 	}

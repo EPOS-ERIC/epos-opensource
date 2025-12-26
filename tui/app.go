@@ -34,7 +34,7 @@ type App struct {
 
 	currentFooterSection string
 	currentFooterKeys    []string
-	currentContext       string
+	currentContext       ScreenKey
 	currentPage          string
 	footerMutex          sync.Mutex
 
@@ -159,7 +159,7 @@ func (a *App) startRefreshTicker() {
 }
 
 // UpdateFooter updates the footer section text and shortcut keys.
-func (a *App) UpdateFooter(section string, contextKey string) {
+func (a *App) UpdateFooter(section string, contextKey ScreenKey) {
 	keys := getFooterHints(contextKey)
 	a.footerMutex.Lock()
 	a.currentFooterSection = section
@@ -182,7 +182,7 @@ func (a *App) UpdateFooterCustom(section string, keys []string) {
 }
 
 // setContext sets the current context with validation.
-func (a *App) setContext(contextKey string) {
+func (a *App) setContext(contextKey ScreenKey) {
 	if _, ok := KeyHints[contextKey]; !ok {
 		log.Printf("warning: invalid context key '%s', defaulting to 'general'", contextKey)
 		contextKey = "general"
@@ -293,12 +293,12 @@ func (a *App) ResetToHome(opts ResetOptions) {
 	} else if opts.RestoreFocus && len(a.focusStack) > 0 {
 		a.PopFocus()
 		if a.detailsPanel.IsShown() {
-			key := "details-" + a.detailsPanel.GetCurrentDetailsType()
+			key := getDetailsKey(a.detailsPanel.GetCurrentDetailsType())
 			a.UpdateFooter(GetFooterText(key), key)
 		}
 	} else if a.detailsPanel.IsShown() {
 		// If details are shown and we didn't force env or restore prev, focus details
-		key := "details-" + a.detailsPanel.GetCurrentDetailsType()
+		key := getDetailsKey(a.detailsPanel.GetCurrentDetailsType())
 		a.UpdateFooter("[Environment Details]", key)
 		a.tview.SetFocus(a.detailsPanel.GetFlex())
 	} else {

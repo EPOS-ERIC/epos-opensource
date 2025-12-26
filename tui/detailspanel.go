@@ -245,7 +245,7 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 	dp.RefreshFiles()
 	if focus {
 		dp.app.tview.SetFocus(dp.details)
-		dp.app.UpdateFooter(GetFooterText("details-"+envType), "details-"+envType)
+		dp.app.UpdateFooter(GetFooterText(getDetailsKey(envType)), getDetailsKey(envType))
 	}
 }
 
@@ -284,6 +284,13 @@ func (dp *DetailsPanel) populateIngestedFilesList() {
 				itemText := fmt.Sprintf("%d. %s", i+1, file.FilePath)
 				dp.detailsList.AddItem(itemText, "", 0, nil)
 			}
+			dp.detailsList.SetSelectedFunc(func(index int, mainText, secondaryText string, shortcut rune) {
+				parts := strings.SplitN(mainText, ". ", 2)
+				if len(parts) == 2 {
+					filepath := parts[1]
+					dp.openValue(filepath)
+				}
+			})
 			dp.detailsListFlex.AddItem(dp.detailsList, 0, 1, true)
 		} else {
 			dp.detailsListFlex.AddItem(dp.detailsListEmpty, 0, 1, true)
@@ -504,6 +511,25 @@ func (dp *DetailsPanel) SetupInput() {
 					}
 				}()
 				return nil
+			}
+		case event.Rune() == 'y':
+			if dp.app.tview.GetFocus() == dp.detailsList {
+				index := dp.detailsList.GetCurrentItem()
+				mainText, _ := dp.detailsList.GetItemText(index)
+				parts := strings.SplitN(mainText, ". ", 2)
+				if len(parts) == 2 {
+					filepath := parts[1]
+					go func() {
+						if err := common.CopyToClipboard(filepath); err != nil {
+							dp.app.tview.QueueUpdateDraw(func() {
+								dp.app.ShowError("Failed to copy to clipboard")
+							})
+						} else {
+							dp.app.FlashMessage("Copied to clipboard", 2*time.Second)
+						}
+					}()
+					return nil
+				}
 			}
 		}
 		return event
