@@ -57,6 +57,5 @@ func (a *App) showDeleteProgress(envName string, isDocker bool) {
 				Name: []string{envName},
 			})
 		},
-		OnSuccess: func() {},
 	})
 }

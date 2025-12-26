@@ -2,11 +2,11 @@ package tui
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
 	"github.com/epos-eu/epos-opensource/cmd/k8s/k8score"
 	"github.com/epos-eu/epos-opensource/common"
+	"github.com/epos-eu/epos-opensource/validate"
 )
 
 // deployFormData holds the form field values.
@@ -125,15 +125,30 @@ func (a *App) showDeployForm() {
 
 	buttons := []FormButton{
 		{Label: "Deploy", SelectedFunc: func() { a.handleDeploy(data, isDocker) }},
-		{Label: "Cancel", SelectedFunc: func() { a.returnFromDeploy() }},
+		{Label: "Cancel", SelectedFunc: func() {
+			a.ResetToHome(ResetOptions{
+				PageNames:    []string{"deploy"},
+				RestoreFocus: true,
+			})
+		}},
 	}
 
+	height := 16
+	if !isDocker {
+		height = 18
+	}
 	opts := ModalFormOptions{
 		PageName: "deploy",
 		Title:    title,
 		Fields:   fields,
 		Buttons:  buttons,
-		OnCancel: func() { a.returnFromDeploy() },
+		OnCancel: func() {
+			a.ResetToHome(ResetOptions{
+				PageNames:    []string{"deploy"},
+				RestoreFocus: true,
+			})
+		},
+		Height: height,
 	}
 
 	a.ShowModalForm(opts)
@@ -141,8 +156,8 @@ func (a *App) showDeployForm() {
 
 // handleDeploy validates the form and starts deployment.
 func (a *App) handleDeploy(data *deployFormData, isDocker bool) {
-	if strings.TrimSpace(data.name) == "" {
-		a.ShowError("Name is required!")
+	if err := validate.Name(data.name); err != nil {
+		a.ShowError(err.Error())
 		return
 	}
 	a.showDeployProgress(data, isDocker)
@@ -192,13 +207,5 @@ func (a *App) showDeployProgress(data *deployFormData, isDocker bool) {
 			}
 			return fmt.Sprintf("Deployment complete! GUI: %s", guiURL), nil
 		},
-	})
-}
-
-// returnFromDeploy cleans up and returns to the home screen.
-func (a *App) returnFromDeploy() {
-	a.ResetToHome(ResetOptions{
-		PageNames:    []string{"deploy"},
-		RestoreFocus: true,
 	})
 }

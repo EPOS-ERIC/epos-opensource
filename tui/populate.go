@@ -307,7 +307,6 @@ func (a *App) handlePopulate(envName string, state *populateState, isDocker bool
 		}
 	}
 
-	a.pages.RemovePage("populate")
 	a.showPopulateProgress(envName, validPaths, state.examples, isDocker)
 }
 
