@@ -2,12 +2,11 @@ package tui
 
 import (
 	"fmt"
-	"os/exec"
 	"strings"
 
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
 	"github.com/epos-eu/epos-opensource/cmd/k8s/k8score"
-	"github.com/epos-eu/epos-opensource/command"
+	"github.com/epos-eu/epos-opensource/common"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -51,19 +50,37 @@ func (a *App) showDeployForm() {
 			AddCheckbox("Update Images", false, func(checked bool) { data.pullImages = checked })
 	} else {
 		currentContext := ""
-		if out, err := command.RunCommand(exec.Command("kubectl", "config", "current-context"), true); err == nil {
-			currentContext = strings.TrimSpace(string(out))
+		if ctx, err := common.GetCurrentKubeContext(); err == nil {
+			currentContext = ctx
 		}
 		data.context = currentContext
 
-		form.AddInputField("Context", currentContext, 0, nil, func(text string) { data.context = text }).
-			AddInputField("Env File", "", 0, nil, func(text string) { data.envFile = text }).
+		contexts, err := common.GetKubeContexts()
+		if err != nil {
+			form.AddInputField("Context", currentContext, 0, nil, func(text string) { data.context = text })
+		} else {
+			currentIndex := 0
+			for i, ctx := range contexts {
+				if ctx == currentContext {
+					currentIndex = i
+					break
+				}
+			}
+			form.AddDropDown("Context", contexts, currentIndex, func(option string, optionIndex int) {
+				data.context = option
+			})
+			dd := form.GetFormItem(form.GetFormItemCount() - 1).(*tview.DropDown)
+			ApplyDropDownStyle(dd)
+		}
+		form.AddInputField("Env File", "", 0, nil, func(text string) { data.envFile = text }).
 			AddInputField("Manifest Dir", "", 0, nil, func(text string) { data.manifestDir = text }).
 			AddInputField("Path", "", 0, nil, func(text string) { data.path = text }).
 			AddInputField("Host", "", 0, nil, func(text string) { data.host = text }).
 			AddDropDown("Protocol", []string{"http", "https"}, 0, func(option string, optionIndex int) {
 				data.protocol = option
 			})
+		dd := form.GetFormItem(form.GetFormItemCount() - 1).(*tview.DropDown)
+		ApplyDropDownStyle(dd)
 	}
 
 	form.AddButton("Deploy", func() { a.handleDeploy(data, isDocker) }).

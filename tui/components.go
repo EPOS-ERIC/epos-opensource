@@ -34,6 +34,25 @@ func ApplyButtonStyle(btn *tview.Button) {
 	btn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.Primary))
 }
 
+// ApplyDropDownStyle applies theme colors to a dropdown.
+func ApplyDropDownStyle(dd *tview.DropDown) {
+	dd.SetFieldBackgroundColor(DefaultTheme.Surface)
+	dd.SetFieldTextColor(DefaultTheme.Secondary)
+
+	focusedStyle := tcell.StyleDefault.
+		Background(DefaultTheme.Primary).
+		Foreground(DefaultTheme.OnPrimary)
+	dd.SetFocusedStyle(focusedStyle)
+
+	unselectedStyle := tcell.StyleDefault.
+		Background(DefaultTheme.Surface).
+		Foreground(DefaultTheme.OnBackground)
+	selectedStyle := tcell.StyleDefault.
+		Background(DefaultTheme.Primary).
+		Foreground(DefaultTheme.OnPrimary)
+	dd.SetListStyles(unselectedStyle, selectedStyle)
+}
+
 // NewStyledInactiveButton creates a button with surface colors (used for "Browse Files" etc).
 func NewStyledInactiveButton(label string, selected func()) *tview.Button {
 	btn := tview.NewButton(label)

@@ -2,10 +2,8 @@ package k8score
 
 import (
 	"fmt"
-	"os/exec"
-	"strings"
+	"slices"
 
-	"github.com/epos-eu/epos-opensource/command"
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/db"
 	"github.com/epos-eu/epos-opensource/db/sqlc"
@@ -32,13 +30,11 @@ type DeployOpts struct {
 
 func Deploy(opts DeployOpts) (*sqlc.K8s, error) {
 	if opts.Context == "" {
-		cmd := exec.Command("kubectl", "config", "current-context")
-		out, err := command.RunCommand(cmd, true)
+		ctx, err := common.GetCurrentKubeContext()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get current kubectl context: %w", err)
 		}
-		opts.Context = string(out)
-		opts.Context = strings.TrimSpace(opts.Context)
+		opts.Context = ctx
 	}
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid deploy parameters: %w", err)
@@ -150,19 +146,11 @@ func (d *DeployOpts) Validate() error {
 		return fmt.Errorf("the path to .env '%s' is not a file: %w", d.EnvFile, err)
 	}
 
-	cmd := exec.Command("kubectl", "config", "get-contexts", "-o=name")
-	out, err := command.RunCommand(cmd, true)
+	contexts, err := common.GetKubeContexts()
 	if err != nil {
 		return fmt.Errorf("failed to list kubectl contexts: %w", err)
 	}
-	contextFound := false
-	contexts := strings.SplitSeq(strings.TrimSpace(string(out)), "\n")
-	for ctx := range contexts {
-		if ctx == d.Context {
-			contextFound = true
-			break
-		}
-	}
+	contextFound := slices.Contains(contexts, d.Context)
 	if !contextFound {
 		return fmt.Errorf("K8s context %q is not an available context", d.Context)
 	}
