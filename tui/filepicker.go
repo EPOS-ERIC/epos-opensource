@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/ncruces/zenity"
 	"github.com/rivo/tview"
 )
 
@@ -425,10 +426,94 @@ func (f *FilePicker) addNodes(target *tview.TreeNode, path string) {
 	}
 }
 
-// showFilePicker displays the file picker modal.
-func (a *App) showFilePicker(initialPaths []string, onSelect func([]string)) {
-	absPath := a.resolveStartPath(initialPaths)
-	picker := newFilePicker(a, absPath, initialPaths, onSelect)
+// showFilePickerNative displays native file picker or falls back to TUI.
+//
+// directoriesOnly: if true, selects directories; if false, selects files. No effect when using the tui picker.
+func (a *App) showFilePickerNative(directoriesOnly bool, onSelect func([]string)) {
+	if directoriesOnly {
+		a.nativeSelectDirectory(onSelect)
+	} else {
+		a.nativeSelectFiles(onSelect)
+	}
+}
+
+// resolveStartPath determines the initial directory for the picker.
+func resolveStartPath(startPath string) string {
+	if startPath != "" {
+		info, err := os.Stat(startPath)
+		if err == nil && !info.IsDir() {
+			startPath = filepath.Dir(startPath)
+		}
+	} else {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return "/"
+		}
+		startPath = cwd
+	}
+
+	absPath, err := filepath.Abs(startPath)
+	if err != nil {
+		return "/"
+	}
+	return absPath
+}
+
+// nativeSelectFiles uses zenity to select multiple files.
+func (a *App) nativeSelectFiles(onSelect func([]string)) {
+	go func() {
+		var opts []zenity.Option
+		opts = append(opts, zenity.Title("Select Files"))
+		opts = append(opts, zenity.FileFilters{
+			{Name: "TTL files", Patterns: []string{"*.ttl"}, CaseFold: false},
+		})
+
+		selected, err := zenity.SelectFileMultiple(opts...)
+
+		a.tview.QueueUpdateDraw(func() {
+			if err != nil {
+				if err == zenity.ErrCanceled {
+					return
+				}
+				a.showTUIFilePicker("", []string{}, onSelect)
+				return
+			}
+			if len(selected) == 0 {
+				return
+			}
+			onSelect(selected)
+		})
+	}()
+}
+
+// nativeSelectDirectory uses zenity to select multiple directories.
+func (a *App) nativeSelectDirectory(onSelect func([]string)) {
+	go func() {
+		var opts []zenity.Option
+		opts = append(opts, zenity.Title("Select Directories"))
+
+		selected, err := zenity.SelectFileMultiple(append(opts, zenity.Directory())...)
+
+		a.tview.QueueUpdateDraw(func() {
+			if err != nil {
+				if err == zenity.ErrCanceled {
+					return
+				}
+				a.showTUIFilePicker("", []string{}, onSelect)
+				return
+			}
+			if len(selected) == 0 {
+				return
+			}
+			onSelect(selected)
+		})
+	}()
+}
+
+// showTUIFilePicker displays the TUI-based file picker.
+func (a *App) showTUIFilePicker(startPath string, selectedPaths []string, onSelect func([]string)) {
+	absPath := resolveStartPath(startPath)
+	picker := newFilePicker(a, absPath, selectedPaths, onSelect)
 
 	a.UpdateFooter("[File Picker]", "file-picker")
 
@@ -462,7 +547,7 @@ func (a *App) showFilePicker(initialPaths []string, onSelect func([]string)) {
 	buttonBar := tview.NewFlex().SetDirection(tview.FlexColumn).
 		AddItem(tview.NewBox(), 0, 1, false).
 		AddItem(btnSubmit, 10, 0, false).
-		AddItem(tview.NewBox(), 0, 1, false).
+		AddItem(tview.NewBox(), 2, 0, false).
 		AddItem(btnCancel, 10, 0, false).
 		AddItem(tview.NewBox(), 0, 1, false)
 
@@ -475,6 +560,7 @@ func (a *App) showFilePicker(initialPaths []string, onSelect func([]string)) {
 
 	pathBar := tview.NewTextView().
 		SetDynamicColors(true).
+		SetTextColor(DefaultTheme.OnSurface).
 		SetTextAlign(tview.AlignLeft)
 	pathBar.SetBackgroundColor(DefaultTheme.Surface)
 	pathBar.SetText(" [::b]Path:[-] " + absPath)
@@ -496,7 +582,6 @@ func (a *App) showFilePicker(initialPaths []string, onSelect func([]string)) {
 		SetTitle(" [::b]Select Files ").
 		SetTitleColor(DefaultTheme.Secondary)
 
-	// UX: Selection follows scroll wheel
 	picker.view.SetMouseCapture(func(action tview.MouseAction, event *tcell.EventMouse) (tview.MouseAction, *tcell.EventMouse) {
 		switch action {
 		case tview.MouseScrollUp:
@@ -515,34 +600,4 @@ func (a *App) showFilePicker(initialPaths []string, onSelect func([]string)) {
 	a.pages.AddPage("file-picker", CenterPrimitive(pickerLayout, 2, 4), true, true)
 	a.currentPage = "file-picker"
 	a.tview.SetFocus(picker.view)
-}
-
-// resolveStartPath determines the initial directory for the picker.
-func (a *App) resolveStartPath(initialPaths []string) string {
-	startPath := ""
-	if len(initialPaths) > 0 && initialPaths[0] != "" {
-		info, err := os.Stat(initialPaths[0])
-		if err == nil {
-			if info.IsDir() {
-				startPath = initialPaths[0]
-			} else {
-				startPath = filepath.Dir(initialPaths[0])
-			}
-		}
-	}
-
-	if startPath == "" {
-		cwd, err := os.Getwd()
-		if err == nil {
-			startPath = cwd
-		} else {
-			startPath = "/"
-		}
-	}
-
-	absPath, err := filepath.Abs(startPath)
-	if err != nil {
-		return "/"
-	}
-	return absPath
 }

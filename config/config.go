@@ -64,7 +64,9 @@ func init() {
 // DefaultConfig returns the default configuration
 func DefaultConfig() Config {
 	cfg := Config{
-		TUI: TUIConfig{},
+		TUI: TUIConfig{
+			FilePickerMode: FilePickerModeNative,
+		},
 	}
 	switch runtime.GOOS {
 	case "darwin":
@@ -93,6 +95,9 @@ func ValidateConfig(cfg Config) error {
 	}
 	if cfg.TUI.OpenFileCommand == "" {
 		return errors.New("OpenFileCommand cannot be empty")
+	}
+	if cfg.TUI.FilePickerMode != FilePickerModeNative && cfg.TUI.FilePickerMode != FilePickerModeTUI {
+		return errors.New("FilePickerMode must be 'native' or 'tui'")
 	}
 	return nil
 }

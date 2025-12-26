@@ -6,16 +6,26 @@ import (
 
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
 	"github.com/epos-eu/epos-opensource/cmd/k8s/k8score"
+	"github.com/epos-eu/epos-opensource/config"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
+// FocusButton represents the button to focus after UI rebuild.
+type FocusButton string
+
+const (
+	FocusButtonBrowse FocusButton = "browse"
+	FocusButtonFiles  FocusButton = "files"
+	FocusButtonDirs   FocusButton = "dirs"
+)
+
 // populateState holds the state of the populate form.
 type populateState struct {
-	paths     []string
-	examples  bool
-	inputs    []*tview.InputField
-	browseBtn *tview.Button
+	paths       []string
+	examples    bool
+	inputs      []*tview.InputField
+	focusButton FocusButton // "browse", "files", "dirs", or ""
 }
 
 // showPopulateForm displays the dynamic populate form.
@@ -29,24 +39,38 @@ func (a *App) showPopulateForm() {
 
 	a.UpdateFooter(GetFooterText(PopulateFormKey), PopulateFormKey)
 
-	// Initial state with one empty path
 	state := &populateState{
 		paths:    []string{""},
 		examples: false,
 	}
 
-	// Layout
 	formFlex := tview.NewFlex().SetDirection(tview.FlexRow)
 	formFlex.SetBorder(true).
 		SetBorderColor(DefaultTheme.Primary).
 		SetTitle(fmt.Sprintf(" [::b]Populate: %s ", envName)).
 		SetTitleColor(DefaultTheme.Secondary)
 
-	// Function to rebuild the UI based on state
 	var rebuildUI func()
 	rebuildUI = func() {
 		formFlex.Clear()
 		state.inputs = nil
+
+		updatePathsAndRebuild := func(selectedPaths []string, focusBtn FocusButton) {
+			state.paths = appendUnique(state.paths, selectedPaths)
+			// remove leading empty placeholders if there are actual paths
+			for i, p := range state.paths {
+				if p != "" {
+					state.paths = state.paths[i:]
+					break
+				}
+			}
+			// if all are empty, keep one empty for input
+			if len(state.paths) == 0 {
+				state.paths = []string{""}
+			}
+			state.focusButton = focusBtn
+			rebuildUI()
+		}
 
 		for i, path := range state.paths {
 			idx := i
@@ -57,14 +81,41 @@ func (a *App) showPopulateForm() {
 					}
 				})
 
+			input.SetBorderPadding(0, 0, 1, 1)
 			size := 1
+
+			removeBtn := tview.NewButton("✗")
+			removeBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Destructive).Foreground(DefaultTheme.OnDestructive))
+			removeBtn.SetActivatedStyle(tcell.StyleDefault.Background(DefaultTheme.Secondary).Foreground(DefaultTheme.OnSecondary))
+			removeBtn.SetSelectedFunc(func() {
+				// remove the path at this index
+				if idx < len(state.paths) {
+					state.paths = append(state.paths[:idx], state.paths[idx+1:]...)
+					// Ensure we always have at least one empty path
+					if len(state.paths) == 0 {
+						state.paths = []string{""}
+					}
+					rebuildUI()
+					// focus the first input after removal
+					if len(state.inputs) > 0 {
+						focusIdx := idx
+						if focusIdx >= len(state.inputs) {
+							focusIdx = len(state.inputs) - 1
+						}
+						a.tview.SetFocus(state.inputs[focusIdx])
+					}
+				}
+			})
+
+			pathRow := tview.NewFlex().SetDirection(tview.FlexColumn).
+				AddItem(input, 0, 1, true).
+				AddItem(removeBtn, 3, 0, false)
+
+			// initial top padding
 			if i == 0 {
-				input.SetBorderPadding(1, 0, 1, 1)
-				size = 2
-			} else {
-				input.SetBorderPadding(0, 0, 1, 1)
+				formFlex.AddItem(tview.NewBox(), 1, 0, false)
 			}
-			formFlex.AddItem(input, size, 0, true).
+			formFlex.AddItem(pathRow, size, 0, true).
 				AddItem(tview.NewBox(), 1, 0, false)
 
 			state.inputs = append(state.inputs, input)
@@ -78,26 +129,48 @@ func (a *App) showPopulateForm() {
 			}
 		})
 
-		browseBtn := NewStyledInactiveButton("Browse Files", func() {
-			var currentPaths []string
-			for _, p := range state.paths {
-				if strings.TrimSpace(p) != "" {
-					currentPaths = append(currentPaths, p)
+		var browseBtn *tview.Button
+		var browseFilesBtn *tview.Button
+		var browseDirsBtn *tview.Button
+		if a.config.TUI.FilePickerMode == config.FilePickerModeTUI {
+			browseBtn = NewStyledInactiveButton("Browse", func() {
+				var currentPaths []string
+				for _, p := range state.paths {
+					if strings.TrimSpace(p) != "" {
+						currentPaths = append(currentPaths, p)
+					}
 				}
-			}
-
-			a.showFilePicker(currentPaths, func(selectedPaths []string) {
-				state.paths = selectedPaths
-				if len(state.paths) == 0 {
-					state.paths = []string{""}
+				startPath := ""
+				if len(currentPaths) > 0 {
+					startPath = currentPaths[0]
 				}
-				rebuildUI()
-				if state.browseBtn != nil {
-					a.tview.SetFocus(state.browseBtn)
-				}
+				a.showTUIFilePicker(startPath, currentPaths, func(selectedPaths []string) {
+					updatePathsAndRebuild(selectedPaths, FocusButtonBrowse)
+				})
 			})
-		})
-		state.browseBtn = browseBtn
+		} else {
+			browseFilesBtn = NewStyledInactiveButton("Browse Files", func() {
+				a.showFilePickerNative(false, func(selectedPaths []string) {
+					updatePathsAndRebuild(selectedPaths, FocusButtonFiles)
+				})
+			})
+
+			browseDirsBtn = NewStyledInactiveButton("Browse Dirs", func() {
+				a.showFilePickerNative(true, func(selectedPaths []string) {
+					updatePathsAndRebuild(selectedPaths, FocusButtonDirs)
+				})
+			})
+		}
+
+		// set focus based on pending focus button
+		if state.focusButton == FocusButtonBrowse && browseBtn != nil {
+			a.tview.SetFocus(browseBtn)
+		} else if state.focusButton == FocusButtonFiles && browseFilesBtn != nil {
+			a.tview.SetFocus(browseFilesBtn)
+		} else if state.focusButton == FocusButtonDirs && browseDirsBtn != nil {
+			a.tview.SetFocus(browseDirsBtn)
+		}
+		state.focusButton = ""
 
 		checkbox := tview.NewCheckbox().
 			SetLabel("Populate Examples ").
@@ -122,13 +195,23 @@ func (a *App) showPopulateForm() {
 			})
 		})
 
+		controlsFlex := tview.NewFlex().SetDirection(tview.FlexColumn).
+			AddItem(tview.NewBox(), 0, 1, false)
+		if a.config.TUI.FilePickerMode == config.FilePickerModeTUI {
+			controlsFlex.AddItem(browseBtn, 16, 1, false).
+				AddItem(tview.NewBox(), 2, 0, false).
+				AddItem(addPathBtn, 12, 1, false)
+		} else {
+			controlsFlex.AddItem(browseDirsBtn, 15, 1, false).
+				AddItem(tview.NewBox(), 2, 0, false).
+				AddItem(browseFilesBtn, 16, 1, false).
+				AddItem(tview.NewBox(), 2, 0, false).
+				AddItem(addPathBtn, 12, 1, false)
+		}
+		controlsFlex.AddItem(tview.NewBox(), 0, 1, false)
+
 		controls := tview.NewFlex().SetDirection(tview.FlexRow).
-			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
-				AddItem(tview.NewBox(), 0, 1, false).
-				AddItem(browseBtn, 16, 1, false).
-				AddItem(tview.NewBox(), 0, 1, false).
-				AddItem(addPathBtn, 12, 1, false).
-				AddItem(tview.NewBox(), 0, 1, false), 1, 0, false).
+			AddItem(controlsFlex, 1, 0, false).
 			AddItem(tview.NewBox(), 1, 0, false).
 			AddItem(checkbox, 1, 0, false).
 			AddItem(tview.NewBox(), 0, 1, false).
@@ -141,12 +224,27 @@ func (a *App) showPopulateForm() {
 
 		formFlex.AddItem(controls, 0, 1, false)
 
-		// Custom Input Capture for Focus Cycling
 		var allFocusable []tview.Primitive
-		for i := range state.inputs {
-			allFocusable = append(allFocusable, state.inputs[i])
+
+		// extract input fields and buttons
+		for i := range formFlex.GetItemCount() {
+			item := formFlex.GetItem(i)
+			if pathRow, ok := item.(*tview.Flex); ok && pathRow.GetItemCount() == 2 {
+				input := pathRow.GetItem(0).(*tview.InputField)
+
+				allFocusable = append(allFocusable, input)
+
+				if input.GetText() != "" {
+					allFocusable = append(allFocusable, pathRow.GetItem(1))
+				}
+			}
 		}
-		allFocusable = append(allFocusable, browseBtn, addPathBtn, checkbox, populateBtn, cancelBtn)
+
+		if a.config.TUI.FilePickerMode == config.FilePickerModeTUI {
+			allFocusable = append(allFocusable, browseBtn, addPathBtn, checkbox, populateBtn, cancelBtn)
+		} else {
+			allFocusable = append(allFocusable, browseDirsBtn, browseFilesBtn, addPathBtn, checkbox, populateBtn, cancelBtn)
+		}
 
 		formFlex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 			if event.Key() == tcell.KeyEsc {
@@ -202,7 +300,6 @@ func (a *App) showPopulateForm() {
 
 // handlePopulate validates the form and starts population.
 func (a *App) handlePopulate(envName string, state *populateState, isDocker bool) {
-	// Parse paths
 	var validPaths []string
 	for _, p := range state.paths {
 		if trimmed := strings.TrimSpace(p); trimmed != "" {
@@ -240,4 +337,26 @@ func (a *App) showPopulateProgress(envName string, paths []string, examples bool
 			return "", err
 		},
 	})
+}
+
+// appendUnique merges two slices, removing duplicates while preserving order.
+func appendUnique(existing, new []string) []string {
+	seen := make(map[string]bool)
+	result := make([]string, 0, len(existing)+len(new))
+
+	for _, p := range existing {
+		if !seen[p] {
+			result = append(result, p)
+			seen[p] = true
+		}
+	}
+
+	for _, p := range new {
+		if !seen[p] {
+			result = append(result, p)
+			seen[p] = true
+		}
+	}
+
+	return result
 }
