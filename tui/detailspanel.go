@@ -311,7 +311,7 @@ func (dp *DetailsPanel) CycleFocus() {
 		} else if len(dp.detailsButtons) > 0 {
 			dp.app.tview.SetFocus(dp.detailsButtons[0])
 		} else {
-			dp.app.tview.SetFocus(dp.detailsListFlex)
+			dp.app.tview.SetFocus(dp.detailsList)
 		}
 	case dp.cleanButton:
 		dp.app.tview.SetFocus(dp.deleteButton)
@@ -342,7 +342,7 @@ func (dp *DetailsPanel) CycleFocus() {
 					if len(dp.detailsButtons) > 0 {
 						dp.app.tview.SetFocus(dp.detailsButtons[0])
 					} else {
-						dp.app.tview.SetFocus(dp.detailsListFlex)
+						dp.app.tview.SetFocus(dp.detailsList)
 					}
 				}
 				return
@@ -357,8 +357,14 @@ func (dp *DetailsPanel) CycleFocus() {
 func (dp *DetailsPanel) CycleFocusBackward() {
 	focus := dp.app.tview.GetFocus()
 	switch focus {
-	case dp.detailsListFlex:
-		dp.app.tview.SetFocus(dp.populateButton)
+	case dp.detailsList:
+		if len(dp.detailsButtons) > 0 {
+			dp.app.tview.SetFocus(dp.detailsButtons[len(dp.detailsButtons)-1])
+		} else if len(dp.nameDirButtons) > 0 {
+			dp.app.tview.SetFocus(dp.nameDirButtons[len(dp.nameDirButtons)-1])
+		} else {
+			dp.app.tview.SetFocus(dp.deleteButton)
+		}
 	case dp.deleteButton:
 		dp.app.tview.SetFocus(dp.cleanButton)
 	case dp.cleanButton:
@@ -395,7 +401,7 @@ func (dp *DetailsPanel) CycleFocusBackward() {
 			}
 		}
 		// If not, start at the end
-		dp.app.tview.SetFocus(dp.detailsListFlex)
+		dp.app.tview.SetFocus(dp.detailsList)
 	}
 }
 
