@@ -296,7 +296,7 @@ func (el *EnvList) setupFocusHandlers() {
 		el.currentEnv = el.dockerFlex
 		updateListStyle(el.docker, true)
 		updateBoxStyle(el.dockerFlex, true)
-		el.app.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
+		el.app.UpdateFooter("[Docker Environments]", "docker")
 		el.app.detailsPanel.Clear()
 	})
 	el.docker.SetBlurFunc(func() {
@@ -308,7 +308,7 @@ func (el *EnvList) setupFocusHandlers() {
 	el.dockerEmpty.SetFocusFunc(func() {
 		el.currentEnv = el.dockerFlex
 		updateBoxStyle(el.dockerFlex, true)
-		el.app.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
+		el.app.UpdateFooter("[Docker Environments]", "docker")
 		el.app.detailsPanel.Clear()
 	})
 	el.dockerEmpty.SetBlurFunc(func() {
@@ -319,7 +319,7 @@ func (el *EnvList) setupFocusHandlers() {
 	el.createNewButton.SetFocusFunc(func() {
 		el.currentEnv = el.dockerFlex
 		updateBoxStyle(el.dockerFlex, true)
-		el.app.UpdateFooter("[Docker Environments]", KeyDescriptions["docker"])
+		el.app.UpdateFooter("[Docker Environments]", "docker")
 		el.app.detailsPanel.Clear()
 	})
 	el.createNewButton.SetBlurFunc(func() {
@@ -331,7 +331,7 @@ func (el *EnvList) setupFocusHandlers() {
 		el.currentEnv = el.k8sFlex
 		updateListStyle(el.k8s, true)
 		updateBoxStyle(el.k8sFlex, true)
-		el.app.UpdateFooter("[K8s Environments]", KeyDescriptions["k8s"])
+		el.app.UpdateFooter("[K8s Environments]", "k8s")
 		el.app.detailsPanel.Clear()
 	})
 	el.k8s.SetBlurFunc(func() {
@@ -344,7 +344,7 @@ func (el *EnvList) setupFocusHandlers() {
 		el.currentEnv = el.k8sFlex
 		updateBoxStyle(el.k8sEmpty, true)
 		updateBoxStyle(el.k8sFlex, true)
-		el.app.UpdateFooter("[K8s Environments]", KeyDescriptions["k8s"])
+		el.app.UpdateFooter("[K8s Environments]", "k8s")
 		el.app.detailsPanel.Clear()
 	})
 	el.k8sEmpty.SetBlurFunc(func() {
@@ -356,7 +356,7 @@ func (el *EnvList) setupFocusHandlers() {
 	el.createNewButtonK8s.SetFocusFunc(func() {
 		el.currentEnv = el.k8sFlex
 		updateBoxStyle(el.k8sFlex, true)
-		el.app.UpdateFooter("[K8s Environments]", KeyDescriptions["k8s"])
+		el.app.UpdateFooter("[K8s Environments]", "k8s")
 		el.app.detailsPanel.Clear()
 	})
 	el.createNewButtonK8s.SetBlurFunc(func() {

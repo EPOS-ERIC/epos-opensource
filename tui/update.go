@@ -30,7 +30,7 @@ func (a *App) showUpdateForm() {
 	if !isDocker {
 		title = "Update K8s Environment"
 	}
-	a.UpdateFooter(fmt.Sprintf("[%s]", title), KeyDescriptions["update-form"])
+	a.UpdateFooter(fmt.Sprintf("[%s]", title), "update-form")
 
 	if envName == "" {
 		return

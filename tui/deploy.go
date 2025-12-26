@@ -34,7 +34,7 @@ func (a *App) showDeployForm() {
 	if !isDocker {
 		title = "New K8s Environment"
 	}
-	a.UpdateFooter(fmt.Sprintf("[%s]", title), KeyDescriptions[footer])
+	a.UpdateFooter(fmt.Sprintf("[%s]", title), footer)
 
 	data := &deployFormData{
 		protocol: "http",

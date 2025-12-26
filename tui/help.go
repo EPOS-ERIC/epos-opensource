@@ -1,61 +1,128 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
-// showHelp displays a modal with keyboard shortcuts for all screens.
+// showHelp displays a modal with keyboard shortcuts for the current context.
 func (a *App) showHelp() {
 	a.PushFocus()
-	table := tview.NewTable().
-		SetBorders(false).
-		SetSelectable(false, false)
-	table.SetBorderPadding(1, 0, 2, 2)
+	prevContext := a.currentContext
+	a.UpdateFooter("[Help]", "help")
 
-	row := 0
+	textView := tview.NewTextView().
+		SetDynamicColors(true).
+		SetWordWrap(false).
+		SetScrollable(true)
+	textView.SetBorderPadding(1, 1, 2, 2)
 
-	// Docker section
-	row = addHelpSection(table, row, "DOCKER ENVIRONMENTS", KeyDescriptions["docker"])
-	row++
+	var title string
+	var groupedHints map[string][]string
 
-	// K8s section
-	row = addHelpSection(table, row, "K8S ENVIRONMENTS", KeyDescriptions["k8s"])
-	row++
+	switch prevContext {
+	case "docker":
+		title = "Docker Environments"
+		groupedHints = getHelpHints("docker")
+	case "k8s":
+		title = "K8s Environments"
+		groupedHints = getHelpHints("k8s")
+	case "details-docker":
+		title = "Environment Details (Docker)"
+		groupedHints = getHelpHints("details-docker")
+	case "details-k8s":
+		title = "Environment Details (K8s)"
+		groupedHints = getHelpHints("details-k8s")
+	case "file-picker":
+		title = "File Picker"
+		groupedHints = getHelpHints("file-picker")
+	default:
+		title = "General"
+		groupedHints = map[string][]string{"Generic": {"?: show this help", "q: quit application"}}
+	}
 
-	// Environment Details (Docker) section
-	row = addHelpSection(table, row, "ENVIRONMENT DETAILS (DOCKER)", KeyDescriptions["details-docker"])
-	row++
+	var content strings.Builder
+	maxWidth := 0
+	lineCount := 0
 
-	// Environment Details (K8s) section
-	row = addHelpSection(table, row, "ENVIRONMENT DETAILS (K8S)", KeyDescriptions["details-k8s"])
-	row++
+	lineCount += 2
 
-	// File Picker section
-	row = addHelpSection(table, row, "FILE PICKER", KeyDescriptions["file-picker"])
-	row++
+	// Define group order
+	groupOrder := []string{"Navigation", "Environment", "Browser", "Generic"}
+	for _, group := range groupOrder {
+		if hints, exists := groupedHints[group]; exists {
+			// Group header
+			content.WriteString(DefaultTheme.SecondaryTag("b") + group + "\n")
+			lineCount++
 
-	// General section
-	table.SetCell(row, 0, tview.NewTableCell(DefaultTheme.SecondaryTag("b")+"GENERAL").SetAlign(tview.AlignLeft).SetExpansion(1))
-	row++
-	table.SetCell(row, 0, tview.NewTableCell("  "+DefaultTheme.PrimaryTag("b")+"?").SetAlign(tview.AlignLeft))
-	table.SetCell(row, 1, tview.NewTableCell("show this help").SetAlign(tview.AlignRight).SetExpansion(1))
-	row++
-	table.SetCell(row, 0, tview.NewTableCell("  "+DefaultTheme.PrimaryTag("b")+"q").SetAlign(tview.AlignLeft))
-	table.SetCell(row, 1, tview.NewTableCell("quit application").SetAlign(tview.AlignRight).SetExpansion(1))
+			if len(group) > maxWidth {
+				maxWidth = len(group)
+			}
 
-	content := tview.NewFlex().
+			// Separator
+			separatorLen := 50
+			content.WriteString(DefaultTheme.MutedTag("") + strings.Repeat("─", separatorLen) + "\n")
+			lineCount++
+			if separatorLen > maxWidth {
+				maxWidth = separatorLen
+			}
+
+			// Hints
+			for _, key := range hints {
+				parts := strings.SplitN(key, ": ", 2)
+				if len(parts) == 2 {
+					line := fmt.Sprintf("  %s%-14s%s %s",
+						DefaultTheme.PrimaryTag("b"),
+						parts[0],
+						DefaultTheme.Tag(DefaultTheme.OnSurface, ""),
+						parts[1])
+					content.WriteString(line + "\n")
+
+					// Calculate plain text width
+					plainLine := fmt.Sprintf("  %-14s %s", parts[0], parts[1])
+					if len(plainLine) > maxWidth {
+						maxWidth = len(plainLine)
+					}
+					lineCount++
+				} else {
+					content.WriteString(fmt.Sprintf("  %s\n", key))
+					if len(key)+2 > maxWidth {
+						maxWidth = len(key) + 2
+					}
+					lineCount++
+				}
+			}
+
+			content.WriteString("\n") // Spacing between groups
+			lineCount++
+		}
+	}
+
+	// Now that we know maxWidth, create centered title
+	titleLen := len(title)
+	if titleLen > maxWidth {
+		maxWidth = titleLen
+	}
+	padding := max((maxWidth-titleLen)/2, 0)
+	centeredTitle := strings.Repeat(" ", padding) + DefaultTheme.PrimaryTag("b") + title + "\n\n"
+
+	// Prepend centered title to content
+	finalContent := centeredTitle + content.String()
+	textView.SetText(finalContent)
+
+	container := tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(table, 0, 1, true)
+		AddItem(textView, 0, 1, true)
 
-	content.SetBorder(true).
+	container.SetBorder(true).
 		SetBorderColor(DefaultTheme.Secondary).
 		SetTitle(" [::b]Help ").
 		SetTitleColor(DefaultTheme.Secondary)
 
-	content.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+	container.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEsc || event.Rune() == 'q' {
 			a.ResetToHome(ResetOptions{
 				PageNames:    []string{"help"},
@@ -66,25 +133,29 @@ func (a *App) showHelp() {
 		return event
 	})
 
-	a.UpdateFooter("[Help]", KeyDescriptions["help"])
-	a.pages.AddPage("help", CenterPrimitive(content, 1, 2), true, true)
-	a.tview.SetFocus(content)
-}
+	// Calculate dimensions
+	// Border takes 2 chars width, internal padding takes 4 (2 left + 2 right)
+	width := maxWidth + 6
+	// Border takes 2 lines, internal padding takes 2 (1 top + 1 bottom)
+	height := lineCount + 4
 
-// addHelpSection adds a section of key descriptions to the help table.
-func addHelpSection(table *tview.Table, row int, title string, keys []string) int {
-	table.SetCell(row, 0, tview.NewTableCell(DefaultTheme.SecondaryTag("b")+title).SetAlign(tview.AlignLeft).SetExpansion(1))
-	row++
-
-	for _, key := range keys {
-		parts := strings.Split(key, ": ")
-		if len(parts) == 2 {
-			table.SetCell(row, 0, tview.NewTableCell("  "+DefaultTheme.PrimaryTag("b")+parts[0]).SetAlign(tview.AlignLeft))
-			table.SetCell(row, 1, tview.NewTableCell(parts[1]).SetAlign(tview.AlignRight).SetExpansion(1))
-		} else {
-			table.SetCell(row, 0, tview.NewTableCell("  "+key).SetAlign(tview.AlignLeft).SetExpansion(1))
-		}
-		row++
+	// Cap at maximums
+	if width > 70 {
+		width = 70
 	}
-	return row
+	if height > 25 {
+		height = 25
+	}
+
+	// Ensure minimums
+	if width < 55 {
+		width = 55
+	}
+	if height < 12 {
+		height = 12
+	}
+
+	a.UpdateFooter("[Help]", "help")
+	a.pages.AddPage("help", CenterPrimitiveFixed(container, width, height), true, true)
+	a.tview.SetFocus(container)
 }

@@ -27,7 +27,7 @@ func (a *App) showPopulateForm() {
 		return
 	}
 
-	a.UpdateFooter("[Populate Environment]", KeyDescriptions["populate-form"])
+	a.UpdateFooter("[Populate Environment]", "populate-form")
 
 	// Initial state with one empty path
 	state := &populateState{

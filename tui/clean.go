@@ -15,7 +15,7 @@ func (a *App) showCleanConfirm() {
 
 	message := "This will permanently delete all data in environment '" + envName + "'.\n\n" + DefaultTheme.DestructiveTag("b") + "This action cannot be undone." + "[-]"
 
-	a.UpdateFooter("[Clean Environment]", KeyDescriptions["clean-confirm"])
+	a.UpdateFooter("[Clean Environment]", "clean-confirm")
 
 	a.ShowConfirmation(ConfirmationOptions{
 		PageName:           "clean-confirm",

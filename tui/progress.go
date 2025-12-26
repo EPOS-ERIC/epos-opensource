@@ -118,7 +118,7 @@ func (op *OperationProgress) getProgressStatus() string {
 // Start begins the progress display and ticker.
 func (op *OperationProgress) Start() {
 	footerTitle := fmt.Sprintf("[%s Progress]", op.operation)
-	op.app.UpdateFooter(footerTitle, []string{op.getProgressStatus()})
+	op.app.UpdateFooterCustom(footerTitle, []string{op.getProgressStatus()})
 
 	op.app.outputWriter.ClearBuffer()
 	op.app.outputWriter.SetView(op.app.tview, op.logsView)
@@ -181,7 +181,7 @@ func (op *OperationProgress) Complete(success bool, errorMsg string) {
 		op.layout.SetBordersColor(borderColor)
 
 		footerTitle := fmt.Sprintf("[%s Progress]", op.operation)
-		op.app.UpdateFooter(footerTitle, []string{op.getProgressStatus()})
+		op.app.UpdateFooterCustom(footerTitle, []string{op.getProgressStatus()})
 	})
 
 	op.showCompletionOverlay()
@@ -216,7 +216,7 @@ func (op *OperationProgress) showCompletionOverlay() {
 			op.app.pages.HidePage("completion-overlay")
 			op.app.tview.SetFocus(op.layout)
 			footerTitle := fmt.Sprintf("[%s Progress]", op.operation)
-			op.app.UpdateFooter(footerTitle, []string{"Esc: back", "c: copy logs"})
+			op.app.UpdateFooterCustom(footerTitle, []string{"Esc: back", "c: copy logs"})
 		}
 	}
 
@@ -246,7 +246,7 @@ func (op *OperationProgress) showCompletionOverlay() {
 				op.app.pages.HidePage("completion-overlay")
 				op.app.tview.SetFocus(op.layout)
 				footerTitle := fmt.Sprintf("[%s Progress]", op.operation)
-				op.app.UpdateFooter(footerTitle, []string{"Esc: back", "c: copy logs"})
+				op.app.UpdateFooterCustom(footerTitle, []string{"Esc: back", "c: copy logs"})
 				return nil
 			}
 			return event
@@ -282,7 +282,7 @@ func (op *OperationProgress) showCompletionOverlay() {
 			op.app.pages.HidePage("completion-overlay")
 			op.app.tview.SetFocus(op.layout)
 			footerTitle := fmt.Sprintf("[%s Progress]", op.operation)
-			op.app.UpdateFooter(footerTitle, []string{"Esc: back", "c: copy logs"})
+			op.app.UpdateFooterCustom(footerTitle, []string{"Esc: back", "c: copy logs"})
 			return nil
 		}
 		return event

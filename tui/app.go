@@ -32,6 +32,7 @@ type App struct {
 
 	currentFooterSection string
 	currentFooterKeys    []string
+	currentContext       string
 	footerMutex          sync.Mutex
 
 	outputWriter *OutputWriter
@@ -89,12 +90,22 @@ func (a *App) init() {
 	a.tview = tview.NewApplication()
 	a.tview.EnableMouse(true)
 	a.tview.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		// Don't handle global keys when focused on input components
+		if current := a.tview.GetFocus(); current != nil {
+			switch current.(type) {
+			case *tview.InputField, *tview.DropDown, *tview.Form:
+				return event
+			}
+		}
+
 		switch event.Rune() {
 		case 'q':
 			a.Quit()
 			return nil
 		case '?':
-			a.showHelp()
+			if a.pages.GetPageCount() == 1 && a.currentContext != "help" {
+				a.showHelp()
+			}
 			return nil
 		}
 		return event
@@ -144,13 +155,35 @@ func (a *App) startRefreshTicker() {
 }
 
 // UpdateFooter updates the footer section text and shortcut keys.
-func (a *App) UpdateFooter(section string, keys []string) {
+func (a *App) UpdateFooter(section string, contextKey string) {
+	keys := getFooterHints(contextKey)
 	a.footerMutex.Lock()
 	a.currentFooterSection = section
 	a.currentFooterKeys = keys
+	a.setContext(contextKey)
 	a.footerMutex.Unlock()
 
 	a.drawFooter(section, keys)
+}
+
+// UpdateFooterCustom updates the footer with custom keys (not from context).
+func (a *App) UpdateFooterCustom(section string, keys []string) {
+	a.footerMutex.Lock()
+	a.currentFooterSection = section
+	a.currentFooterKeys = keys
+	a.currentContext = ""
+	a.footerMutex.Unlock()
+
+	a.drawFooter(section, keys)
+}
+
+// setContext sets the current context with validation.
+func (a *App) setContext(contextKey string) {
+	if _, ok := KeyHints[contextKey]; !ok {
+		log.Printf("warning: invalid context key '%s', defaulting to 'general'", contextKey)
+		contextKey = "general"
+	}
+	a.currentContext = contextKey
 }
 
 // drawFooter actually renders the footer components.
@@ -253,13 +286,14 @@ func (a *App) ResetToHome(opts ResetOptions) {
 		a.envList.FocusActiveList()
 	} else if opts.RestoreFocus && len(a.focusStack) > 0 {
 		a.PopFocus()
+		if a.detailsPanel.IsShown() {
+			key := "details-" + a.detailsPanel.GetCurrentDetailsType()
+			a.UpdateFooter("[Environment Details]", key)
+		}
 	} else if a.detailsPanel.IsShown() {
 		// If details are shown and we didn't force env or restore prev, focus details
-		key := DetailsK8sKey
-		if a.envList.IsDockerActive() {
-			key = DetailsDockerKey
-		}
-		a.UpdateFooter("[Environment Details]", KeyDescriptions[key])
+		key := "details-" + a.detailsPanel.GetCurrentDetailsType()
+		a.UpdateFooter("[Environment Details]", key)
 		a.tview.SetFocus(a.detailsPanel.GetFlex())
 	} else {
 		// Default fallback
@@ -400,6 +434,17 @@ func CenterPrimitive(p tview.Primitive, width, height int) tview.Primitive {
 			AddItem(nil, 0, 1, false).
 			AddItem(p, 0, max(1, height), true).
 			AddItem(nil, 0, 1, false), 0, max(1, width), true).
+		AddItem(nil, 0, 1, false)
+}
+
+// CenterPrimitiveFixed wraps a primitive in a flex layout that centers it with fixed dimensions.
+func CenterPrimitiveFixed(p tview.Primitive, width, height int) tview.Primitive {
+	return tview.NewFlex().
+		AddItem(nil, 0, 1, false).
+		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+			AddItem(nil, 0, 1, false).
+			AddItem(p, height, 0, true).                // height=fixed, proportion=0
+			AddItem(nil, 0, 1, false), width, 0, true). // width=fixed, proportion=0
 		AddItem(nil, 0, 1, false)
 }
 

@@ -41,6 +41,7 @@ type DetailsPanel struct {
 	currentDetailsName string
 	currentDetailsType string
 	currentDetailsRows []DetailRow
+	currentDirectory   string
 	detailsShown       bool
 }
 
@@ -115,30 +116,6 @@ func (dp *DetailsPanel) buildUI() {
 	dp.detailsList.SetTitle(" [::b]Ingested Files ")
 	dp.detailsList.SetTitleColor(DefaultTheme.Secondary)
 	dp.detailsList.SetBorderPadding(1, 0, 1, 1)
-	dp.detailsList.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		currentItem := dp.detailsList.GetCurrentItem()
-		itemCount := dp.detailsList.GetItemCount()
-
-		switch event.Key() {
-		case tcell.KeyDown:
-			if currentItem >= itemCount-1 {
-				return nil // Block wrap to top
-			}
-		case tcell.KeyUp:
-			if currentItem <= 0 {
-				// Jump back to buttons
-				if len(dp.detailsButtons) > 0 {
-					dp.app.tview.SetFocus(dp.detailsButtons[len(dp.detailsButtons)-1])
-				} else if len(dp.nameDirButtons) > 0 {
-					dp.app.tview.SetFocus(dp.nameDirButtons[len(dp.nameDirButtons)-1])
-				} else {
-					dp.app.tview.SetFocus(dp.deleteButton)
-				}
-				return nil
-			}
-		}
-		return event
-	})
 
 	dp.detailsListEmpty = NewStyledTextView()
 	dp.detailsListEmpty.SetBorder(true)
@@ -193,6 +170,12 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 			}
 			nameDirGridCount = len(nameDirRows)
 			dp.createGridRows(dp.nameDirGrid, nameDirRows, &dp.nameDirButtons, "Basic Information")
+			for _, row := range nameDirRows {
+				if row.Label == "Directory" {
+					dp.currentDirectory = row.Value
+					break
+				}
+			}
 
 			rows := []DetailRow{
 				{Label: "GUI", Value: d.GuiUrl, IncludeOpen: true},
@@ -219,6 +202,12 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 			}
 			nameDirGridCount = len(nameDirRows)
 			dp.createGridRows(dp.nameDirGrid, nameDirRows, &dp.nameDirButtons, "Basic Information")
+			for _, row := range nameDirRows {
+				if row.Label == "Directory" {
+					dp.currentDirectory = row.Value
+					break
+				}
+			}
 
 			rows := []DetailRow{
 				{Label: "GUI", Value: k.GuiUrl, IncludeOpen: true},
@@ -256,7 +245,7 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 	dp.RefreshFiles()
 	if focus {
 		dp.app.tview.SetFocus(dp.details)
-		dp.app.UpdateFooter("[Environment Details]", KeyDescriptions["details-"+envType])
+		dp.app.UpdateFooter("[Environment Details]", "details-"+envType)
 	}
 }
 
@@ -271,6 +260,7 @@ func (dp *DetailsPanel) Clear() {
 		dp.nameDirButtons = nil
 		dp.currentDetailsName = ""
 		dp.currentDetailsType = ""
+		dp.currentDirectory = ""
 	}
 }
 
@@ -464,141 +454,71 @@ func (dp *DetailsPanel) SetupInput() {
 				dp.openValue(dp.currentDetailsRows[2].Value)
 				return nil
 			}
+		case event.Rune() == 'G':
+			if dp.detailsShown && len(dp.currentDetailsRows) > 0 {
+				go func() {
+					if err := common.CopyToClipboard(dp.currentDetailsRows[0].Value); err != nil {
+						dp.app.tview.QueueUpdateDraw(func() {
+							dp.app.ShowError("Failed to copy to clipboard")
+						})
+					} else {
+						dp.app.FlashMessage("Copied to clipboard", 2*time.Second)
+					}
+				}()
+				return nil
+			}
+		case event.Rune() == 'B':
+			if dp.detailsShown && len(dp.currentDetailsRows) > 1 {
+				go func() {
+					if err := common.CopyToClipboard(dp.currentDetailsRows[1].Value); err != nil {
+						dp.app.tview.QueueUpdateDraw(func() {
+							dp.app.ShowError("Failed to copy to clipboard")
+						})
+					} else {
+						dp.app.FlashMessage("Copied to clipboard", 2*time.Second)
+					}
+				}()
+				return nil
+			}
+		case event.Rune() == 'A':
+			if dp.detailsShown && len(dp.currentDetailsRows) > 2 {
+				go func() {
+					if err := common.CopyToClipboard(dp.currentDetailsRows[2].Value); err != nil {
+						dp.app.tview.QueueUpdateDraw(func() {
+							dp.app.ShowError("Failed to copy to clipboard")
+						})
+					} else {
+						dp.app.FlashMessage("Copied to clipboard", 2*time.Second)
+					}
+				}()
+				return nil
+			}
+		case event.Rune() == 'e':
+			if dp.detailsShown && dp.currentDirectory != "" {
+				dp.openValue(dp.currentDirectory)
+				return nil
+			}
+		case event.Rune() == 'E':
+			if dp.detailsShown && dp.currentDirectory != "" {
+				go func() {
+					if err := common.CopyToClipboard(dp.currentDirectory); err != nil {
+						dp.app.tview.QueueUpdateDraw(func() {
+							dp.app.ShowError("Failed to copy to clipboard")
+						})
+					} else {
+						dp.app.FlashMessage("Copied to clipboard", 2*time.Second)
+					}
+				}()
+				return nil
+			}
 		}
 		return event
 	}
 	dp.details.SetInputCapture(handler)
-
-	// Apply directional captures to buttons
-	dp.setupDirectionalNavigation()
-}
-
-// setupDirectionalNavigation adds input captures to buttons for arrow key support.
-func (dp *DetailsPanel) setupDirectionalNavigation() {
-	handler := func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyRight:
-			dp.handleDirectionalFocus(true, true)
-			return nil
-		case tcell.KeyLeft:
-			dp.handleDirectionalFocus(true, false)
-			return nil
-		case tcell.KeyDown:
-			dp.handleDirectionalFocus(false, true)
-			return nil
-		case tcell.KeyUp:
-			dp.handleDirectionalFocus(false, false)
-			return nil
-		}
-		return event
-	}
-
-	dp.populateButton.SetInputCapture(handler)
-	dp.updateButton.SetInputCapture(handler)
-	dp.cleanButton.SetInputCapture(handler)
-	dp.deleteButton.SetInputCapture(handler)
-}
-
-// handleDirectionalFocus manages focus changes based on arrow keys.
-func (dp *DetailsPanel) handleDirectionalFocus(horizontal bool, forward bool) {
-	focus := dp.app.tview.GetFocus()
-
-	topButtons := []*tview.Button{dp.populateButton, dp.updateButton, dp.cleanButton, dp.deleteButton}
-	for i, btn := range topButtons {
-		if focus == btn {
-			if horizontal {
-				if forward {
-					dp.app.tview.SetFocus(topButtons[(i+1)%len(topButtons)])
-				} else {
-					dp.app.tview.SetFocus(topButtons[(i-1+len(topButtons))%len(topButtons)])
-				}
-			} else if forward {
-				// Down from top buttons: go to first grid button
-				if len(dp.nameDirButtons) > 0 {
-					dp.app.tview.SetFocus(dp.nameDirButtons[0])
-				} else if len(dp.detailsButtons) > 0 {
-					dp.app.tview.SetFocus(dp.detailsButtons[0])
-				} else {
-					dp.focusDetailsList()
-				}
-			}
-			return
-		}
-	}
-
-	// Grid Buttons (NameDir and Details)
-	allGridButtons := append(append([]*tview.Button{}, dp.nameDirButtons...), dp.detailsButtons...)
-	for i, btn := range allGridButtons {
-		if focus == btn {
-			if horizontal {
-				if forward {
-					if i+1 < len(allGridButtons) {
-						dp.app.tview.SetFocus(allGridButtons[i+1])
-					}
-				} else if i > 0 {
-					dp.app.tview.SetFocus(allGridButtons[i-1])
-				}
-			} else if forward {
-				// Vertical Down
-				if i+2 < len(allGridButtons) {
-					dp.app.tview.SetFocus(allGridButtons[i+2])
-				} else {
-					dp.focusDetailsList()
-				}
-			} else {
-				// Vertical Up
-				if i-2 >= 0 {
-					dp.app.tview.SetFocus(allGridButtons[i-2])
-				} else {
-					dp.app.tview.SetFocus(dp.populateButton)
-				}
-			}
-			return
-		}
-	}
-
-	// File List
-	if focus == dp.detailsList || focus == dp.detailsListEmpty {
-		if !forward && !horizontal {
-			// Up from list
-			if len(dp.detailsButtons) > 0 {
-				dp.app.tview.SetFocus(dp.detailsButtons[len(dp.detailsButtons)-1])
-			} else if len(dp.nameDirButtons) > 0 {
-				dp.app.tview.SetFocus(dp.nameDirButtons[len(dp.nameDirButtons)-1])
-			} else {
-				dp.app.tview.SetFocus(dp.deleteButton)
-			}
-		}
-	}
-}
-
-// focusDetailsList sets focus to either the file list or the empty message.
-func (dp *DetailsPanel) focusDetailsList() {
-	if dp.detailsList.GetItemCount() > 0 {
-		dp.app.tview.SetFocus(dp.detailsList)
-	} else {
-		dp.app.tview.SetFocus(dp.detailsListEmpty)
-	}
 }
 
 // setupFocusHandlers configures visual feedback when components gain/lose focus.
 func (dp *DetailsPanel) setupFocusHandlers() {
-	dp.details.SetFocusFunc(func() {
-		updateBoxStyle(dp.details, true)
-		key := "details-k8s"
-		if dp.app.envList.IsDockerActive() {
-			key = "details-docker"
-		}
-		dp.app.UpdateFooter("[Environment Details]", KeyDescriptions[key])
-	})
-	dp.details.SetBlurFunc(func() {
-		if dp.detailsShown {
-			updateBoxStyle(dp.details, true)
-		} else {
-			updateBoxStyle(dp.details, false)
-		}
-	})
-
 	dp.detailsList.SetFocusFunc(func() {
 		updateListStyle(dp.detailsList, true)
 	})
@@ -607,124 +527,9 @@ func (dp *DetailsPanel) setupFocusHandlers() {
 	})
 }
 
-// createGridRows creates the grid rows for details or name/dir.
-func (dp *DetailsPanel) createGridRows(grid *tview.Grid, rows []DetailRow, buttons *[]*tview.Button, header string) {
-	grid.Clear()
-	*buttons = nil
-
-	numColumns := 3
-	for _, row := range rows {
-		if row.IncludeOpen {
-			numColumns = 4
-			break
-		}
-	}
-
-	// Set up rows: one row per detail item, plus header if present
-	totalRows := len(rows)
-	if header != "" {
-		totalRows++
-	}
-	rowHeights := make([]int, totalRows)
-	for i := range rowHeights {
-		rowHeights[i] = 1
-	}
-	grid.SetRows(rowHeights...)
-
-	if numColumns == 4 {
-		grid.SetColumns(15, 0, 8, 8)
-	} else {
-		grid.SetColumns(15, 0, 8)
-	}
-
-	rowIndex := 0
-	if header != "" {
-		// Create header text view
-		headerTV := tview.NewTextView().
-			SetDynamicColors(true).
-			SetText("["+DefaultTheme.Hex(DefaultTheme.OnSurface)+":"+DefaultTheme.Hex(DefaultTheme.HeaderBackground)+":b]"+header).SetSize(1, len(header))
-		headerTV.SetBorderPadding(0, 0, 2, 0).SetBackgroundColor(DefaultTheme.HeaderBackground)
-
-		grid.AddItem(headerTV, 0, 0, 1, numColumns, 0, 0, false)
-		rowIndex = 1
-	}
-
-	for i, row := range rows {
-		// Create label with no extra padding
-		labelTV := tview.NewTextView().
-			SetText("[::b]" + row.Label).
-			SetTextColor(DefaultTheme.Primary).
-			SetDynamicColors(true)
-		labelTV.SetBorderPadding(0, 0, 1, 1)
-
-		// Create value with no extra padding
-		valueTV := tview.NewTextView().
-			SetText(row.Value).
-			SetTextColor(DefaultTheme.OnSurface)
-		valueTV.SetBorderPadding(0, 0, 1, 1)
-
-		// Create buttons
-		copyBtn := NewStyledButton("Copy", func() {
-			go func() {
-				if err := common.CopyToClipboard(row.Value); err != nil {
-					dp.app.tview.QueueUpdateDraw(func() {
-						dp.app.ShowError("Failed to copy to clipboard")
-					})
-				} else {
-					dp.app.FlashMessage("Copied to clipboard", 2*time.Second)
-				}
-			}()
-		})
-
-		grid.AddItem(labelTV, rowIndex+i, 0, 1, 1, 0, 0, false)
-		grid.AddItem(valueTV, rowIndex+i, 1, 1, 1, 0, 0, false)
-		grid.AddItem(copyBtn, rowIndex+i, 2, 1, 1, 0, 0, false)
-
-		*buttons = append(*buttons, copyBtn)
-
-		openBtn := tview.NewButton("Open")
-		if row.IncludeOpen {
-			ApplyButtonStyle(openBtn)
-			openBtn.SetSelectedFunc(func() {
-				dp.openValue(row.Value)
-			})
-			*buttons = append(*buttons, openBtn)
-		} else {
-			openBtn.SetStyle(tcell.StyleDefault.Background(DefaultTheme.Surface).Foreground(DefaultTheme.OnSurface))
-		}
-		grid.AddItem(openBtn, rowIndex+i, 3, 1, 1, 0, 0, false)
-	}
-
-	// Apply captures to newly created buttons
-	for _, btn := range *buttons {
-		btn.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-			switch event.Key() {
-			case tcell.KeyRight:
-				dp.handleDirectionalFocus(true, true)
-				return nil
-			case tcell.KeyLeft:
-				dp.handleDirectionalFocus(true, false)
-				return nil
-			case tcell.KeyDown:
-				dp.handleDirectionalFocus(false, true)
-				return nil
-			case tcell.KeyUp:
-				dp.handleDirectionalFocus(false, false)
-				return nil
-			}
-			return event
-		})
-	}
-
-	// grid.SetBackgroundColor(DefaultTheme.OnSurface)
-	grid.SetBordersColor(DefaultTheme.Secondary)
-}
-
 // createDetailsRows creates the grid rows for details.
 func (dp *DetailsPanel) createDetailsRows(rows []DetailRow) {
 	dp.createGridRows(dp.detailsGrid, rows, &dp.detailsButtons, "Environment URLs")
-	// Re-apply captures since buttons were recreated
-	dp.setupDirectionalNavigation()
 }
 
 // openValue opens the given value (URL, directory, or file) using the appropriate command.
@@ -747,5 +552,136 @@ func (dp *DetailsPanel) openValue(value string) {
 		})
 	} else {
 		dp.app.ShowError("Failed to open")
+	}
+}
+
+// createGridRows creates the grid rows for details or name/dir
+// createGridRows creates the grid rows for details or name/dir
+// createGridRows creates the grid rows for details or name/dir
+func (dp *DetailsPanel) createGridRows(grid *tview.Grid, rows []DetailRow, buttons *[]*tview.Button, header string) {
+	grid.Clear()
+	*buttons = nil
+
+	numColumns := 3
+	hasOpenButtons := false
+	for _, row := range rows {
+		if row.IncludeOpen {
+			numColumns = 4
+			hasOpenButtons = true
+			break
+		}
+	}
+
+	// Calculate total rows: header + separator + (data rows + spacing rows)
+	totalRows := 0
+	if header != "" {
+		totalRows += 2 // Header + separator
+	}
+	totalRows += len(rows)
+	if len(rows) > 0 {
+		totalRows += len(rows) - 1 // Add spacing rows between data rows (not after last)
+	}
+
+	rowHeights := make([]int, totalRows)
+	for i := range rowHeights {
+		rowHeights[i] = 1
+	}
+	grid.SetRows(rowHeights...)
+
+	if hasOpenButtons {
+		grid.SetColumns(15, 0, 10, 10)
+	} else {
+		grid.SetColumns(15, 0, 10)
+	}
+
+	// Remove grid borders for cleaner look
+	grid.SetBorders(false)
+
+	rowIndex := 0
+	if header != "" {
+		// Header
+		headerTV := tview.NewTextView().
+			SetDynamicColors(true).
+			SetText(DefaultTheme.SecondaryTag("b") + header)
+		headerTV.SetBorderPadding(0, 0, 1, 1)
+
+		grid.AddItem(headerTV, rowIndex, 0, 1, numColumns, 0, 0, false)
+		rowIndex++
+
+		// Separator - use Box that fills available width
+		separatorBox := tview.NewBox().
+			SetDrawFunc(func(screen tcell.Screen, x, y, width, height int) (int, int, int, int) {
+				// Draw separator line across full width
+				style := tcell.StyleDefault.Foreground(DefaultTheme.Muted)
+				for i := range width {
+					screen.SetContent(x+i, y, '─', nil, style)
+				}
+				return x, y, width, height
+			})
+
+		grid.AddItem(separatorBox, rowIndex, 0, 1, numColumns, 0, 0, false)
+		rowIndex++
+	}
+
+	for i, row := range rows {
+		labelTV := tview.NewTextView().
+			SetDynamicColors(true).
+			SetText(DefaultTheme.PrimaryTag("b") + row.Label)
+		labelTV.SetBorderPadding(0, 0, 1, 1)
+
+		valueTV := tview.NewTextView().
+			SetText(row.Value).
+			SetTextColor(DefaultTheme.OnSurface)
+		valueTV.SetBorderPadding(0, 0, 1, 1)
+
+		// Add spacing around buttons
+		copyBtn := NewStyledButton("Copy", func() {
+			go func() {
+				if err := common.CopyToClipboard(row.Value); err != nil {
+					dp.app.tview.QueueUpdateDraw(func() {
+						dp.app.ShowError("Failed to copy to clipboard")
+					})
+				} else {
+					dp.app.FlashMessage("Copied to clipboard", 2*time.Second)
+				}
+			}()
+		})
+
+		// Wrap button in a box with padding to create spacing
+		copyBtnBox := tview.NewFlex().SetDirection(tview.FlexColumn)
+		copyBtnBox.AddItem(tview.NewBox(), 1, 0, false) // Left padding
+		copyBtnBox.AddItem(copyBtn, 0, 1, false)
+		copyBtnBox.AddItem(tview.NewBox(), 1, 0, false) // Right padding
+
+		grid.AddItem(labelTV, rowIndex, 0, 1, 1, 0, 0, false)
+		grid.AddItem(valueTV, rowIndex, 1, 1, 1, 0, 0, false)
+		grid.AddItem(copyBtnBox, rowIndex, 2, 1, 1, 0, 0, false)
+
+		*buttons = append(*buttons, copyBtn)
+
+		if row.IncludeOpen {
+			openBtn := NewStyledButton("Open", func() {
+				dp.openValue(row.Value)
+			})
+
+			// Wrap button in a box with padding
+			openBtnBox := tview.NewFlex().SetDirection(tview.FlexColumn)
+			openBtnBox.AddItem(tview.NewBox(), 1, 0, false) // Left padding
+			openBtnBox.AddItem(openBtn, 0, 1, false)
+			openBtnBox.AddItem(tview.NewBox(), 1, 0, false) // Right padding
+
+			grid.AddItem(openBtnBox, rowIndex, 3, 1, 1, 0, 0, false)
+			*buttons = append(*buttons, openBtn)
+		}
+
+		rowIndex++
+
+		// Add spacing row between items (but not after the last item)
+		if i < len(rows)-1 {
+			// Add empty box for spacing
+			spacingBox := tview.NewBox()
+			grid.AddItem(spacingBox, rowIndex, 0, 1, numColumns, 0, 0, false)
+			rowIndex++
+		}
 	}
 }

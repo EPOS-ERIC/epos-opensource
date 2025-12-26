@@ -19,7 +19,7 @@ func (a *App) showDeleteConfirm() {
 	}
 	message += DefaultTheme.DestructiveTag("b") + "This action cannot be undone." + "[-]"
 
-	a.UpdateFooter("[Delete Environment]", KeyDescriptions["delete-confirm"])
+	a.UpdateFooter("[Delete Environment]", "delete-confirm")
 
 	a.ShowConfirmation(ConfirmationOptions{
 		PageName:     "delete-confirm",

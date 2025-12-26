@@ -55,31 +55,188 @@ const (
 	DetailsK8sKey    = "details-k8s"
 )
 
-// KeyDescriptions maps screen names to their available keyboard shortcuts.
-// Used by updateFooter() to show context-sensitive help.
-var KeyDescriptions = map[string][]string{
-	"docker":            {"tab: switch", "↑↓: nav", "n: new", "d: del", "c: clean", "u: update", "p: populate", "enter: details", "?: help", "q: quit"},
-	"k8s":               {"tab: switch", "↑↓: nav", "n: new", "d: del", "u: update", "p: populate", "enter: details", "?: help", "q: quit"},
-	"details-docker":    {"esc: back", "tab: cycle", "d: del", "c: clean", "u: update", "p: populate", "g: open gui", "b: open backoffice", "a: open api", "?: help"},
-	"details-k8s":       {"esc: back", "tab: cycle", "d: del", "u: update", "p: populate", "g: open gui", "b: open backoffice", "a: open api", "?: help"},
-	"delete-confirm":    {"←→: switch", "enter: confirm", "esc: cancel"},
-	"deleting":          {"please wait..."},
-	"delete-complete":   {"esc/enter: back"},
-	"clean-confirm":     {"←→: switch", "enter: confirm", "esc: cancel"},
-	"cleaning":          {"please wait..."},
-	"clean-complete":    {"esc/enter: back"},
-	"update-form":       {"tab: next", "S-tab: prev", "enter: submit", "esc: cancel"},
-	"updating":          {"please wait..."},
-	"update-complete":   {"esc/enter: back"},
-	"populate-confirm":  {"←→: switch", "enter: confirm", "esc: cancel"},
-	"populating":        {"please wait..."},
-	"populate-complete": {"esc/enter: back"},
-	"populate-form":     {"tab: next", "S-tab: prev", "enter: submit", "esc: cancel"},
-	"file-picker":       {"↑↓←→: nav", "/: search", "space: mark", "n/N: next/prev match", "enter: submit", "esc: cancel"},
-	"deploy-form":       {"tab: next", "S-tab: prev", "enter: submit", "esc: cancel"},
-	"deploying":         {"esc: back (won't stop deployment)"},
-	"deploy-complete":   {"esc/enter: back"},
-	"help":              {"↑↓: nav", "esc/q: close"},
+// KeyHint represents a keyboard shortcut hint.
+type KeyHint struct {
+	Text         string
+	LongText     string
+	ShowInFooter bool
+	Group        string
+}
+
+// KeyHints maps screen names to their available keyboard shortcuts.
+// Used by updateFooter() and help screen.
+var KeyHints = map[string][]KeyHint{
+	"docker": {
+		{"tab: switch", "tab: switch between docker and k8s environments", true, "Navigation"},
+		{"↑↓: nav", "↑↓: navigate through docker environments", true, "Navigation"},
+		{"n: new", "n: create a new docker environment", true, "Environment"},
+		{"d: del", "d: delete the selected docker environment", true, "Environment"},
+		{"c: clean", "c: clean the selected docker environment", true, "Environment"},
+		{"u: update", "u: update the selected docker environment", true, "Environment"},
+		{"p: populate", "p: populate the selected docker environment", true, "Environment"},
+		{"enter: details", "enter: view details of the selected docker environment", true, "Navigation"},
+		{"?: help", "?: show help for current context", true, "Generic"},
+		{"q: quit", "q: quit the application", true, "Generic"},
+	},
+	"k8s": {
+		{"tab: switch", "tab: switch between docker and k8s environments", true, "Navigation"},
+		{"↑↓: nav", "↑↓: navigate through k8s environments", true, "Navigation"},
+		{"n: new", "n: create a new k8s environment", true, "Environment"},
+		{"d: del", "d: delete the selected k8s environment", true, "Environment"},
+		{"c: clean", "c: clean the selected k8s environment", true, "Environment"},
+		{"u: update", "u: update the selected k8s environment", true, "Environment"},
+		{"p: populate", "p: populate the selected k8s environment", true, "Environment"},
+		{"enter: details", "enter: view details of the selected k8s environment", true, "Navigation"},
+		{"?: help", "?: show help for current context", true, "Generic"},
+		{"q: quit", "q: quit the application", true, "Generic"},
+	},
+	"details-docker": {
+		{"esc: back", "esc: go back to docker environments list", true, "Navigation"},
+		{"tab: cycle", "tab: cycle through available actions", true, "Navigation"},
+		{"d: del", "d: delete this docker environment", true, "Environment"},
+		{"c: clean", "c: clean this docker environment", true, "Environment"},
+		{"u: update", "u: update this docker environment", true, "Environment"},
+		{"p: populate", "p: populate this docker environment", true, "Environment"},
+		{"g: gui", "g: open gui in browser", true, "Browser"},
+		{"G: copy gui", "G: copy gui url to clipboard", false, "Browser"},
+		{"b: backoffice", "b: open backoffice in browser", true, "Browser"},
+		{"B: copy backoffice", "B: copy backoffice url to clipboard", false, "Browser"},
+		{"a: api", "a: open api docs in browser", true, "Browser"},
+		{"A: copy api", "A: copy api url to clipboard", false, "Browser"},
+		{"e: directory", "e: open directory in browser", true, "Browser"},
+		{"E: copy directory", "E: copy directory url to clipboard", false, "Browser"},
+		{"?: help", "?: show help for current context", true, "Generic"},
+		{"q: quit", "q: quit the application", false, "Generic"},
+	},
+	"details-k8s": {
+		{"esc: back", "esc: go back to k8s environments list", true, "Navigation"},
+		{"tab: cycle", "tab: cycle through available actions", true, "Navigation"},
+		{"d: del", "d: delete this k8s environment", true, "Environment"},
+		{"c: clean", "c: clean this k8s environment", true, "Environment"},
+		{"u: update", "u: update this k8s environment", true, "Environment"},
+		{"p: populate", "p: populate this k8s environment", true, "Environment"},
+		{"g: gui", "g: open gui in browser", true, "Browser"},
+		{"G: copy gui", "G: copy gui url to clipboard", false, "Browser"},
+		{"b: backoffice", "b: open backoffice in browser", true, "Browser"},
+		{"B: copy backoffice", "B: copy backoffice url to clipboard", false, "Browser"},
+		{"a: api", "a: open api docs in browser", true, "Browser"},
+		{"A: copy api", "A: copy api url to clipboard", false, "Browser"},
+		{"e: directory", "e: open directory in browser", true, "Browser"},
+		{"E: copy directory", "E: copy directory url to clipboard", false, "Browser"},
+		{"?: help", "?: show help for current context", true, "Generic"},
+		{"q: quit", "q: quit the application", false, "Generic"},
+	},
+	"delete-confirm": {
+		{"←→: switch", "", true, "Generic"},
+		{"enter: confirm", "", true, "Generic"},
+		{"esc: cancel", "", true, "Generic"},
+	},
+	"deleting": {
+		{"please wait...", "", true, "Generic"},
+	},
+	"delete-complete": {
+		{"esc/enter: back", "", true, "Generic"},
+	},
+	"clean-confirm": {
+		{"←→: switch", "", true, "Generic"},
+		{"enter: confirm", "", true, "Generic"},
+		{"esc: cancel", "", true, "Generic"},
+	},
+	"cleaning": {
+		{"please wait...", "", true, "Generic"},
+	},
+	"clean-complete": {
+		{"esc/enter: back", "", true, "Generic"},
+	},
+	"update-form": {
+		{"tab: next", "", true, "Generic"},
+		{"S-tab: prev", "", true, "Generic"},
+		{"enter: submit", "", true, "Generic"},
+		{"esc: cancel", "", true, "Generic"},
+	},
+	"updating": {
+		{"please wait...", "", true, "Generic"},
+	},
+	"update-complete": {
+		{"esc/enter: back", "", true, "Generic"},
+	},
+	"populate-confirm": {
+		{"←→: switch", "", true, "Generic"},
+		{"enter: confirm", "", true, "Generic"},
+		{"esc: cancel", "", true, "Generic"},
+	},
+	"populating": {
+		{"please wait...", "", true, "Generic"},
+	},
+	"populate-complete": {
+		{"esc/enter: back", "", true, "Generic"},
+	},
+	"populate-form": {
+		{"tab: next", "", true, "Generic"},
+		{"S-tab: prev", "", true, "Generic"},
+		{"enter: submit", "", true, "Generic"},
+		{"esc: cancel", "", true, "Generic"},
+	},
+	"file-picker": {
+		{"↑↓←→: nav", "↑↓←→: navigate through files and directories", true, "Generic"},
+		{"/: search", "/: enter search mode for files", true, "Generic"},
+		{"space: mark", "space: mark/unmark files for selection", true, "Generic"},
+		{"n/N: next/prev match", "n/N: jump to next/previous search match", true, "Generic"},
+		{"enter: submit", "enter: submit selected files", true, "Generic"},
+		{"esc: cancel", "esc: cancel file selection", true, "Generic"},
+	},
+	"deploy-form": {
+		{"tab: next", "", true, "Generic"},
+		{"S-tab: prev", "", true, "Generic"},
+		{"enter: submit", "", true, "Generic"},
+		{"esc: cancel", "", true, "Generic"},
+	},
+	"deploying": {
+		{"esc: back (won't stop deployment)", "", true, "Generic"},
+	},
+	"deploy-complete": {
+		{"esc/enter: back", "", true, "Generic"},
+	},
+	"help": {
+		{"↑↓: nav", "↑↓: navigate through help content", true, "Generic"},
+		{"esc: close", "esc: close the help screen", true, "Generic"},
+	},
+}
+
+// getFooterHints returns key hints for the footer, filtered by ShowInFooter.
+func getFooterHints(key string) []string {
+	hints, ok := KeyHints[key]
+	if !ok {
+		return nil
+	}
+	var result []string
+	for _, h := range hints {
+		if h.ShowInFooter {
+			result = append(result, h.Text)
+		}
+	}
+	return result
+}
+
+// getHelpHints returns grouped key hints for the help screen.
+func getHelpHints(key string) map[string][]string {
+	hints, ok := KeyHints[key]
+	if !ok {
+		return nil
+	}
+	result := make(map[string][]string)
+	for _, h := range hints {
+		group := h.Group
+		if group == "" {
+			group = "Generic"
+		}
+		text := h.Text
+		if h.LongText != "" {
+			text = h.LongText
+		}
+		result[group] = append(result[group], text)
+	}
+	return result
 }
 
 // InitStyles sets up global tview styles and borders.
