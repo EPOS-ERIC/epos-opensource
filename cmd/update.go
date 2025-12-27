@@ -9,9 +9,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/Masterminds/semver/v3"
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/Masterminds/semver/v3"
 	"github.com/minio/selfupdate"
 	"github.com/spf13/cobra"
 )
