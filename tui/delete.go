@@ -1,8 +1,8 @@
 package tui
 
 import (
-	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
-	"github.com/epos-eu/epos-opensource/cmd/k8s/k8score"
+	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore"
+	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score"
 )
 
 // showDeleteConfirm displays a confirmation dialog for deleting a Docker or K8s environment.

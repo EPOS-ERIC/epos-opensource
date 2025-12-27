@@ -4,7 +4,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/epos-eu/epos-opensource/command"
+	"github.com/EPOS-ERIC/epos-opensource/command"
 )
 
 // GetCurrentKubeContext retrieves the current kubectl context.

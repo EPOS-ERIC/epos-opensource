@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/epos-eu/epos-opensource/config"
+	"github.com/EPOS-ERIC/epos-opensource/config"
 	"github.com/spf13/cobra"
 )
 

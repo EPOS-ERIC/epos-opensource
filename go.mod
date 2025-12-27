@@ -1,4 +1,4 @@
-module github.com/epos-eu/epos-opensource
+module github.com/EPOS-ERIC/epos-opensource
 
 go 1.25.4
 

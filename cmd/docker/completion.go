@@ -1,8 +1,8 @@
 package docker
 
 import (
-	"github.com/epos-eu/epos-opensource/common"
-	"github.com/epos-eu/epos-opensource/db"
+	"github.com/EPOS-ERIC/epos-opensource/common"
+	"github.com/EPOS-ERIC/epos-opensource/db"
 	"github.com/spf13/cobra"
 )
 

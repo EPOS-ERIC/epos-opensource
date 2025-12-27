@@ -3,8 +3,8 @@ package docker
 import (
 	"os"
 
-	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
-	"github.com/epos-eu/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore"
+	"github.com/EPOS-ERIC/epos-opensource/display"
 
 	"github.com/spf13/cobra"
 )

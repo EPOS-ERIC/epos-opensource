@@ -10,10 +10,10 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"golang.org/x/term"
 
-	"github.com/epos-eu/epos-opensource/common"
-	"github.com/epos-eu/epos-opensource/db"
-	"github.com/epos-eu/epos-opensource/display"
-	"github.com/epos-eu/epos-opensource/tui"
+	"github.com/EPOS-ERIC/epos-opensource/common"
+	"github.com/EPOS-ERIC/epos-opensource/db"
+	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/tui"
 	"github.com/google/go-github/v72/github"
 	"github.com/spf13/cobra"
 )
@@ -55,6 +55,14 @@ groups to deploy, populate, update, or delete an environment.`,
 		latestVer, err := semver.NewVersion(tag)
 		if err != nil {
 			log.Printf("Failed to parse latest version '%s': %v", tag, err)
+			return
+		}
+
+		// If current version has pre-release and same base as latest it's a dev build of the current release
+		if currentVer.Prerelease() != "" &&
+			currentVer.Major() == latestVer.Major() &&
+			currentVer.Minor() == latestVer.Minor() &&
+			currentVer.Patch() == latestVer.Patch() {
 			return
 		}
 

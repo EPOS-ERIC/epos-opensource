@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/epos-eu/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/display"
 	"golang.org/x/sync/errgroup"
 )
 

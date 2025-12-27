@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/epos-eu/epos-opensource/command"
-	"github.com/epos-eu/epos-opensource/common"
-	"github.com/epos-eu/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/command"
+	"github.com/EPOS-ERIC/epos-opensource/common"
+	"github.com/EPOS-ERIC/epos-opensource/display"
 
 	"github.com/joho/godotenv"
 	"golang.org/x/sync/errgroup"

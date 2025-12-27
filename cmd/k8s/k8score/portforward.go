@@ -11,8 +11,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/epos-eu/epos-opensource/command"
-	"github.com/epos-eu/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/command"
+	"github.com/EPOS-ERIC/epos-opensource/display"
 )
 
 // ForwardAndRun spins up kubectl port-forward, runs fn, then cleans up.

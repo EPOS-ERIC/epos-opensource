@@ -8,7 +8,7 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/epos-eu/epos-opensource/db"
+	"github.com/EPOS-ERIC/epos-opensource/db"
 )
 
 var (

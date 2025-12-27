@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/epos-eu/epos-opensource/cmd"
-	"github.com/epos-eu/epos-opensource/config"
+	"github.com/EPOS-ERIC/epos-opensource/cmd"
+	"github.com/EPOS-ERIC/epos-opensource/config"
 )
 
 func init() {

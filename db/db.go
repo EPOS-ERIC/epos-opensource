@@ -12,8 +12,8 @@ import (
 	"path"
 	"strings"
 
-	"github.com/epos-eu/epos-opensource/config"
-	"github.com/epos-eu/epos-opensource/db/sqlc"
+	"github.com/EPOS-ERIC/epos-opensource/config"
+	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
 	"github.com/pressly/goose/v3"
 	_ "modernc.org/sqlite"
 )

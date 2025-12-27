@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/epos-eu/epos-opensource/cmd/k8s"
+	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s"
 
 	"github.com/spf13/cobra"
 )

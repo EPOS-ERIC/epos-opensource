@@ -8,8 +8,8 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/epos-eu/epos-opensource/config"
-	"github.com/epos-eu/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/config"
+	"github.com/EPOS-ERIC/epos-opensource/display"
 )
 
 func init() {

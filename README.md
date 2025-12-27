@@ -177,7 +177,7 @@ epos-opensource k8s deploy --help
 - **Problems with `.ttl` files:** Make sure the directory exists and contains valid `.ttl` files and that their path are valid (no spaces, weird symbols, ...).
 - **Environment not found/Does not exists:** Make sure to be running the commands as the same user, the cli uses an user level sqlite database to store the environment information.
 
-If you get stuck, run with `--help` for more info, or feel free to [open an issue](https://github.com/epos-eu/epos-opensource/issues).
+If you get stuck, run with `--help` for more info, or feel free to [open an issue](https://github.com/EPOS-ERIC/epos-opensource/issues).
 
 ---
 
@@ -232,7 +232,7 @@ Our `Makefile` provides common commands for development like:
 
 We welcome all contributions, including bug reports, feature ideas, documentation, or code changes.
 
-If you have questions or are unsure how to get started, feel free to [open an issue](https://github.com/epos-eu/epos-opensource/issues). We are happy to assist!
+If you have questions or are unsure how to get started, feel free to [open an issue](https://github.com/EPOS-ERIC/epos-opensource/issues). We are happy to assist!
 
 ## Contributing
 

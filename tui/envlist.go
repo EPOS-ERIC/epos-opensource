@@ -1,7 +1,7 @@
 package tui
 
 import (
-	"github.com/epos-eu/epos-opensource/db"
+	"github.com/EPOS-ERIC/epos-opensource/db"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
