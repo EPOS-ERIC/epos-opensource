@@ -76,7 +76,7 @@ func EnvironmentNotExistK8s(name string) error {
 	return fmt.Errorf("an environment with name '%s' already exists", name)
 }
 
-// EnvironmentExistsK8s checks that Kubernetes environment exists
+// EnvironmentExistsK8s checks that K8s environment exists
 func EnvironmentExistsK8s(name string) error {
 	if err := EnvironmentNotExistK8s(name); err != nil {
 		return nil

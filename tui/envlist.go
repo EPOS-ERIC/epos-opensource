@@ -144,7 +144,7 @@ func (el *EnvList) Refresh() {
 		}
 		el.k8sFlexInner.AddItem(el.buttonFlexK8s, 1, 0, true)
 	} else {
-		el.app.ShowError("Failed to load Kubernetes environments")
+		el.app.ShowError("Failed to load K8s environments")
 	}
 }
 
