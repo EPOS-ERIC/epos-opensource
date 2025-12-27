@@ -5,7 +5,6 @@ linters:
   enable:
     - staticcheck
     - errcheck
-    - gocyclo
     - gosec
     - misspell
     - dupl

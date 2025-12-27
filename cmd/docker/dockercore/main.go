@@ -8,8 +8,8 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/epos-eu/epos-opensource/common"
-	"github.com/epos-eu/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/common"
+	"github.com/EPOS-ERIC/epos-opensource/display"
 
 	"github.com/joho/godotenv"
 )

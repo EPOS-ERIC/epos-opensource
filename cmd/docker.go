@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/epos-eu/epos-opensource/cmd/docker"
+	"github.com/EPOS-ERIC/epos-opensource/cmd/docker"
 
 	"github.com/spf13/cobra"
 )

@@ -10,6 +10,7 @@ package display
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/url"
 	"os"
@@ -17,6 +18,11 @@ import (
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
+)
+
+var (
+	Stdout io.Writer = os.Stdout
+	Stderr io.Writer = os.Stderr
 )
 
 // ImageUpdateInfo holds information about an image update.
@@ -61,13 +67,13 @@ const (
 // printStdout formats and prints a message with color, icon and label to standard out
 func printStdout(color, label, format string, a ...any) {
 	message := fmt.Sprintf(format, a...)
-	fmt.Printf("%s[%s]  %s%s\n", color, label, reset, message)
+	_, _ = fmt.Fprintf(Stdout, "%s[%s]  %s%s\n", color, label, reset, message)
 }
 
 func Error(format string, a ...any) {
 	message := fmt.Sprintf(format, a...)
 	log.Printf(format, a...)
-	fmt.Fprintf(os.Stderr, "%s[%s]  %s%s\n", red, "ERROR", message, reset)
+	_, _ = fmt.Fprintf(Stderr, "%s[%s]  %s%s\n", red, "ERROR", message, reset)
 }
 
 func Warn(format string, a ...any) {
@@ -139,7 +145,7 @@ func Urls(portalURL, gatewayURL, backofficeURL, title string) {
 		return nil
 	})
 
-	fmt.Println(t.Render())
+	_, _ = fmt.Fprintf(Stdout, "%s\n", t.Render())
 }
 
 // UpdateAvailable prints a notification when a newer version of the CLI is available
@@ -165,7 +171,7 @@ func UpdateAvailable(currentVersion, latestVersion string) {
 	t.AppendSeparator()
 	t.AppendRow(table.Row{"Update Command", "Run 'epos-opensource update' to upgrade"})
 
-	fmt.Println(t.Render())
+	_, _ = fmt.Fprintf(Stdout, "%s\n", t.Render())
 }
 
 // UpdateStarting prints a table indicating the start of an update with version details
@@ -189,7 +195,7 @@ func UpdateStarting(oldVersion, newVersion string) {
 	t.AppendSeparator()
 	t.AppendRow(table.Row{"Release Notes", fmt.Sprintf("https://github.com/EPOS-ERIC/epos-opensource/releases/tag/%s", newVersion)})
 
-	fmt.Println(t.Render())
+	_, _ = fmt.Fprintf(Stdout, "%s\n", t.Render())
 }
 
 // ImageUpdatesAvailable prints a notification when Docker images have updates available
@@ -241,5 +247,5 @@ func ImageUpdatesAvailable(updates []ImageUpdateInfo, envName string) {
 		return nil
 	})
 
-	fmt.Println(t.Render())
+	_, _ = fmt.Fprintf(Stdout, "%s\n", t.Render())
 }

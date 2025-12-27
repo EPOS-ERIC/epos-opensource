@@ -1,12 +1,14 @@
 # EPOS Open Source CLI
 
-A command-line tool for deploying the EPOS Platform locally using Docker Compose or Kubernetes.
+A command-line tool for deploying the EPOS Platform locally using Docker Compose or K8s.
 
-![Image](https://github.com/user-attachments/assets/adb46bfd-b5b1-47d8-9c56-4aa7cfb24479)
+![Image](https://epos-eric.github.io/opensource-docs/assets/images/docker_deploy_urls-2450973de00d8b8da4bc1e0ae57eae47.png)
 
 ---
 
 ## 🚀 Quick Start
+
+Run the CLI without arguments to launch the interactive TUI, or use subcommands for CLI operations.
 
 **Install the CLI (Linux/macOS/WSL):**
 
@@ -19,6 +21,22 @@ curl -fsSL https://raw.githubusercontent.com/EPOS-ERIC/epos-opensource/main/inst
 ```bash
 epos-opensource --version
 ```
+
+---
+
+## Terminal User Interface (TUI)
+
+For an interactive experience, just run
+
+```
+epos-opensource
+```
+
+to launch the TUI. This provides a menu-driven interface for managing environments, equivalent to CLI commands but with intuitive navigation and visuals.
+
+![TUI Screenshot](https://github.com/user-attachments/assets/0aac599a-03bf-4f72-987b-8d14f014b5e8)
+
+---
 
 **Deploy a local environment with Docker Compose:**
 
@@ -36,27 +54,12 @@ epos-opensource docker populate myenv /path/to/ttl/files
 
 ## What is EPOS Open Source CLI?
 
-A command-line tool to easily deploy and manage EPOS Platform environments on your computer or in the cloud, using either Docker Compose or Kubernetes.
-
----
-
-## What is an "Environment"?
-
-An "environment" is a named, isolated instance of the EPOS Platform, with its own configuration and data. You can have multiple environments for testing, development, etc.
-
----
-
-## What is a "TTL file"?
-
-A TTL file is a metadata file in [Turtle format](https://www.w3.org/TR/turtle/), used to describe datasets for EPOS. You can find or create these files to load your own data and visualize it in the GUI.
-
----
+A command-line tool to easily deploy and manage EPOS Platform environments on your computer or in the cloud, using either Docker Compose or K8s.
 
 ## Usage Requirements
 
 - **Docker** and **Docker Compose** (for Docker-based setups)
-- **kubectl** and access to a Kubernetes cluster (for Kubernetes-based setups)
-- **Internet connection** (for downloading images and updates)
+- **kubectl** and access to a K8s cluster (for K8s-based setups)
 
 ---
 
@@ -65,7 +68,7 @@ A TTL file is a metadata file in [Turtle format](https://www.w3.org/TR/turtle/),
 ### Easiest: Installation Script
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/epos-eu/epos-opensource/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/EPOS-ERIC/epos-opensource/main/install.sh | bash
 ```
 
 _This script works on Linux, macOS, and WSL. It will update the CLI if already installed._
@@ -76,14 +79,14 @@ _This script works on Linux, macOS, and WSL. It will update the CLI if already i
 ### Using Go
 
 ```shell
-go install github.com/epos-eu/epos-opensource@latest
+go install github.com/EPOS-ERIC/epos-opensource@latest
 ```
 
 _Make sure `$GOPATH/bin` or `$HOME/go/bin` is in your `$PATH`._
 
 ### Pre-built Binaries
 
-1. Download the appropriate archive from the [releases](https://github.com/epos-eu/epos-opensource/releases).
+1. Download the appropriate archive from the [releases](https://github.com/EPOS-ERIC/epos-opensource/releases).
 2. Make the binary executable and move it to your `$PATH`:
 
    ```shell
@@ -99,7 +102,7 @@ _Make sure `$GOPATH/bin` or `$HOME/go/bin` is in your `$PATH`._
 
 ### Build from source
 
-Build using `make` with Go 1.24.4 or later:
+Build using `make` with Go 1.25.4 or later:
 
 ```shell
 make build
@@ -109,19 +112,19 @@ make build
 
 ## Commands
 
-The CLI is organized into two main commands: `docker` and `kubernetes`. Each has its own set of subcommands for managing environments.
+The CLI is organized into two main commands: `docker` and `k8s`. Each has its own set of subcommands for managing environments. These commands work in both CLI and TUI modes.
 
 ### Docker Commands
 
-| Command | Description |
-| :--- | :--- |
-| `deploy` | Create a new environment using Docker Compose. |
+| Command    | Description                                                     |
+| :--------- | :-------------------------------------------------------------- |
+| `deploy`   | Create a new environment using Docker Compose.                  |
 | `populate` | Ingest TTL files from directories or files into an environment. |
-| `clean` | Clean the data of an environment. |
-| `delete` | Stop and remove Docker Compose environments. |
-| `export` | Export the default environment files to a directory. |
-| `list` | List installed Docker environments. |
-| `update` | Recreate an environment with new settings. |
+| `clean`    | Clean the data of an environment.                               |
+| `delete`   | Stop and remove Docker Compose environments.                    |
+| `export`   | Export the default environment files to a directory.            |
+| `list`     | List installed Docker environments.                             |
+| `update`   | Recreate an environment with new settings.                      |
 
 **Example:**
 
@@ -133,25 +136,26 @@ epos-opensource docker deploy my-test
 epos-opensource docker populate my-test /path/to/my/data
 ```
 
-### Kubernetes Commands
+### K8s Commands
 
-| Command | Description |
-| :--- | :--- |
-| `deploy` | Create and deploy a new Kubernetes environment in a dedicated namespace. |
-| `populate` | Ingest TTL files from directories or files into an environment. |
-| `delete` | Removes Kubernetes environmentas and all their namespaces. |
-| `export` | Export default environment files and manifests. |
-| `list` | List installed Kubernetes environments. |
-| `update` | Update and redeploy an existing Kubernetes environment. |
+| Command    | Description                                                       |
+| :--------- | :---------------------------------------------------------------- |
+| `deploy`   | Create and deploy a new K8s environment in a dedicated namespace. |
+| `populate` | Ingest TTL files from directories or files into an environment.   |
+| `clean`    | Clean the data of an environment.                                 |
+| `delete`   | Removes K8s environmentas and all their namespaces.               |
+| `export`   | Export default environment files and manifests.                   |
+| `list`     | List installed K8s environments.                                  |
+| `update`   | Update and redeploy an existing K8s environment.                  |
 
 **Example:**
 
 ```shell
-# Deploy a new Kubernetes environment named "my-cluster"
-epos-opensource kubernetes deploy my-cluster
+# Deploy a new K8s environment named "my-cluster"
+epos-opensource k8s deploy my-cluster
 
 # Populate it with data
-epos-opensource kubernetes populate my-cluster /path/to/my/data
+epos-opensource k8s populate my-cluster /path/to/my/data
 ```
 
 ### Getting Help
@@ -161,20 +165,19 @@ For more details on any command, use the `--help` flag:
 ```shell
 epos-opensource --help
 epos-opensource docker --help
-epos-opensource kubernetes deploy --help
+epos-opensource k8s deploy --help
 ```
-
 
 ---
 
 ## Troubleshooting & Tips
 
-- **Docker/Kubernetes not found:** Make sure Docker and/or kubectl are installed and running.
+- **Docker/K8s not found:** Make sure Docker and/or kubectl are installed and running.
 - **Environment/Directory already exists:** Use a new name, or delete the old environment first.
 - **Problems with `.ttl` files:** Make sure the directory exists and contains valid `.ttl` files and that their path are valid (no spaces, weird symbols, ...).
 - **Environment not found/Does not exists:** Make sure to be running the commands as the same user, the cli uses an user level sqlite database to store the environment information.
 
-If you get stuck, run with `--help` for more info, or feel free to [open an issue](https://github.com/epos-eu/epos-opensource/issues).
+If you get stuck, run with `--help` for more info, or feel free to [open an issue](https://github.com/EPOS-ERIC/epos-opensource/issues).
 
 ---
 
@@ -184,14 +187,14 @@ Follow these steps to set up your local development environment and enable the s
 
 ### Prerequisites
 
-- **Go 1.24.4+**
-- **Make** (GNU Make)
+- **Go 1.25.4+**
+- **Make**
 - **golangci‑lint**
 
 ### Clone & Enter the Repo
 
 ```bash
-git clone https://github.com/epos-eu/epos-opensource.git
+git clone https://github.com/EPOS-ERIC/epos-opensource.git
 cd epos-opensource
 ```
 
@@ -229,7 +232,7 @@ Our `Makefile` provides common commands for development like:
 
 We welcome all contributions, including bug reports, feature ideas, documentation, or code changes.
 
-If you have questions or are unsure how to get started, feel free to [open an issue](https://github.com/epos-eu/epos-opensource/issues). We are happy to assist!
+If you have questions or are unsure how to get started, feel free to [open an issue](https://github.com/EPOS-ERIC/epos-opensource/issues). We are happy to assist!
 
 ## Contributing
 
@@ -252,4 +255,3 @@ After submitting:
 - Update your branch until it is approved and merged.
 
 Thank you for your contribution!
-

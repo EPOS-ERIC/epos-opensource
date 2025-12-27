@@ -4,17 +4,19 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
-	"github.com/epos-eu/epos-opensource/common"
-	"github.com/epos-eu/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore"
+	"github.com/EPOS-ERIC/epos-opensource/common"
+	"github.com/EPOS-ERIC/epos-opensource/display"
 
 	"github.com/spf13/cobra"
 )
 
 var CleanCmd = &cobra.Command{
-	Use:               "clean [env-name]",
-	Short:             "Clean the data of an environment.",
-	Long:              "Clean the data of an environment without redeploying. After clean all custom data populated in the environment will be lost. This action is not reversible.",
+	Use:   "clean [env-name]",
+	Short: "Clean the data of an environment.",
+	Long: `Clean the data of an environment without redeploying. 
+After clean all custom data populated in the environment will be lost. 
+This action is irreversible.`,
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: validArgsFunction,
 	Run: func(cmd *cobra.Command, args []string) {

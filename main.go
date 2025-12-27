@@ -5,12 +5,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/epos-eu/epos-opensource/cmd"
-	"github.com/epos-eu/epos-opensource/configdir"
+	"github.com/EPOS-ERIC/epos-opensource/cmd"
+	"github.com/EPOS-ERIC/epos-opensource/config"
 )
 
 func init() {
-	logFile, err := os.OpenFile(filepath.Join(configdir.GetPath(), "log.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	logFile, err := os.OpenFile(filepath.Join(config.GetDataPath(), "log.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err != nil {
 		log.Fatalln("Failed to open log file:", err)
 	}

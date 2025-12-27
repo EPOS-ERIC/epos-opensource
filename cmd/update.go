@@ -9,9 +9,9 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/EPOS-ERIC/epos-opensource/common"
+	"github.com/EPOS-ERIC/epos-opensource/display"
 	"github.com/Masterminds/semver/v3"
-	"github.com/epos-eu/epos-opensource/common"
-	"github.com/epos-eu/epos-opensource/display"
 	"github.com/minio/selfupdate"
 	"github.com/spf13/cobra"
 )
@@ -58,6 +58,15 @@ var updateCmd = &cobra.Command{
 		latestVer, err := semver.NewVersion(tag)
 		if err != nil {
 			display.Error("Invalid latest version: %v", err)
+			return
+		}
+
+		// If current version has pre-release and same base as latest it's a dev build of the current release
+		if currentVer.Prerelease() != "" &&
+			currentVer.Major() == latestVer.Major() &&
+			currentVer.Minor() == latestVer.Minor() &&
+			currentVer.Patch() == latestVer.Patch() {
+			display.Info("You are already on the latest version (%s)", current)
 			return
 		}
 
