@@ -10,4 +10,5 @@ var (
 	parallel         int
 	populateExamples bool
 	deleteForce      bool
+	cleanForce       bool
 )

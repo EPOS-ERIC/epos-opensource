@@ -22,5 +22,6 @@ func init() {
 	k8sCmd.AddCommand(k8s.ExportCmd)
 	k8sCmd.AddCommand(k8s.UpdateCmd)
 	k8sCmd.AddCommand(k8s.ListCmd)
+	k8sCmd.AddCommand(k8s.CleanCmd)
 	rootCmd.AddCommand(k8sCmd)
 }

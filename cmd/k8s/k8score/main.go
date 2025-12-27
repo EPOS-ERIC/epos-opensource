@@ -511,3 +511,37 @@ func waitIngresses(kubeContext string, ingressNames []string, namespace string) 
 	display.Done("All ingresses are ready")
 	return nil
 }
+
+func waitForPVCBound(kubeContext, namespace, pvcName string) error {
+	const (
+		maxWait  = 1 * time.Minute
+		interval = 5 * time.Second
+	)
+
+	display.Step("Waiting for PVC %s to be bound", pvcName)
+
+	ctx, cancel := context.WithTimeout(context.Background(), maxWait)
+	defer cancel()
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("timeout waiting for PVC %s to be bound", pvcName)
+		case <-ticker.C:
+			args := []string{"get", "pvc", pvcName, "-n", namespace, "-o", "jsonpath={.status.phase}", "--context", kubeContext}
+			cmd := exec.Command("kubectl", args...)
+			out, err := command.RunCommand(cmd, true)
+			if err != nil {
+				continue // PVC might not exist yet, keep trying
+			}
+			phase := strings.TrimSpace(out)
+			if phase == "Bound" {
+				display.Done("PVC %s is bound", pvcName)
+				return nil
+			}
+		}
+	}
+}

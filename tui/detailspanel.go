@@ -2,7 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"log"
 	"net/url"
 	"os"
 	"strings"
@@ -150,17 +149,22 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 
 	switch envType {
 	case "docker":
-		if d, err := db.GetDockerByName(name); err == nil {
+		if d, err := db.GetDockerByName(name); err != nil {
+			dp.detailsGrid.Clear()
+			dp.detailsButtons = nil
+			dp.detailsGrid.SetRows(1)
+			dp.detailsGrid.SetColumns(1)
+			errorTV := tview.NewTextView().SetText(fmt.Sprintf("Error fetching details for %s: %v", name, err)).SetTextColor(DefaultTheme.Destructive)
+			dp.detailsGrid.AddItem(errorTV, 0, 0, 1, 1, 0, 0, false)
+		} else {
 			apiURL, err := url.JoinPath(d.ApiUrl, "ui")
 			if err != nil {
-				dp.app.ShowError("error joining docker api url")
-				log.Printf("error joining docker api url: %v", err)
+				dp.app.ShowError(fmt.Sprintf("Error joining Docker API URL: %v", err))
 				return
 			}
 			backofficeURL, err := url.JoinPath(d.BackofficeUrl, "home")
 			if err != nil {
-				dp.app.ShowError("error joining docker backoffice url")
-				log.Printf("error joining docker backoffice url: %v", err)
+				dp.app.ShowError(fmt.Sprintf("Error joining Docker backoffice URL: %v", err))
 				return
 			}
 			nameDirRows := []DetailRow{
@@ -184,16 +188,16 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 			detailsGridCount = len(rows)
 			dp.currentDetailsRows = rows
 			dp.createDetailsRows(rows)
-		} else {
+		}
+	case "k8s":
+		if k, err := db.GetK8sByName(name); err != nil {
 			dp.detailsGrid.Clear()
 			dp.detailsButtons = nil
 			dp.detailsGrid.SetRows(1)
 			dp.detailsGrid.SetColumns(1)
 			errorTV := tview.NewTextView().SetText(fmt.Sprintf("Error fetching details for %s: %v", name, err)).SetTextColor(DefaultTheme.Destructive)
 			dp.detailsGrid.AddItem(errorTV, 0, 0, 1, 1, 0, 0, false)
-		}
-	case "k8s":
-		if k, err := db.GetK8sByName(name); err == nil {
+		} else {
 			nameDirRows := []DetailRow{
 				{Label: "Name", Value: k.Name, IncludeOpen: false},
 				{Label: "Context", Value: k.Context, IncludeOpen: false},
@@ -216,13 +220,6 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 			detailsGridCount = len(rows)
 			dp.currentDetailsRows = rows
 			dp.createDetailsRows(rows)
-		} else {
-			dp.detailsGrid.Clear()
-			dp.detailsButtons = nil
-			dp.detailsGrid.SetRows(1)
-			dp.detailsGrid.SetColumns(1)
-			errorTV := tview.NewTextView().SetText(fmt.Sprintf("Error fetching details for %s: %v", name, err)).SetTextColor(DefaultTheme.Destructive)
-			dp.detailsGrid.AddItem(errorTV, 0, 0, 1, 1, 0, 0, false)
 		}
 	}
 
@@ -241,7 +238,6 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 
 	dp.RefreshFiles()
 
-	dp.RefreshFiles()
 	if focus {
 		dp.app.tview.SetFocus(dp.details)
 		dp.app.UpdateFooter(getDetailsKey(envType))
@@ -275,7 +271,10 @@ func (dp *DetailsPanel) populateIngestedFilesList() {
 	dp.detailsList.Clear()
 	dp.detailsListFlex.Clear()
 
-	if ingestedFiles, err := db.GetIngestedFilesByEnvironment(dp.currentDetailsType, dp.currentDetailsName); err == nil {
+	if ingestedFiles, err := db.GetIngestedFilesByEnvironment(dp.currentDetailsType, dp.currentDetailsName); err != nil {
+		dp.detailsListEmpty.SetText("\n" + DefaultTheme.DestructiveTag("i") + fmt.Sprintf("Error loading files: %v", err))
+		dp.detailsListFlex.AddItem(dp.detailsListEmpty, 0, 1, true)
+	} else {
 		count := len(ingestedFiles)
 		if count > 0 {
 			dp.detailsList.SetTitle(fmt.Sprintf(" [::b]Ingested Files (%d) ", count))
@@ -294,9 +293,6 @@ func (dp *DetailsPanel) populateIngestedFilesList() {
 		} else {
 			dp.detailsListFlex.AddItem(dp.detailsListEmpty, 0, 1, true)
 		}
-	} else {
-		dp.detailsListEmpty.SetText("\n" + DefaultTheme.DestructiveTag("i") + fmt.Sprintf("Error loading files: %v", err))
-		dp.detailsListFlex.AddItem(dp.detailsListEmpty, 0, 1, true)
 	}
 }
 
@@ -532,7 +528,7 @@ func (dp *DetailsPanel) openValue(value string) {
 	if cmd != "" {
 		dp.app.tview.Suspend(func() {
 			if err := common.OpenWithCommand(cmd, value); err != nil {
-				log.Printf("Failed to open: %v", err)
+				dp.app.ShowError(fmt.Sprintf("Failed to open: %v", err))
 			}
 		})
 	} else {
@@ -540,8 +536,6 @@ func (dp *DetailsPanel) openValue(value string) {
 	}
 }
 
-// createGridRows creates the grid rows for details or name/dir
-// createGridRows creates the grid rows for details or name/dir
 // createGridRows creates the grid rows for details or name/dir
 func (dp *DetailsPanel) createGridRows(grid *tview.Grid, rows []DetailRow, buttons *[]*tview.Button, header string) {
 	grid.Clear()
@@ -626,9 +620,9 @@ func (dp *DetailsPanel) createGridRows(grid *tview.Grid, rows []DetailRow, butto
 
 		// Wrap button in a box with padding to create spacing
 		copyBtnBox := tview.NewFlex().SetDirection(tview.FlexColumn)
-		copyBtnBox.AddItem(tview.NewBox(), 1, 0, false) // Left padding
+		copyBtnBox.AddItem(tview.NewBox(), 1, 0, false)
 		copyBtnBox.AddItem(copyBtn, 0, 1, false)
-		copyBtnBox.AddItem(tview.NewBox(), 1, 0, false) // Right padding
+		copyBtnBox.AddItem(tview.NewBox(), 1, 0, false)
 
 		grid.AddItem(labelTV, rowIndex, 0, 1, 1, 0, 0, false)
 		grid.AddItem(valueTV, rowIndex, 1, 1, 1, 0, 0, false)

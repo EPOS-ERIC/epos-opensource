@@ -122,6 +122,8 @@ func (el *EnvList) Refresh() {
 			}
 		}
 		el.dockerFlexInner.AddItem(el.buttonFlex, 1, 0, true)
+	} else {
+		el.app.ShowError("Failed to load Docker environments")
 	}
 
 	el.k8sFlexInner.Clear()
@@ -141,6 +143,8 @@ func (el *EnvList) Refresh() {
 			}
 		}
 		el.k8sFlexInner.AddItem(el.buttonFlexK8s, 1, 0, true)
+	} else {
+		el.app.ShowError("Failed to load Kubernetes environments")
 	}
 }
 

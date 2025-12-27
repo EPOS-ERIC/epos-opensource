@@ -4,14 +4,17 @@ import (
 	"fmt"
 
 	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
+	"github.com/epos-eu/epos-opensource/cmd/k8s/k8score"
 )
 
-// showCleanConfirm displays a confirmation dialog for cleaning a Docker environment.
+// showCleanConfirm displays a confirmation dialog for cleaning an environment.
 func (a *App) showCleanConfirm() {
 	envName, _ := a.envList.GetSelected()
 	if envName == "" {
 		return
 	}
+
+	isDocker := a.envList.IsDockerActive()
 
 	message := "This will permanently delete all data in environment '" + envName + "'.\n\n" + DefaultTheme.DestructiveTag("b") + "This action cannot be undone." + "[-]"
 
@@ -26,7 +29,7 @@ func (a *App) showCleanConfirm() {
 		ConfirmDestructive: true,
 		Secondary:          true,
 		OnConfirm: func() {
-			a.showCleanProgress(envName)
+			a.showCleanProgress(envName, isDocker)
 		},
 		OnCancel: func() {
 			a.ResetToHome(ResetOptions{
@@ -38,19 +41,29 @@ func (a *App) showCleanConfirm() {
 }
 
 // showCleanProgress displays the cleaning progress with live output.
-func (a *App) showCleanProgress(envName string) {
+func (a *App) showCleanProgress(envName string, isDocker bool) {
 	a.RunBackgroundTask(TaskOptions{
 		Operation: "Clean",
 		EnvName:   envName,
-		IsDocker:  true,
+		IsDocker:  isDocker,
 		Task: func() (string, error) {
-			docker, err := dockercore.Clean(dockercore.CleanOpts{
-				Name: envName,
-			})
-			if err != nil {
-				return "", err
+			if isDocker {
+				docker, err := dockercore.Clean(dockercore.CleanOpts{
+					Name: envName,
+				})
+				if err != nil {
+					return "", err
+				}
+				return fmt.Sprintf("Environment cleaned successfully! GUI: %s", docker.GuiUrl), nil
+			} else {
+				kube, err := k8score.Clean(k8score.CleanOpts{
+					Name: envName,
+				})
+				if err != nil {
+					return "", err
+				}
+				return fmt.Sprintf("Environment cleaned successfully! GUI: %s", kube.GuiUrl), nil
 			}
-			return fmt.Sprintf("Environment cleaned successfully! GUI: %s", docker.GuiUrl), nil
 		},
 	})
 }

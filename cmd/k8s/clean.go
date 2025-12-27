@@ -1,10 +1,10 @@
-package docker
+package k8s
 
 import (
 	"fmt"
 	"os"
 
-	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
+	"github.com/epos-eu/epos-opensource/cmd/k8s/k8score"
 	"github.com/epos-eu/epos-opensource/common"
 	"github.com/epos-eu/epos-opensource/display"
 
@@ -35,7 +35,7 @@ This action is irreversible.`,
 			}
 		}
 
-		docker, err := dockercore.Clean(dockercore.CleanOpts{
+		kube, err := k8score.Clean(k8score.CleanOpts{
 			Name: name,
 		})
 		if err != nil {
@@ -43,7 +43,7 @@ This action is irreversible.`,
 			os.Exit(1)
 		}
 
-		display.Urls(docker.GuiUrl, docker.ApiUrl, docker.BackofficeUrl, fmt.Sprintf("epos-opensource docker clean %s", name))
+		display.Urls(kube.GuiUrl, kube.ApiUrl, kube.BackofficeUrl, fmt.Sprintf("epos-opensource k8s clean %s", name))
 	},
 }
 

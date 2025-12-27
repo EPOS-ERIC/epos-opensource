@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -393,6 +394,11 @@ func (f *FilePicker) setupInput(layout *tview.Flex, searchField *tview.InputFiel
 func (f *FilePicker) addNodes(target *tview.TreeNode, path string) {
 	files, err := os.ReadDir(path)
 	if err != nil {
+		if path == f.root.GetReference().(string) {
+			f.app.ShowError(fmt.Sprintf("Failed to read directory: %v", err))
+		} else {
+			log.Printf("Failed to read subdirectory %s: %v", path, err)
+		}
 		return
 	}
 

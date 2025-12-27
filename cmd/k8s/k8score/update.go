@@ -149,6 +149,15 @@ func Update(opts UpdateOpts) (*sqlc.K8s, error) {
 			}
 			return nil, fmt.Errorf("error initializing the ontologies in the environment: %w", err)
 		}
+		if err := db.DeleteIngestedFilesByEnvironment("k8s", opts.Name); err != nil {
+			if restoreErr := restoreFromTmp(); restoreErr != nil {
+				display.Error("Restore failed: %v", restoreErr)
+			}
+			if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
+				display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
+			}
+			return nil, fmt.Errorf("failed to clear ingested files tracking: %w", err)
+		}
 	}
 
 	// If everything goes right, delete the tmp dir and finish

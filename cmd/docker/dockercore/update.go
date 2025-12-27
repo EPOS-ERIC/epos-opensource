@@ -154,6 +154,9 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 			display.Error("error initializing the ontologies in the environment: %v", err)
 			return handleFailure("error initializing the ontologies in the environment: %w", err)
 		}
+		if err := db.DeleteIngestedFilesByEnvironment("docker", opts.Name); err != nil {
+			return handleFailure("failed to clear ingested files tracking: %w", err)
+		}
 	}
 
 	// If everything goes right, delete the tmp dir and finish
