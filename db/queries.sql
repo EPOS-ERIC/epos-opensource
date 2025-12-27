@@ -92,17 +92,34 @@ SET
     fetched_at = excluded.fetched_at;
 
 -- name: InsertIngestedFile :exec
-INSERT INTO ingested_files (environment_type, environment_name, file_path, ingested_at)
-VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-ON CONFLICT (environment_type, environment_name, file_path)
-DO UPDATE SET ingested_at = CURRENT_TIMESTAMP;
+INSERT INTO
+    ingested_files (
+        environment_type,
+        environment_name,
+        file_path,
+        ingested_at
+    )
+VALUES
+    (?, ?, ?, CURRENT_TIMESTAMP) ON CONFLICT (environment_type, environment_name, file_path) DO
+UPDATE
+SET
+    ingested_at = CURRENT_TIMESTAMP;
 
 -- name: DeleteIngestedFilesByEnvironment :exec
-DELETE FROM ingested_files
-WHERE environment_type = ? AND environment_name = ?;
+DELETE FROM
+    ingested_files
+WHERE
+    environment_type = ?
+    AND environment_name = ?;
 
 -- name: GetIngestedFilesByEnvironment :many
-SELECT file_path, ingested_at
-FROM ingested_files
-WHERE environment_type = ? AND environment_name = ?
-ORDER BY ingested_at DESC;
+SELECT
+    file_path,
+    ingested_at
+FROM
+    ingested_files
+WHERE
+    environment_type = ?
+    AND environment_name = ?
+ORDER BY
+    ingested_at DESC;

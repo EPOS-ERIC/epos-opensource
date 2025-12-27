@@ -27,7 +27,7 @@ const dbName = "db.db"
 
 type gooseLogger struct{}
 
-func (g *gooseLogger) Printf(format string, v ...interface{}) {
+func (g *gooseLogger) Printf(format string, v ...any) {
 	msg := fmt.Sprintf(format, v...)
 	if strings.Contains(msg, "no migrations to run") {
 		return
@@ -35,7 +35,7 @@ func (g *gooseLogger) Printf(format string, v ...interface{}) {
 	log.Printf(format, v...)
 }
 
-func (g *gooseLogger) Fatalf(format string, v ...interface{}) {
+func (g *gooseLogger) Fatalf(format string, v ...any) {
 	log.Fatalf(format, v...)
 }
 
