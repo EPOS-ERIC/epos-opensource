@@ -311,7 +311,7 @@ func (a *App) handlePopulate(envName string, state *populateState, isDocker bool
 }
 
 // showPopulateProgress displays the populate progress with live output.
-func (a *App) showPopulateProgress(envName string, paths []string, examples bool, isDocker bool) {
+func (a *App) showPopulateProgress(envName string, paths []string, examples, isDocker bool) {
 	a.RunBackgroundTask(TaskOptions{
 		Operation: "Populate",
 		EnvName:   envName,
