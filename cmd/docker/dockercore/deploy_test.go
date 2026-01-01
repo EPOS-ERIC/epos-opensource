@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/epos-eu/epos-opensource/cmd/docker/dockercore"
-	"github.com/epos-eu/epos-opensource/db/sqlc"
+	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore"
+	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 )

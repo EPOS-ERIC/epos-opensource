@@ -22,15 +22,30 @@ func (q *Queries) DeleteDocker(ctx context.Context, name string) error {
 	return err
 }
 
-const deleteKubernetes = `-- name: DeleteKubernetes :exec
+const deleteIngestedFilesByEnvironment = `-- name: DeleteIngestedFilesByEnvironment :exec
+DELETE FROM ingested_files
+WHERE environment_type = ? AND environment_name = ?
+`
+
+type DeleteIngestedFilesByEnvironmentParams struct {
+	EnvironmentType string
+	EnvironmentName string
+}
+
+func (q *Queries) DeleteIngestedFilesByEnvironment(ctx context.Context, arg DeleteIngestedFilesByEnvironmentParams) error {
+	_, err := q.db.ExecContext(ctx, deleteIngestedFilesByEnvironment, arg.EnvironmentType, arg.EnvironmentName)
+	return err
+}
+
+const deleteK8s = `-- name: DeleteK8s :exec
 DELETE FROM
-    kubernetes
+    k8s
 WHERE
     name = ?
 `
 
-func (q *Queries) DeleteKubernetes(ctx context.Context, name string) error {
-	_, err := q.db.ExecContext(ctx, deleteKubernetes, name)
+func (q *Queries) DeleteK8s(ctx context.Context, name string) error {
+	_, err := q.db.ExecContext(ctx, deleteK8s, name)
 	return err
 }
 
@@ -74,23 +89,23 @@ func (q *Queries) GetAllDocker(ctx context.Context) ([]Docker, error) {
 	return items, nil
 }
 
-const getAllKubernetes = `-- name: GetAllKubernetes :many
+const getAllK8s = `-- name: GetAllK8s :many
 SELECT
     name, directory, context, api_url, gui_url, backoffice_url, protocol
 FROM
-    kubernetes
+    k8s
 `
 
-// Kubernetes queries
-func (q *Queries) GetAllKubernetes(ctx context.Context) ([]Kubernetes, error) {
-	rows, err := q.db.QueryContext(ctx, getAllKubernetes)
+// K8s queries
+func (q *Queries) GetAllK8s(ctx context.Context) ([]K8s, error) {
+	rows, err := q.db.QueryContext(ctx, getAllK8s)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Kubernetes
+	var items []K8s
 	for rows.Next() {
-		var i Kubernetes
+		var i K8s
 		if err := rows.Scan(
 			&i.Name,
 			&i.Directory,
@@ -138,18 +153,58 @@ func (q *Queries) GetDockerByName(ctx context.Context, name string) (Docker, err
 	return i, err
 }
 
-const getKubernetesByName = `-- name: GetKubernetesByName :one
+const getIngestedFilesByEnvironment = `-- name: GetIngestedFilesByEnvironment :many
+SELECT file_path, ingested_at
+FROM ingested_files
+WHERE environment_type = ? AND environment_name = ?
+ORDER BY ingested_at DESC
+`
+
+type GetIngestedFilesByEnvironmentParams struct {
+	EnvironmentType string
+	EnvironmentName string
+}
+
+type GetIngestedFilesByEnvironmentRow struct {
+	FilePath   string
+	IngestedAt *time.Time
+}
+
+func (q *Queries) GetIngestedFilesByEnvironment(ctx context.Context, arg GetIngestedFilesByEnvironmentParams) ([]GetIngestedFilesByEnvironmentRow, error) {
+	rows, err := q.db.QueryContext(ctx, getIngestedFilesByEnvironment, arg.EnvironmentType, arg.EnvironmentName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetIngestedFilesByEnvironmentRow
+	for rows.Next() {
+		var i GetIngestedFilesByEnvironmentRow
+		if err := rows.Scan(&i.FilePath, &i.IngestedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getK8sByName = `-- name: GetK8sByName :one
 SELECT
     name, directory, context, api_url, gui_url, backoffice_url, protocol
 FROM
-    kubernetes
+    k8s
 WHERE
     name = ?
 `
 
-func (q *Queries) GetKubernetesByName(ctx context.Context, name string) (Kubernetes, error) {
-	row := q.db.QueryRowContext(ctx, getKubernetesByName, name)
-	var i Kubernetes
+func (q *Queries) GetK8sByName(ctx context.Context, name string) (K8s, error) {
+	row := q.db.QueryRowContext(ctx, getK8sByName, name)
+	var i K8s
 	err := row.Scan(
 		&i.Name,
 		&i.Directory,
@@ -232,9 +287,27 @@ func (q *Queries) InsertDocker(ctx context.Context, arg InsertDockerParams) (Doc
 	return i, err
 }
 
-const insertKubernetes = `-- name: InsertKubernetes :one
+const insertIngestedFile = `-- name: InsertIngestedFile :exec
+INSERT INTO ingested_files (environment_type, environment_name, file_path, ingested_at)
+VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+ON CONFLICT (environment_type, environment_name, file_path)
+DO UPDATE SET ingested_at = CURRENT_TIMESTAMP
+`
+
+type InsertIngestedFileParams struct {
+	EnvironmentType string
+	EnvironmentName string
+	FilePath        string
+}
+
+func (q *Queries) InsertIngestedFile(ctx context.Context, arg InsertIngestedFileParams) error {
+	_, err := q.db.ExecContext(ctx, insertIngestedFile, arg.EnvironmentType, arg.EnvironmentName, arg.FilePath)
+	return err
+}
+
+const insertK8s = `-- name: InsertK8s :one
 INSERT INTO
-    kubernetes (
+    k8s (
         name,
         directory,
         context,
@@ -249,7 +322,7 @@ RETURNING
     name, directory, context, api_url, gui_url, backoffice_url, protocol
 `
 
-type InsertKubernetesParams struct {
+type InsertK8sParams struct {
 	Name          string
 	Directory     string
 	Context       string
@@ -259,8 +332,8 @@ type InsertKubernetesParams struct {
 	Protocol      string
 }
 
-func (q *Queries) InsertKubernetes(ctx context.Context, arg InsertKubernetesParams) (Kubernetes, error) {
-	row := q.db.QueryRowContext(ctx, insertKubernetes,
+func (q *Queries) InsertK8s(ctx context.Context, arg InsertK8sParams) (K8s, error) {
+	row := q.db.QueryRowContext(ctx, insertK8s,
 		arg.Name,
 		arg.Directory,
 		arg.Context,
@@ -269,7 +342,7 @@ func (q *Queries) InsertKubernetes(ctx context.Context, arg InsertKubernetesPara
 		arg.BackofficeUrl,
 		arg.Protocol,
 	)
-	var i Kubernetes
+	var i K8s
 	err := row.Scan(
 		&i.Name,
 		&i.Directory,

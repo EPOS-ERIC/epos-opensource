@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/epos-eu/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/display"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/joho/godotenv"

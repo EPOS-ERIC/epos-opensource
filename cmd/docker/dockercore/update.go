@@ -7,11 +7,11 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/epos-eu/epos-opensource/common"
-	"github.com/epos-eu/epos-opensource/db"
-	"github.com/epos-eu/epos-opensource/db/sqlc"
-	"github.com/epos-eu/epos-opensource/display"
-	"github.com/epos-eu/epos-opensource/validate"
+	"github.com/EPOS-ERIC/epos-opensource/common"
+	"github.com/EPOS-ERIC/epos-opensource/db"
+	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
+	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/validate"
 )
 
 type UpdateOpts struct {
@@ -153,6 +153,9 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 		if err := common.PopulateOntologies(docker.ApiUrl); err != nil {
 			display.Error("error initializing the ontologies in the environment: %v", err)
 			return handleFailure("error initializing the ontologies in the environment: %w", err)
+		}
+		if err := db.DeleteIngestedFilesByEnvironment("docker", opts.Name); err != nil {
+			return handleFailure("failed to clear ingested files tracking: %w", err)
 		}
 	}
 
