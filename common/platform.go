@@ -68,6 +68,7 @@ func CopyToClipboard(text string) error {
 	case darwinOS:
 		cmd = exec.Command("pbcopy")
 	case linuxOS:
+		// TODO: check what the user is using and use that binary
 		cmd = exec.Command("xclip", "-selection", "clipboard")
 	case windowsOS:
 		cmd = exec.Command("clip")

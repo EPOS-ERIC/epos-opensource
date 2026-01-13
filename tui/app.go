@@ -159,6 +159,7 @@ func (a *App) init() {
 
 	home := a.createHome()
 	a.pages.AddPage(homePageName, home, true, true)
+	a.pages.SetBackgroundColor(DefaultTheme.Background)
 	a.currentPage = homePageName
 
 	a.frame = tview.NewFrame(a.pages).SetBorders(0, 0, 0, 0, 0, 0)

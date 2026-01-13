@@ -41,12 +41,12 @@ var DefaultTheme = &Theme{
 	OnDestructive:    tcell.NewRGBColor(255, 255, 255),
 	Success:          tcell.NewRGBColor(90, 180, 105),
 	OnSuccess:        tcell.NewRGBColor(0, 0, 0),
-	Background:       tcell.ColorDefault,
-	OnBackground:     tcell.ColorDefault,
+	Background:       tcell.NewRGBColor(20, 20, 20),
+	OnBackground:     tcell.NewRGBColor(20, 20, 20),
 	Surface:          tcell.NewRGBColor(60, 72, 65),
 	OnSurface:        tcell.NewRGBColor(255, 255, 255),
 	Muted:            tcell.NewRGBColor(60, 72, 65),
-	OnMuted:          tcell.ColorDefault,
+	OnMuted:          tcell.NewRGBColor(20, 20, 20),
 	HeaderBackground: tcell.NewRGBColor(40, 48, 43),
 }
 
