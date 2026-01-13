@@ -68,8 +68,25 @@ func CopyToClipboard(text string) error {
 	case darwinOS:
 		cmd = exec.Command("pbcopy")
 	case linuxOS:
-		// TODO: check what the user is using and use that binary
-		cmd = exec.Command("xclip", "-selection", "clipboard")
+		// Try different common clipboard commands
+		clipboardCmds := []struct {
+			name string
+			args []string
+		}{
+			{"xclip", []string{"-selection", "clipboard"}},
+			{"wl-copy", []string{}},
+			{"xsel", []string{"-b"}},
+		}
+		for _, c := range clipboardCmds {
+			if _, err := exec.LookPath(c.name); err != nil {
+				continue
+			}
+			cmd = exec.Command(c.name, c.args...)
+			break
+		}
+		if cmd == nil {
+			return fmt.Errorf("no clipboard command available")
+		}
 	case windowsOS:
 		cmd = exec.Command("clip")
 	default:
