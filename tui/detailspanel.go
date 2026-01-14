@@ -73,11 +73,8 @@ func (dp *DetailsPanel) GetCurrentDetailsType() string {
 // buildUI constructs the component layout.
 func (dp *DetailsPanel) buildUI() {
 	dp.detailsGrid = tview.NewGrid()
-	dp.detailsGrid.SetBorders(true)
 
 	dp.nameDirGrid = tview.NewGrid()
-	dp.nameDirGrid.SetBorders(true)
-	dp.nameDirGrid.SetBordersColor(DefaultTheme.Secondary)
 	dp.nameDirGrid.SetBorderPadding(1, 0, 0, 0)
 
 	dp.nameDirButtons = []*tview.Button{}
@@ -573,12 +570,8 @@ func (dp *DetailsPanel) createGridRows(grid *tview.Grid, rows []DetailRow, butto
 		grid.SetColumns(15, 0, 10)
 	}
 
-	// Remove grid borders for cleaner look
-	grid.SetBorders(false)
-
 	rowIndex := 0
 	if header != "" {
-		// Header
 		headerTV := tview.NewTextView().
 			SetDynamicColors(true).
 			SetText(DefaultTheme.SecondaryTag("b") + header)
@@ -587,11 +580,11 @@ func (dp *DetailsPanel) createGridRows(grid *tview.Grid, rows []DetailRow, butto
 		grid.AddItem(headerTV, rowIndex, 0, 1, numColumns, 0, 0, false)
 		rowIndex++
 
-		// Separator - use Box that fills available width
+		// use Box that fills available width for the separator
 		separatorBox := tview.NewBox().
 			SetDrawFunc(func(screen tcell.Screen, x, y, width, height int) (int, int, int, int) {
 				// Draw separator line across full width
-				style := tcell.StyleDefault.Foreground(DefaultTheme.Muted)
+				style := tcell.StyleDefault.Foreground(DefaultTheme.Muted).Background(DefaultTheme.Background)
 				for i := range width {
 					screen.SetContent(x+i, y, '─', nil, style)
 				}
@@ -613,12 +606,12 @@ func (dp *DetailsPanel) createGridRows(grid *tview.Grid, rows []DetailRow, butto
 			SetTextColor(DefaultTheme.OnSurface)
 		valueTV.SetBorderPadding(0, 0, 1, 1)
 
-		// Add spacing around buttons
+		// add spacing around buttons
 		copyBtn := NewStyledButton("Copy", func() {
 			dp.app.copyToClipboardWithFeedback(row.Value, "Copied to clipboard", "Failed to copy to clipboard")
 		})
 
-		// Wrap button in a box with padding to create spacing
+		// wrap button in a box with padding
 		copyBtnBox := tview.NewFlex().SetDirection(tview.FlexColumn)
 		copyBtnBox.AddItem(tview.NewBox(), 1, 0, false)
 		copyBtnBox.AddItem(copyBtn, 0, 1, false)
@@ -635,11 +628,11 @@ func (dp *DetailsPanel) createGridRows(grid *tview.Grid, rows []DetailRow, butto
 				dp.openValue(row.Value)
 			})
 
-			// Wrap button in a box with padding
+			// wrap button in a box with padding
 			openBtnBox := tview.NewFlex().SetDirection(tview.FlexColumn)
-			openBtnBox.AddItem(tview.NewBox(), 1, 0, false) // Left padding
+			openBtnBox.AddItem(tview.NewBox(), 1, 0, false)
 			openBtnBox.AddItem(openBtn, 0, 1, false)
-			openBtnBox.AddItem(tview.NewBox(), 1, 0, false) // Right padding
+			openBtnBox.AddItem(tview.NewBox(), 1, 0, false)
 
 			grid.AddItem(openBtnBox, rowIndex, 3, 1, 1, 0, 0, false)
 			*buttons = append(*buttons, openBtn)
@@ -647,9 +640,8 @@ func (dp *DetailsPanel) createGridRows(grid *tview.Grid, rows []DetailRow, butto
 
 		rowIndex++
 
-		// Add spacing row between items (but not after the last item)
+		// add spacing row between items but not after the last item
 		if i < len(rows)-1 {
-			// Add empty box for spacing
 			spacingBox := tview.NewBox()
 			grid.AddItem(spacingBox, rowIndex, 0, 1, numColumns, 0, 0, false)
 			rowIndex++

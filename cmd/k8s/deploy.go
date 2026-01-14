@@ -33,6 +33,7 @@ NOTE: to execute the deploy it will try to use port-forwarding to the cluster. I
 			Context:     context,
 			Protocol:    protocol,
 			CustomHost:  host,
+			TLSEnabled:  tlsManifest,
 		})
 		if err != nil {
 			display.Error("%v", err)
@@ -50,4 +51,5 @@ func init() {
 	DeployCmd.Flags().StringVarP(&context, "context", "c", "", "kubectl context used for the environment deployment. Uses current if not set")
 	DeployCmd.Flags().BoolVarP(&secure, "secure", "s", false, "Use https as the protocol. If not set uses http by default")
 	DeployCmd.Flags().StringVar(&host, "host", "", "Host (either IP or hostname) to use for exposing the environment. If not set the nginx ingress controller IP is used by default")
+	DeployCmd.Flags().BoolVar(&tlsManifest, "tls", false, "Use TLS-enabled ingress manifests (ingresses-secure.yaml). False by default")
 }

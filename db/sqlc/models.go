@@ -34,6 +34,7 @@ type K8s struct {
 	GuiUrl        string
 	BackofficeUrl string
 	Protocol      string
+	TlsEnabled    bool
 }
 
 type LatestReleaseCache struct {

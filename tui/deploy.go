@@ -20,6 +20,7 @@ type deployFormData struct {
 	pullImages  bool   // Docker
 	context     string // K8s
 	protocol    string // K8s
+	tlsEnabled  bool   // K8s
 }
 
 // showDeployForm displays the deployment form for Docker or K8s.
@@ -120,6 +121,11 @@ func (a *App) showDeployForm() {
 				Options:      []string{"http", "https"},
 				SelectedFunc: func(option string, index int) { data.protocol = option },
 			},
+			FormField{
+				Type:                "checkbox",
+				Label:               "Use TLS Manifest",
+				CheckboxChangedFunc: func(checked bool) { data.tlsEnabled = checked },
+			},
 		)
 	}
 
@@ -135,7 +141,7 @@ func (a *App) showDeployForm() {
 
 	height := 16
 	if !isDocker {
-		height = 18
+		height = 20
 	}
 	opts := ModalFormOptions{
 		PageName: "deploy",
@@ -195,6 +201,7 @@ func (a *App) showDeployProgress(data *deployFormData, isDocker bool) {
 					Context:     data.context,
 					Protocol:    data.protocol,
 					CustomHost:  data.host,
+					TLSEnabled:  data.tlsEnabled,
 				})
 				err = kerr
 				if k8s != nil {

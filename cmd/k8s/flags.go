@@ -11,4 +11,5 @@ var (
 	populateExamples bool
 	deleteForce      bool
 	cleanForce       bool
+	tlsManifest      bool
 )

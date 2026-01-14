@@ -26,6 +26,8 @@ type DeployOpts struct {
 	Protocol string
 	// Optional. custom ip (or hostname) to use instead of using the generated one
 	CustomHost string
+	// Optional. use TLS-enabled ingress manifests (ingresses-secure.yaml)
+	TLSEnabled bool
 }
 
 func Deploy(opts DeployOpts) (*sqlc.K8s, error) {
@@ -69,7 +71,7 @@ func Deploy(opts DeployOpts) (*sqlc.K8s, error) {
 		return nil, fmt.Errorf(msg, mainErr)
 	}
 
-	if err := deployManifests(dir, opts.Name, true, opts.Context, opts.Protocol); err != nil {
+	if err := deployManifests(dir, opts.Name, true, opts.Context, opts.TLSEnabled); err != nil {
 		display.Error("Deploy failed: %v", err)
 		return handleFailure("deploy failed: %w", err)
 	}
@@ -108,7 +110,7 @@ func Deploy(opts DeployOpts) (*sqlc.K8s, error) {
 		}
 	}
 
-	kube, err := db.InsertK8s(opts.Name, dir, opts.Context, gatewayURL, portalURL, backofficeURL, opts.Protocol)
+	kube, err := db.InsertK8s(opts.Name, dir, opts.Context, gatewayURL, portalURL, backofficeURL, opts.Protocol, opts.TLSEnabled)
 	if err != nil {
 		display.Error("failed to insert k8s in db: %v", err)
 		return handleFailure("failed to insert k8s %s (dir: %s) in db: %w", fmt.Errorf("%s, %s, %w", opts.Name, dir, err))

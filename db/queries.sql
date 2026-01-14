@@ -14,10 +14,11 @@ INSERT INTO
         api_url,
         gui_url,
         backoffice_url,
-        protocol
+        protocol,
+        tls_enabled
     )
 VALUES
-    (?, ?, ?, ?, ?, ?, ?)
+    (?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING
     *;
 

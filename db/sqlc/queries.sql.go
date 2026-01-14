@@ -23,8 +23,11 @@ func (q *Queries) DeleteDocker(ctx context.Context, name string) error {
 }
 
 const deleteIngestedFilesByEnvironment = `-- name: DeleteIngestedFilesByEnvironment :exec
-DELETE FROM ingested_files
-WHERE environment_type = ? AND environment_name = ?
+DELETE FROM
+    ingested_files
+WHERE
+    environment_type = ?
+    AND environment_name = ?
 `
 
 type DeleteIngestedFilesByEnvironmentParams struct {
@@ -91,7 +94,7 @@ func (q *Queries) GetAllDocker(ctx context.Context) ([]Docker, error) {
 
 const getAllK8s = `-- name: GetAllK8s :many
 SELECT
-    name, directory, context, api_url, gui_url, backoffice_url, protocol
+    name, directory, context, api_url, gui_url, backoffice_url, protocol, tls_enabled
 FROM
     k8s
 `
@@ -114,6 +117,7 @@ func (q *Queries) GetAllK8s(ctx context.Context) ([]K8s, error) {
 			&i.GuiUrl,
 			&i.BackofficeUrl,
 			&i.Protocol,
+			&i.TlsEnabled,
 		); err != nil {
 			return nil, err
 		}
@@ -154,10 +158,16 @@ func (q *Queries) GetDockerByName(ctx context.Context, name string) (Docker, err
 }
 
 const getIngestedFilesByEnvironment = `-- name: GetIngestedFilesByEnvironment :many
-SELECT file_path, ingested_at
-FROM ingested_files
-WHERE environment_type = ? AND environment_name = ?
-ORDER BY ingested_at DESC
+SELECT
+    file_path,
+    ingested_at
+FROM
+    ingested_files
+WHERE
+    environment_type = ?
+    AND environment_name = ?
+ORDER BY
+    ingested_at DESC
 `
 
 type GetIngestedFilesByEnvironmentParams struct {
@@ -195,7 +205,7 @@ func (q *Queries) GetIngestedFilesByEnvironment(ctx context.Context, arg GetInge
 
 const getK8sByName = `-- name: GetK8sByName :one
 SELECT
-    name, directory, context, api_url, gui_url, backoffice_url, protocol
+    name, directory, context, api_url, gui_url, backoffice_url, protocol, tls_enabled
 FROM
     k8s
 WHERE
@@ -213,6 +223,7 @@ func (q *Queries) GetK8sByName(ctx context.Context, name string) (K8s, error) {
 		&i.GuiUrl,
 		&i.BackofficeUrl,
 		&i.Protocol,
+		&i.TlsEnabled,
 	)
 	return i, err
 }
@@ -288,10 +299,18 @@ func (q *Queries) InsertDocker(ctx context.Context, arg InsertDockerParams) (Doc
 }
 
 const insertIngestedFile = `-- name: InsertIngestedFile :exec
-INSERT INTO ingested_files (environment_type, environment_name, file_path, ingested_at)
-VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-ON CONFLICT (environment_type, environment_name, file_path)
-DO UPDATE SET ingested_at = CURRENT_TIMESTAMP
+INSERT INTO
+    ingested_files (
+        environment_type,
+        environment_name,
+        file_path,
+        ingested_at
+    )
+VALUES
+    (?, ?, ?, CURRENT_TIMESTAMP) ON CONFLICT (environment_type, environment_name, file_path) DO
+UPDATE
+SET
+    ingested_at = CURRENT_TIMESTAMP
 `
 
 type InsertIngestedFileParams struct {
@@ -314,12 +333,13 @@ INSERT INTO
         api_url,
         gui_url,
         backoffice_url,
-        protocol
+        protocol,
+        tls_enabled
     )
 VALUES
-    (?, ?, ?, ?, ?, ?, ?)
+    (?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING
-    name, directory, context, api_url, gui_url, backoffice_url, protocol
+    name, directory, context, api_url, gui_url, backoffice_url, protocol, tls_enabled
 `
 
 type InsertK8sParams struct {
@@ -330,6 +350,7 @@ type InsertK8sParams struct {
 	GuiUrl        string
 	BackofficeUrl string
 	Protocol      string
+	TlsEnabled    bool
 }
 
 func (q *Queries) InsertK8s(ctx context.Context, arg InsertK8sParams) (K8s, error) {
@@ -341,6 +362,7 @@ func (q *Queries) InsertK8s(ctx context.Context, arg InsertK8sParams) (K8s, erro
 		arg.GuiUrl,
 		arg.BackofficeUrl,
 		arg.Protocol,
+		arg.TlsEnabled,
 	)
 	var i K8s
 	err := row.Scan(
@@ -351,6 +373,7 @@ func (q *Queries) InsertK8s(ctx context.Context, arg InsertK8sParams) (K8s, erro
 		&i.GuiUrl,
 		&i.BackofficeUrl,
 		&i.Protocol,
+		&i.TlsEnabled,
 	)
 	return i, err
 }

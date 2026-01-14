@@ -31,7 +31,7 @@ func Clean(opts CleanOpts) (*sqlc.K8s, error) {
 
 	handleFailure := func(msg string, mainErr error) (*sqlc.K8s, error) {
 		display.Error("Clean failed, attempting recovery")
-		if err := deployManifests(dir, ns, false, ctx, kube.Protocol); err != nil {
+		if err := deployManifests(dir, ns, false, ctx, kube.TlsEnabled); err != nil {
 			return nil, fmt.Errorf("recovery failed: %w", err)
 		}
 		return nil, fmt.Errorf(msg, mainErr)

@@ -73,7 +73,7 @@ func Update(opts UpdateOpts) (*sqlc.K8s, error) {
 		if err := common.RestoreTmpDir(tmpDir, kube.Directory); err != nil {
 			return fmt.Errorf("failed to restore from backup: %w", err)
 		}
-		if err := deployManifests(kube.Directory, opts.Name, true, kube.Context, kube.Protocol); err != nil {
+		if err := deployManifests(kube.Directory, opts.Name, true, kube.Context, kube.TlsEnabled); err != nil {
 			return fmt.Errorf("failed to deploy restored environment: %w", err)
 		}
 		return nil
@@ -126,7 +126,7 @@ func Update(opts UpdateOpts) (*sqlc.K8s, error) {
 	display.Done("Updated environment created in directory: %s", dir)
 
 	// Deploy the updated manifests
-	if err := deployManifests(dir, opts.Name, opts.Force, kube.Context, kube.Protocol); err != nil {
+	if err := deployManifests(dir, opts.Name, opts.Force, kube.Context, kube.TlsEnabled); err != nil {
 		display.Error("Deploy failed: %v", err)
 		if restoreErr := restoreFromTmp(); restoreErr != nil {
 			display.Error("Restore failed: %v", restoreErr)

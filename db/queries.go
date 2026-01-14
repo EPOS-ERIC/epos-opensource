@@ -11,7 +11,7 @@ import (
 )
 
 // InsertK8s adds a new k8s entry to the database.
-func InsertK8s(name, dir, contextStr, apiURL, guiURL, backofficeURL, protocol string) (*sqlc.K8s, error) {
+func InsertK8s(name, dir, contextStr, apiURL, guiURL, backofficeURL, protocol string, tlsEnabled bool) (*sqlc.K8s, error) {
 	q, err := Get()
 	if err != nil {
 		return nil, fmt.Errorf("error getting db connection: %w", err)
@@ -24,6 +24,7 @@ func InsertK8s(name, dir, contextStr, apiURL, guiURL, backofficeURL, protocol st
 		GuiUrl:        guiURL,
 		Protocol:      protocol,
 		BackofficeUrl: backofficeURL,
+		TlsEnabled:    tlsEnabled,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error inserting k8s %s (dir: %s) in db: %w", name, dir, err)
