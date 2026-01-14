@@ -1,6 +1,6 @@
 -- +goose Up
 CREATE TABLE kubernetes (
-    name TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL PRIMARY KEY, -- just the name as the primary key to simplify cli usage (avoids having to pass name + context on each command)
     directory TEXT NOT NULL UNIQUE,
     context TEXT NOT NULL,
     api_url TEXT NOT NULL,

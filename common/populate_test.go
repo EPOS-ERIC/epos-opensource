@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
 	"testing"
 )
@@ -14,12 +15,13 @@ func TestPopulateEnv(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name          string
-		files         map[string]string // path -> content
-		targetPath    string            // path to pass to PopulateEnv
-		serverHandler http.HandlerFunc
-		expectErr     bool
-		expectedPaths []string // paths expected at the server
+		name                    string
+		files                   map[string]string // path -> content
+		targetPath              string            // path to pass to PopulateEnv
+		serverHandler           http.HandlerFunc
+		expectErr               bool
+		expectedPaths           []string // paths expected at the server
+		expectedSuccessfulFiles []string // expected returned successful file paths (relative to tmpDir)
 	}{
 		{
 			name: "single_file_success",
@@ -34,8 +36,9 @@ func TestPopulateEnv(t *testing.T) {
 				}
 				w.WriteHeader(http.StatusOK)
 			},
-			expectErr:     false,
-			expectedPaths: []string{"/populate"},
+			expectErr:               false,
+			expectedPaths:           []string{"/populate"},
+			expectedSuccessfulFiles: []string{"single.ttl"},
 		},
 		{
 			name: "directory_success",
@@ -58,6 +61,35 @@ func TestPopulateEnv(t *testing.T) {
 				"/populate",
 				"/populate",
 			},
+			expectedSuccessfulFiles: []string{"a.ttl", "b.ttl", "sub/d.ttl", "sub/sub2/f.ttl"},
+		},
+		{
+			name: "directory_partial_failure",
+			files: map[string]string{
+				"a.ttl":          "content a",
+				"b.ttl":          "content b",
+				"c.txt":          "content c",
+				"sub/d.ttl":      "content d",
+				"sub/e.json":     "content e",
+				"sub/sub2/f.ttl": "content f",
+			},
+			targetPath: ".",
+			serverHandler: func(w http.ResponseWriter, r *http.Request) {
+				body, _ := io.ReadAll(r.Body)
+				if string(body) == "content a" {
+					w.WriteHeader(http.StatusInternalServerError)
+				} else {
+					w.WriteHeader(http.StatusOK)
+				}
+			},
+			expectErr: true,
+			expectedPaths: []string{
+				"/populate",
+				"/populate",
+				"/populate",
+				"/populate",
+			},
+			expectedSuccessfulFiles: []string{"b.ttl", "sub/d.ttl", "sub/sub2/f.ttl"},
 		},
 		{
 			name: "server_error",
@@ -68,16 +100,18 @@ func TestPopulateEnv(t *testing.T) {
 			serverHandler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
 			},
-			expectErr:     true,
-			expectedPaths: []string{"/populate"},
+			expectErr:               true,
+			expectedPaths:           []string{"/populate"},
+			expectedSuccessfulFiles: []string{},
 		},
 		{
-			name:          "file_not_found",
-			files:         nil,
-			targetPath:    "nonexistent.ttl",
-			serverHandler: nil,
-			expectErr:     true,
-			expectedPaths: nil,
+			name:                    "file_not_found",
+			files:                   nil,
+			targetPath:              "nonexistent.ttl",
+			serverHandler:           nil,
+			expectErr:               true,
+			expectedPaths:           nil,
+			expectedSuccessfulFiles: []string{},
 		},
 	}
 
@@ -85,7 +119,6 @@ func TestPopulateEnv(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Create a temporary directory for the test files
 			tmpDir := t.TempDir()
 
 			// Create the files for the current test case
@@ -116,7 +149,7 @@ func TestPopulateEnv(t *testing.T) {
 			}
 
 			target := filepath.Join(tmpDir, tc.targetPath)
-			_, err := PopulateEnv(target, serverURL, 2)
+			successfulFiles, err := PopulateEnv(target, serverURL, 2)
 
 			if tc.expectErr {
 				if err == nil {
@@ -128,9 +161,141 @@ func TestPopulateEnv(t *testing.T) {
 				}
 			}
 
+			// Check successful files
+			expectedAbs := make([]string, len(tc.expectedSuccessfulFiles))
+			for i, p := range tc.expectedSuccessfulFiles {
+				expectedAbs[i] = filepath.Join(tmpDir, p)
+			}
+
+			sort.Strings(successfulFiles)
+			sort.Strings(expectedAbs)
+
+			if len(successfulFiles) != len(expectedAbs) {
+				t.Errorf("Expected %d successful files, got %d", len(expectedAbs), len(successfulFiles))
+			} else {
+				for i, expected := range expectedAbs {
+					if successfulFiles[i] != expected {
+						t.Errorf("Expected successful file %s, got %s", expected, successfulFiles[i])
+					}
+				}
+			}
+
 			// Check if the received paths at the server match the expected paths
 			if len(receivedPaths) != len(tc.expectedPaths) {
 				t.Errorf("Expected %d requests, but got %d", len(tc.expectedPaths), len(receivedPaths))
+			}
+		})
+	}
+}
+
+func TestPopulateExample(t *testing.T) {
+	t.Parallel()
+
+	examples := map[string]string{
+		"EPOS GeoJSON":      "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/main/static/examples/example-geojson.ttl",
+		"Coverage JSON":     "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/main/static/examples/example-covjson.ttl",
+		"Downloadable File": "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/main/static/examples/example-downloadablefile.ttl",
+		"OGC WMS":           "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/main/static/examples/ogc-wms.ttl",
+		"OGC WFS":           "https://raw.githubusercontent.com/EPOS-ERIC/opensource-docs/refs/heads/main/static/examples/ogc-wfs.ttl",
+	}
+
+	tests := []struct {
+		name                       string
+		serverHandler              http.HandlerFunc
+		expectErr                  bool
+		expectedPaths              []string
+		expectedSuccessfulExamples []string
+	}{
+		{
+			name: "all_success",
+			serverHandler: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			},
+			expectErr:     false,
+			expectedPaths: []string{"/populate", "/populate", "/populate", "/populate", "/populate"},
+			expectedSuccessfulExamples: []string{
+				examples["EPOS GeoJSON"],
+				examples["Coverage JSON"],
+				examples["Downloadable File"],
+				examples["OGC WMS"],
+				examples["OGC WFS"],
+			},
+		},
+		{
+			name: "partial_failure",
+			serverHandler: func(w http.ResponseWriter, r *http.Request) {
+				path := r.URL.Query().Get("path")
+				if path == examples["EPOS GeoJSON"] {
+					w.WriteHeader(http.StatusInternalServerError)
+				} else {
+					w.WriteHeader(http.StatusOK)
+				}
+			},
+			expectErr:     true,
+			expectedPaths: []string{"/populate", "/populate", "/populate", "/populate", "/populate"},
+			expectedSuccessfulExamples: []string{
+				examples["Coverage JSON"],
+				examples["Downloadable File"],
+				examples["OGC WMS"],
+				examples["OGC WFS"],
+			},
+		},
+		{
+			name: "all_failure",
+			serverHandler: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusInternalServerError)
+			},
+			expectErr:                  true,
+			expectedPaths:              []string{"/populate", "/populate", "/populate", "/populate", "/populate"},
+			expectedSuccessfulExamples: []string{},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			var serverURL string
+			var receivedPaths []string
+			var mu sync.Mutex
+
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				mu.Lock()
+				receivedPaths = append(receivedPaths, r.URL.Path)
+				mu.Unlock()
+				tc.serverHandler(w, r)
+			}))
+			defer server.Close()
+			serverURL = server.URL
+
+			successfulExamples, err := PopulateExample(serverURL, 2)
+
+			if tc.expectErr {
+				if err == nil {
+					t.Error("Expected an error, but got nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error, but got: %v", err)
+				}
+			}
+
+			// Check received paths
+			if len(receivedPaths) != len(tc.expectedPaths) {
+				t.Errorf("Expected %d requests, but got %d", len(tc.expectedPaths), len(receivedPaths))
+			}
+
+			sort.Strings(successfulExamples)
+			sort.Strings(tc.expectedSuccessfulExamples)
+
+			if len(successfulExamples) != len(tc.expectedSuccessfulExamples) {
+				t.Errorf("Expected %d successful examples, got %d", len(tc.expectedSuccessfulExamples), len(successfulExamples))
+			} else {
+				for i, expected := range tc.expectedSuccessfulExamples {
+					if successfulExamples[i] != expected {
+						t.Errorf("Expected successful example %s, got %s", expected, successfulExamples[i])
+					}
+				}
 			}
 		})
 	}

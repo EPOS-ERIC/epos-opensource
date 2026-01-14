@@ -48,31 +48,33 @@ func Populate(opts PopulateOpts) (*sqlc.K8s, error) {
 
 		if opts.PopulateExamples {
 			successfulExamples, err := common.PopulateExample(url, opts.Parallel)
+			allSuccessfulFiles = append(allSuccessfulFiles, successfulExamples...)
 			if err != nil {
 				display.Warn("error populating environment with examples through port-forward: %v. Trying with direct URL: %s", err, kube.ApiUrl)
 				successfulExamples, err = common.PopulateExample(kube.ApiUrl, opts.Parallel)
+				allSuccessfulFiles = append(allSuccessfulFiles, successfulExamples...)
 				if err != nil {
 					return fmt.Errorf("error populating environment with examples with direct URL: %w", err)
 				}
 			}
-			allSuccessfulFiles = append(allSuccessfulFiles, successfulExamples...)
 		}
 
-		for _, path := range opts.TTLDirs {
-			path, err = filepath.Abs(path)
+		for _, p := range opts.TTLDirs {
+			absPath, err := filepath.Abs(p)
 			if err != nil {
-				return fmt.Errorf("error finding absolute path for given metadata path '%s': %w", path, err)
+				return fmt.Errorf("error finding absolute path for given metadata path '%s': %w", p, err)
 			}
 
-			successfulFiles, err := common.PopulateEnv(path, url, opts.Parallel)
+			successfulFiles, err := common.PopulateEnv(absPath, url, opts.Parallel)
+			allSuccessfulFiles = append(allSuccessfulFiles, successfulFiles...)
 			if err != nil {
 				display.Warn("error populating environment through port-forward: %v. Trying with direct URL: %s", err, kube.ApiUrl)
-				successfulFiles, err = common.PopulateEnv(path, kube.ApiUrl, opts.Parallel)
+				successfulFiles, err = common.PopulateEnv(absPath, kube.ApiUrl, opts.Parallel)
+				allSuccessfulFiles = append(allSuccessfulFiles, successfulFiles...)
 				if err != nil {
 					return fmt.Errorf("error populating environment with direct URL: %w", err)
 				}
 			}
-			allSuccessfulFiles = append(allSuccessfulFiles, successfulFiles...)
 		}
 
 		// Insert ingested files into database

@@ -39,10 +39,10 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 
 	if opts.PopulateExamples {
 		successfulExamples, err := common.PopulateExample(docker.ApiUrl, opts.Parallel)
+		allSuccessfulFiles = append(allSuccessfulFiles, successfulExamples...)
 		if err != nil {
 			return nil, fmt.Errorf("error populating environment with examples: %w", err)
 		}
-		allSuccessfulFiles = append(allSuccessfulFiles, successfulExamples...)
 	}
 
 	for _, p := range opts.TTLDirs {
@@ -52,10 +52,10 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 		}
 
 		successfulFiles, err := common.PopulateEnv(absPath, docker.ApiUrl, opts.Parallel)
+		allSuccessfulFiles = append(allSuccessfulFiles, successfulFiles...)
 		if err != nil {
 			return nil, fmt.Errorf("error populating environment: %w", err)
 		}
-		allSuccessfulFiles = append(allSuccessfulFiles, successfulFiles...)
 	}
 
 	// Insert ingested files into database
@@ -83,6 +83,7 @@ func (p *PopulateOpts) Validate() error {
 		if err != nil {
 			return fmt.Errorf("error stating path %q: %w", item, err)
 		}
+
 		if !info.IsDir() {
 			if filepath.Ext(item) != ".ttl" {
 				return fmt.Errorf("file %s is not a .ttl file", item)
