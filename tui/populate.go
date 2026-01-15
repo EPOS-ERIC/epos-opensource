@@ -163,12 +163,19 @@ func (a *App) showPopulateForm() {
 		}
 
 		// set focus based on pending focus button
-		if state.focusButton == FocusButtonBrowse && browseBtn != nil {
-			a.tview.SetFocus(browseBtn)
-		} else if state.focusButton == FocusButtonFiles && browseFilesBtn != nil {
-			a.tview.SetFocus(browseFilesBtn)
-		} else if state.focusButton == FocusButtonDirs && browseDirsBtn != nil {
-			a.tview.SetFocus(browseDirsBtn)
+		switch state.focusButton {
+		case FocusButtonBrowse:
+			if browseBtn != nil {
+				a.tview.SetFocus(browseBtn)
+			}
+		case FocusButtonFiles:
+			if browseFilesBtn != nil {
+				a.tview.SetFocus(browseFilesBtn)
+			}
+		case FocusButtonDirs:
+			if browseDirsBtn != nil {
+				a.tview.SetFocus(browseDirsBtn)
+			}
 		}
 		state.focusButton = ""
 

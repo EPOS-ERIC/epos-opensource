@@ -298,11 +298,12 @@ func (dp *DetailsPanel) CycleFocus() {
 	focus := dp.app.tview.GetFocus()
 	switch focus {
 	case dp.deleteButton:
-		if len(dp.nameDirButtons) > 0 {
+		switch {
+		case len(dp.nameDirButtons) > 0:
 			dp.app.tview.SetFocus(dp.nameDirButtons[0])
-		} else if len(dp.detailsButtons) > 0 {
+		case len(dp.detailsButtons) > 0:
 			dp.app.tview.SetFocus(dp.detailsButtons[0])
-		} else {
+		default:
 			dp.app.tview.SetFocus(dp.detailsList)
 		}
 	case dp.cleanButton:
@@ -350,11 +351,12 @@ func (dp *DetailsPanel) CycleFocusBackward() {
 	focus := dp.app.tview.GetFocus()
 	switch focus {
 	case dp.detailsList:
-		if len(dp.detailsButtons) > 0 {
+		switch {
+		case len(dp.detailsButtons) > 0:
 			dp.app.tview.SetFocus(dp.detailsButtons[len(dp.detailsButtons)-1])
-		} else if len(dp.nameDirButtons) > 0 {
+		case len(dp.nameDirButtons) > 0:
 			dp.app.tview.SetFocus(dp.nameDirButtons[len(dp.nameDirButtons)-1])
-		} else {
+		default:
 			dp.app.tview.SetFocus(dp.deleteButton)
 		}
 	case dp.deleteButton:

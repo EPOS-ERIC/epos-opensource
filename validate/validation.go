@@ -29,15 +29,15 @@ func Name(name string) error {
 }
 
 // CustomHost validates IP address or hostname
-func CustomHost(CustomHost string) error {
-	if CustomHost == "" {
+func CustomHost(customHost string) error {
+	if customHost == "" {
 		return nil
 	}
 
-	ip := net.ParseIP(CustomHost)
+	ip := net.ParseIP(customHost)
 	if ip == nil {
-		if !validHostnameRegex.MatchString(CustomHost) {
-			return fmt.Errorf("custom host %q is not a valid ip or hostname", CustomHost)
+		if !validHostnameRegex.MatchString(customHost) {
+			return fmt.Errorf("custom host %q is not a valid ip or hostname", customHost)
 		}
 	}
 

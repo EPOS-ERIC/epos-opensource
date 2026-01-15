@@ -270,24 +270,23 @@ func (a *App) ResetToHome(opts ResetOptions) {
 		a.detailsPanel.RefreshFiles()
 	}
 
-	if opts.ClearDetails {
+	switch {
+	case opts.ClearDetails:
 		a.detailsPanel.Clear()
 		a.envList.FocusActiveList()
-	} else if opts.ForceEnvFocus {
+	case opts.ForceEnvFocus:
 		a.envList.FocusActiveList()
-	} else if opts.RestoreFocus && len(a.focusStack) > 0 {
+	case opts.RestoreFocus && len(a.focusStack) > 0:
 		a.PopFocus()
 		if a.detailsPanel.IsShown() {
 			key := getDetailsKey(a.detailsPanel.GetCurrentDetailsType())
 			a.UpdateFooter(key)
 		}
-	} else if a.detailsPanel.IsShown() {
-		// if details are shown and we didn't force env or restore prev, focus details
+	case a.detailsPanel.IsShown():
 		key := getDetailsKey(a.detailsPanel.GetCurrentDetailsType())
 		a.UpdateFooter(key)
 		a.tview.SetFocus(a.detailsPanel.GetFlex())
-	} else {
-		// fallback
+	default:
 		a.envList.FocusActiveList()
 	}
 }

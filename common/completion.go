@@ -11,7 +11,8 @@ type NameGetter func() ([]string, error)
 
 // SharedValidArgsFunction provides completion for environment names based on the command use.
 func SharedValidArgsFunction(cmd *cobra.Command, args []string, toComplete string, nameGetter NameGetter) ([]string, cobra.ShellCompDirective) {
-	if strings.Contains(cmd.Use, "populate") {
+	switch {
+	case strings.Contains(cmd.Use, "populate"):
 		if len(args) == 0 {
 			names, err := nameGetter()
 			if err != nil {
@@ -26,10 +27,9 @@ func SharedValidArgsFunction(cmd *cobra.Command, args []string, toComplete strin
 			}
 
 			return matches, cobra.ShellCompDirectiveNoFileComp
-		} else {
-			return nil, cobra.ShellCompDirectiveDefault
 		}
-	} else if strings.Contains(cmd.Use, "delete") {
+		return nil, cobra.ShellCompDirectiveDefault
+	case strings.Contains(cmd.Use, "delete"):
 		if len(args) == 0 {
 			names, err := nameGetter()
 			if err != nil {
@@ -44,10 +44,9 @@ func SharedValidArgsFunction(cmd *cobra.Command, args []string, toComplete strin
 			}
 
 			return matches, cobra.ShellCompDirectiveNoFileComp
-		} else {
-			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
-	} else if strings.Contains(cmd.Use, "clean") {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	case strings.Contains(cmd.Use, "clean"):
 		names, err := nameGetter()
 		if err != nil {
 			return nil, cobra.ShellCompDirectiveNoFileComp
@@ -61,7 +60,7 @@ func SharedValidArgsFunction(cmd *cobra.Command, args []string, toComplete strin
 		}
 
 		return matches, cobra.ShellCompDirectiveNoFileComp
-	} else {
+	default:
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 }

@@ -94,7 +94,7 @@ func Populate(opts PopulateOpts) (*sqlc.K8s, error) {
 }
 
 func (p *PopulateOpts) Validate() error {
-	if p.Parallel < 1 && p.Parallel > 20 {
+	if p.Parallel < 1 || p.Parallel > 20 {
 		return fmt.Errorf("parallel uploads must be between 1 and 20")
 	}
 

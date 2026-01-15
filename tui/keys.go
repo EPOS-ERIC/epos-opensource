@@ -1,4 +1,3 @@
-// Package tui provides screen key constants and utilities.
 package tui
 
 // ScreenKey represents a key for identifying UI screens.

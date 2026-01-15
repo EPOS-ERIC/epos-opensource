@@ -1,5 +1,9 @@
 version: "2"
 
+formatters:
+  enable:
+    - gofumpt
+    - goimports
 linters:
   default: standard
   enable:
@@ -9,6 +13,11 @@ linters:
     - misspell
     - dupl
     - goconst
+    - gocritic
+    - godoclint
+    - contextcheck
+    - containedctx
+    - copyloopvar
   exclusions:
     rules:
       - linters:
@@ -26,3 +35,7 @@ linters:
       - linters:
           - gosec
         text: "^G107:"
+  settings:
+    goconst:
+      ignore-string-values:
+        - "true"
