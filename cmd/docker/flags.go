@@ -1,11 +1,11 @@
 package docker
 
 var (
-	envFile          string
+	envFilePath      string
 	path             string
-	composeFile      string
+	composeFilePath  string
 	pullImages       bool
-	host             string
+	configFilePath   string
 	parallel         int
 	populateExamples bool
 	cleanForce       bool

@@ -84,7 +84,8 @@ func EnvironmentExistsK8s(name string) error {
 	return fmt.Errorf("no environment with name '%s' exists", name)
 }
 
-// PathExists validates that path is an existing directory
+// PathExists validates that a given path points to an existing directory on the filesystem.
+// Returns an error if it doesn't.
 func PathExists(path string) error {
 	if path == "" {
 		return nil

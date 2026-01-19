@@ -159,10 +159,14 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 				dp.app.ShowError(fmt.Sprintf("Error joining Docker API URL: %v", err))
 				return
 			}
-			backofficeURL, err := url.JoinPath(d.BackofficeUrl, "home")
-			if err != nil {
-				dp.app.ShowError(fmt.Sprintf("Error joining Docker backoffice URL: %v", err))
-				return
+			var backofficeURL string
+			if d.BackofficeUrl != nil {
+				u, err := url.JoinPath(*d.BackofficeUrl, "home")
+				if err != nil {
+					dp.app.ShowError(fmt.Sprintf("Error joining Docker backoffice URL: %v", err))
+					return
+				}
+				backofficeURL = u
 			}
 			nameDirRows := []DetailRow{
 				{Label: "Name", Value: d.Name, IncludeOpen: false},
@@ -179,9 +183,11 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 
 			rows := []DetailRow{
 				{Label: "GUI", Value: d.GuiUrl, IncludeOpen: true},
-				{Label: "Backoffice", Value: backofficeURL, IncludeOpen: true},
-				{Label: "API", Value: apiURL, IncludeOpen: true},
 			}
+			if backofficeURL != "" {
+				rows = append(rows, DetailRow{Label: "Backoffice", Value: backofficeURL, IncludeOpen: true})
+			}
+			rows = append(rows, DetailRow{Label: "API", Value: apiURL, IncludeOpen: true})
 			detailsGridCount = len(rows)
 			dp.currentDetailsRows = rows
 			dp.createDetailsRows(rows)
@@ -211,9 +217,11 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 
 			rows := []DetailRow{
 				{Label: "GUI", Value: k.GuiUrl, IncludeOpen: true},
-				{Label: "Backoffice", Value: k.BackofficeUrl, IncludeOpen: true},
-				{Label: "API", Value: k.ApiUrl, IncludeOpen: true},
 			}
+			if k.BackofficeUrl != nil {
+				rows = append(rows, DetailRow{Label: "Backoffice", Value: *k.BackofficeUrl, IncludeOpen: true})
+			}
+			rows = append(rows, DetailRow{Label: "API", Value: k.ApiUrl, IncludeOpen: true})
 			detailsGridCount = len(rows)
 			dp.currentDetailsRows = rows
 			dp.createDetailsRows(rows)

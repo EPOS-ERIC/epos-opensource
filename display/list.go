@@ -57,14 +57,19 @@ func DockerList(dockers []sqlc.Docker, title string) {
 			Warn("Could not construct gateway URL: %v", err)
 			gatewayURL = d.ApiUrl
 		}
-		backofficeURL, err := url.JoinPath(d.BackofficeUrl, "home")
-		if err != nil {
-			Warn("Could not construct backoffice URL: %v", err)
-			backofficeURL = d.BackofficeUrl
+		var backofficeURL string
+		if d.BackofficeUrl != nil {
+			u, err := url.JoinPath(*d.BackofficeUrl, "home")
+			if err != nil {
+				Warn("Could not construct backoffice URL: %v", err)
+				backofficeURL = *d.BackofficeUrl
+			} else {
+				backofficeURL = u
+			}
 		}
-		rows[i] = []any{d.Name, d.Directory, d.GuiUrl, backofficeURL, gatewayURL}
+		rows[i] = []any{d.Name, d.Directory, d.GuiUrl, gatewayURL, backofficeURL}
 	}
-	headers := []string{"Name", "Directory", "GUI URL", "Backoffice URL", "API URL"}
+	headers := []string{"Name", "Directory", "GUI URL", "API URL", "Backoffice URL"}
 	InfraList(rows, headers, title)
 }
 
@@ -76,13 +81,18 @@ func K8sList(kubes []sqlc.K8s, title string) {
 			Warn("Could not construct gateway URL: %v", err)
 			gatewayURL = k.ApiUrl
 		}
-		backofficeURL, err := url.JoinPath(k.BackofficeUrl, "home")
-		if err != nil {
-			Warn("Could not construct backoffice URL: %v", err)
-			backofficeURL = k.BackofficeUrl
+		var backofficeURL string
+		if k.BackofficeUrl != nil {
+			u, err := url.JoinPath(*k.BackofficeUrl, "home")
+			if err != nil {
+				Warn("Could not construct backoffice URL: %v", err)
+				backofficeURL = *k.BackofficeUrl
+			} else {
+				backofficeURL = u
+			}
 		}
-		rows[i] = []any{k.Name, k.Directory, k.Context, k.GuiUrl, backofficeURL, gatewayURL}
+		rows[i] = []any{k.Name, k.Directory, k.Context, k.GuiUrl, gatewayURL, backofficeURL}
 	}
-	headers := []string{"Name", "Directory", "Context", "GUI URL", "Backoffice URL", "API URL"}
+	headers := []string{"Name", "Directory", "Context", "GUI URL", "API URL", "Backoffice URL"}
 	InfraList(rows, headers, title)
 }

@@ -4,8 +4,8 @@ import (
 	_ "embed"
 	"fmt"
 	"log"
-	"path/filepath"
 
+	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore/config"
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/db"
 	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
@@ -20,12 +20,12 @@ type DeployOpts struct {
 	ComposeFile string
 	// Optional. path to a custom directory to store the .env and docker-compose.yaml in
 	Path string
-	// Required. name of the environment
+	// Optional. name to give to the environment. If not set it will use the name set in the passed config. If set and also set in the config, this has precedence
 	Name string
 	// Optional. whether to pull the images before deploying or not
 	PullImages bool
-	// Optional. custom ip to use instead of localhost if set
-	CustomHost string
+	// Optional. config to use for the deployment
+	Config *config.EnvConfig
 }
 
 func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
@@ -34,7 +34,18 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 	}
 	display.Step("Creating environment: %s", opts.Name)
 
-	dir, err := NewEnvDir(opts.EnvFile, opts.ComposeFile, opts.Path, opts.Name)
+	cfg := opts.Config
+	if cfg == nil {
+		cfg = config.GetDefaultConfig()
+	}
+
+	if opts.Name != "" {
+		cfg.Name = opts.Name
+	} else if cfg.Name == "" {
+		return nil, fmt.Errorf("environment name is required. Provide it as an argument or in the config file")
+	}
+
+	dir, err := NewEnvDir(opts.EnvFile, opts.ComposeFile, opts.Path, opts.Name, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare environment directory: %w", err)
 	}
@@ -42,11 +53,11 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 	display.Done("Environment created in directory: %s", dir)
 
 	if !opts.PullImages {
-		updates, err := common.CheckEnvForUpdates(filepath.Join(dir, ".env"))
+		updates, err := common.CheckEnvForUpdates(cfg.Images)
 		if err != nil {
 			log.Printf("error checking for updates: %v", err)
 		}
-		display.ImageUpdatesAvailable(updates, opts.Name)
+		display.ImageUpdatesAvailable(updates, cfg.Name)
 	}
 
 	var stackDeployed bool
@@ -70,53 +81,51 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 		}
 	}
 
-	ports := &DeploymentPorts{
-		GUI:        32000,
-		API:        33000,
-		Backoffice: 34000,
-	}
-	if opts.EnvFile != "" {
-		ports, err = loadPortsFromEnvFile(dir)
-		if err != nil {
-			return handleFailure("error loading ports from custom .env file at %w", fmt.Errorf("%s: %w", opts.EnvFile, err))
-		}
-	} else {
-		err := ports.ensureFree()
-		if err != nil {
-			return handleFailure("failed to find free ports: %w", err)
-		}
-	}
-
-	urls, err := deployStack(dir, opts.Name, ports, opts.CustomHost)
-	if err != nil {
-		display.Error("Deploy failed: %v", err)
-		stackDeployed = true
-		return handleFailure("deploy failed: %w", err)
-	}
 	stackDeployed = true
 
-	if err := common.PopulateOntologies(urls.apiURL); err != nil {
+	err = deployStack(true, dir)
+	if err != nil {
+		display.Error("Deploy failed: %v", err)
+		return handleFailure("deploy failed: %w", err)
+	}
+
+	urls, err := cfg.BuildEnvURLs()
+	if err != nil {
+		display.Error("error building urls: %v", err)
+		return handleFailure("error building urls: %w", err)
+	}
+
+	display.Debug("urls: %+v", urls)
+
+	if err := common.PopulateOntologies(urls.APIURL); err != nil {
 		display.Error("error initializing the ontologies in the environment: %v", err)
 		return handleFailure("error initializing the ontologies: %w", err)
 	}
 
-	docker, err := db.InsertDocker(sqlc.Docker{
+	var backofficePort int64
+	if cfg.Components.Backoffice.Enabled {
+		backofficePort = int64(cfg.Components.Backoffice.GUI.Port)
+	}
+	docker, err := db.UpsertDocker(sqlc.Docker{
 		Name:           opts.Name,
 		Directory:      dir,
-		ApiUrl:         urls.apiURL,
-		GuiUrl:         urls.guiURL,
-		BackofficeUrl:  urls.backofficeURL,
-		ApiPort:        int64(ports.API),
-		GuiPort:        int64(ports.GUI),
-		BackofficePort: int64(ports.Backoffice),
+		ApiUrl:         urls.APIURL,
+		GuiUrl:         urls.GUIURL,
+		BackofficeUrl:  urls.BackofficeURL,
+		ApiPort:        int64(cfg.Components.Gateway.Port),
+		GuiPort:        int64(cfg.Components.PlatformGUI.Port),
+		BackofficePort: &backofficePort,
 	})
 	if err != nil {
 		return handleFailure("failed to insert docker in db: %w", fmt.Errorf("%s (dir: %s): %w", opts.Name, dir, err))
 	}
+
 	return docker, err
 }
 
+// Validate TODO
 func (d *DeployOpts) Validate() error {
+	// TODO: also check the cfg.Name if there is
 	if err := validate.Name(d.Name); err != nil {
 		return fmt.Errorf("invalid name for environment: %w", err)
 	}
@@ -127,10 +136,6 @@ func (d *DeployOpts) Validate() error {
 
 	if err := validate.PathExists(d.Path); err != nil {
 		return fmt.Errorf("the path '%s' is not a valid path: %w", d.Path, err)
-	}
-
-	if err := validate.CustomHost(d.CustomHost); err != nil {
-		return fmt.Errorf("the custom host '%s' is not a valid ip or hostname: %w", d.CustomHost, err)
 	}
 
 	if err := validate.IsFile(d.EnvFile); err != nil {

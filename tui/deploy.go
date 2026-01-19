@@ -186,7 +186,6 @@ func (a *App) showDeployProgress(data *deployFormData, isDocker bool) {
 					ComposeFile: data.composeFile,
 					Path:        data.path,
 					PullImages:  data.pullImages,
-					CustomHost:  data.host,
 				})
 				err = derr
 				if docker != nil {

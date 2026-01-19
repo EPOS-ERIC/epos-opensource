@@ -244,60 +244,6 @@ func (q *Queries) GetLatestReleaseCache(ctx context.Context) (LatestReleaseCache
 	return i, err
 }
 
-const insertDocker = `-- name: InsertDocker :one
-INSERT INTO
-    docker (
-        name,
-        directory,
-        api_url,
-        gui_url,
-        backoffice_url,
-        gui_port,
-        api_port,
-        backoffice_port
-    )
-VALUES
-    (?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING
-    name, directory, api_url, gui_url, backoffice_url, api_port, gui_port, backoffice_port
-`
-
-type InsertDockerParams struct {
-	Name           string
-	Directory      string
-	ApiUrl         string
-	GuiUrl         string
-	BackofficeUrl  string
-	GuiPort        int64
-	ApiPort        int64
-	BackofficePort int64
-}
-
-func (q *Queries) InsertDocker(ctx context.Context, arg InsertDockerParams) (Docker, error) {
-	row := q.db.QueryRowContext(ctx, insertDocker,
-		arg.Name,
-		arg.Directory,
-		arg.ApiUrl,
-		arg.GuiUrl,
-		arg.BackofficeUrl,
-		arg.GuiPort,
-		arg.ApiPort,
-		arg.BackofficePort,
-	)
-	var i Docker
-	err := row.Scan(
-		&i.Name,
-		&i.Directory,
-		&i.ApiUrl,
-		&i.GuiUrl,
-		&i.BackofficeUrl,
-		&i.ApiPort,
-		&i.GuiPort,
-		&i.BackofficePort,
-	)
-	return i, err
-}
-
 const insertIngestedFile = `-- name: InsertIngestedFile :exec
 INSERT INTO
     ingested_files (
@@ -348,7 +294,7 @@ type InsertK8sParams struct {
 	Context       string
 	ApiUrl        string
 	GuiUrl        string
-	BackofficeUrl string
+	BackofficeUrl *string
 	Protocol      string
 	TlsEnabled    bool
 }
@@ -374,6 +320,69 @@ func (q *Queries) InsertK8s(ctx context.Context, arg InsertK8sParams) (K8s, erro
 		&i.BackofficeUrl,
 		&i.Protocol,
 		&i.TlsEnabled,
+	)
+	return i, err
+}
+
+const upsertDocker = `-- name: UpsertDocker :one
+INSERT INTO
+    docker (
+        name,
+        directory,
+        api_url,
+        gui_url,
+        backoffice_url,
+        gui_port,
+        api_port,
+        backoffice_port
+    )
+VALUES
+    (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (name) DO
+UPDATE
+SET
+    directory = excluded.directory,
+    api_url = excluded.api_url,
+    gui_url = excluded.gui_url,
+    backoffice_url = excluded.backoffice_url,
+    gui_port = excluded.gui_port,
+    api_port = excluded.api_port,
+    backoffice_port = excluded.backoffice_port
+RETURNING
+    name, directory, api_url, gui_url, backoffice_url, api_port, gui_port, backoffice_port
+`
+
+type UpsertDockerParams struct {
+	Name           string
+	Directory      string
+	ApiUrl         string
+	GuiUrl         string
+	BackofficeUrl  *string
+	GuiPort        int64
+	ApiPort        int64
+	BackofficePort *int64
+}
+
+func (q *Queries) UpsertDocker(ctx context.Context, arg UpsertDockerParams) (Docker, error) {
+	row := q.db.QueryRowContext(ctx, upsertDocker,
+		arg.Name,
+		arg.Directory,
+		arg.ApiUrl,
+		arg.GuiUrl,
+		arg.BackofficeUrl,
+		arg.GuiPort,
+		arg.ApiPort,
+		arg.BackofficePort,
+	)
+	var i Docker
+	err := row.Scan(
+		&i.Name,
+		&i.Directory,
+		&i.ApiUrl,
+		&i.GuiUrl,
+		&i.BackofficeUrl,
+		&i.ApiPort,
+		&i.GuiPort,
+		&i.BackofficePort,
 	)
 	return i, err
 }

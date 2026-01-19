@@ -40,7 +40,7 @@ NOTE: to execute the deploy it will try to use port-forwarding to the cluster. I
 			os.Exit(1)
 		}
 
-		display.Urls(k.GuiUrl, k.ApiUrl, k.BackofficeUrl, fmt.Sprintf("epos-opensource k8s deploy %s", name))
+		display.URLs(k.GuiUrl, k.ApiUrl, fmt.Sprintf("epos-opensource k8s deploy %s", name), k.BackofficeUrl)
 	},
 }
 

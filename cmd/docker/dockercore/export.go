@@ -1,33 +1,41 @@
 package dockercore
 
 import (
+	"fmt"
+	"path/filepath"
+
+	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore/config"
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/display"
 )
 
 type ExportOpts struct {
-	// Required. Path to export the embedded docker-compose.yaml and .env files
+	// Required. Path to export the default environment config
 	Path string
 }
 
 func Export(opts ExportOpts) error {
 	header := common.GenerateExportHeader()
 
-	envContent := header + EnvFile
-	composeContent := header + ComposeFile
+	path, err := filepath.Abs(opts.Path)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path for export path %s: %w", opts.Path, err)
+	}
 
-	err := common.Export(opts.Path, ".env", []byte(envContent))
+	cfg := config.GetDefaultConfigBytes()
+
+	cfg = append([]byte(header), cfg...)
+
+	err = common.Export(opts.Path, "config.yaml", cfg)
 	if err != nil {
 		return err
 	}
-	display.Done("Exported file: %s", ".env")
 
-	err = common.Export(opts.Path, "docker-compose.yaml", []byte(composeContent))
-	if err != nil {
-		return err
-	}
-	display.Done("Exported file: %s", "docker-compose.yaml")
+	exportedPath := filepath.Join(path, "config.yaml")
 
-	display.Done("All files exported to %s", opts.Path)
+	display.Done("Exported config: %s", exportedPath)
+
+	display.Info("You can now use the config to deploy the environment with 'epos-opensource docker deploy --config %s'", exportedPath)
+
 	return nil
 }

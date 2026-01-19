@@ -43,7 +43,7 @@ This action is irreversible.`,
 			os.Exit(1)
 		}
 
-		display.Urls(docker.GuiUrl, docker.ApiUrl, docker.BackofficeUrl, fmt.Sprintf("epos-opensource docker clean %s", name))
+		display.URLs(docker.GuiUrl, docker.ApiUrl, fmt.Sprintf("epos-opensource docker clean %s", name), docker.BackofficeUrl)
 	},
 }
 

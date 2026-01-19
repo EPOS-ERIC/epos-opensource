@@ -7,6 +7,7 @@ import (
 	"log"
 	"path/filepath"
 
+	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore/config"
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/db"
 	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
@@ -25,10 +26,10 @@ type UpdateOpts struct {
 	PullImages bool
 	// Optional. whether to do a docker compose down before updating the environment. Useful to reset the environment's database
 	Force bool
-	// Optional. custom ip to use instead of localhost if set
-	CustomHost string
 	// Optional. reset the environment config to the embedded defaults
 	Reset bool
+	// Optional. config to use for the deployment
+	Config *config.EnvConfig
 }
 
 // Update logic:
@@ -46,31 +47,31 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 		return nil, fmt.Errorf("invalid parameters for update command: %w", err)
 	}
 
-	docker, err := db.GetDockerByName(opts.Name)
-	if err != nil {
-		return nil, fmt.Errorf("error getting docker environment from db called '%s': %w", opts.Name, err)
+	cfg := opts.Config
+	if cfg == nil {
+		cfg = config.GetDefaultConfig()
 	}
-	ports := &DeploymentPorts{
-		GUI:        int(docker.GuiPort),
-		API:        int(docker.ApiPort),
-		Backoffice: int(docker.BackofficePort),
+
+	if opts.Name != "" {
+		cfg.Name = opts.Name
+	} else if cfg.Name == "" {
+		return nil, fmt.Errorf("environment name is required. Provide it as an argument or in the config file")
+	}
+
+	docker, err := db.GetDockerByName(cfg.Name)
+	if err != nil {
+		return nil, fmt.Errorf("error getting docker environment from db called '%s': %w", cfg.Name, err)
 	}
 
 	if !opts.PullImages {
-		envFile := ""
-		if opts.EnvFile != "" {
-			envFile = opts.EnvFile
-		} else {
-			envFile = filepath.Join(docker.Directory, ".env")
-		}
-		updates, err := common.CheckEnvForUpdates(envFile)
+		updates, err := common.CheckEnvForUpdates(cfg.Images)
 		if err != nil {
 			log.Printf("error checking for updates: %v", err)
 		}
-		display.ImageUpdatesAvailable(updates, opts.Name)
+		display.ImageUpdatesAvailable(updates, cfg.Name)
 	}
 
-	display.Step("Updating environment: %s", opts.Name)
+	display.Step("Updating environment: %s", cfg.Name)
 
 	// If it exists, create a copy of it in a tmp dir
 	tmpDir, err := common.CreateTmpCopy(docker.Directory)
@@ -86,8 +87,7 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 		if err := common.RestoreTmpDir(tmpDir, docker.Directory); err != nil {
 			display.Error("Failed to restore from backup: %v", err)
 		} else {
-			// we can ignore the resulting urls since they be the same as the original ones
-			if _, err := deployStack(docker.Directory, opts.Name, ports, opts.CustomHost); err != nil {
+			if err := deployStack(true, docker.Directory); err != nil {
 				display.Error("Failed to deploy restored environment: %v", err)
 			}
 		}
@@ -104,7 +104,7 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 		if err := downStack(docker.Directory, true); err != nil {
 			return handleFailure("docker compose down failed: %w", err)
 		}
-		display.Done("Stopped environment: %s", opts.Name)
+		display.Done("Stopped environment: %s", cfg.Name)
 	}
 
 	display.Step("Removing old environment directory")
@@ -117,16 +117,18 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 	display.Step("Creating new environment directory")
 
 	// when updating use the same config as before unless explicitly specified
-	if opts.EnvFile == "" && !opts.Reset {
-		opts.EnvFile = filepath.Join(tmpDir, ".env")
-	}
-	if opts.ComposeFile == "" && !opts.Reset {
-		opts.ComposeFile = filepath.Join(tmpDir, "docker-compose.yaml")
+	if opts.Config == nil {
+		if opts.EnvFile == "" && !opts.Reset {
+			opts.EnvFile = filepath.Join(tmpDir, ".env")
+		}
+		if opts.ComposeFile == "" && !opts.Reset {
+			opts.ComposeFile = filepath.Join(tmpDir, "docker-compose.yaml")
+		}
 	}
 
 	// create the directory in the parent
 	path := filepath.Dir(docker.Directory)
-	dir, err := NewEnvDir(opts.EnvFile, opts.ComposeFile, path, opts.Name)
+	dir, err := NewEnvDir(opts.EnvFile, opts.ComposeFile, path, cfg.Name, cfg)
 	if err != nil {
 		return handleFailure("failed to prepare environment directory: %w", err)
 	}
@@ -135,26 +137,31 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 
 	// If pullImages is set before deploying pull the images for the updated env
 	if opts.PullImages {
-		if err := pullEnvImages(dir, opts.Name); err != nil {
+		if err := pullEnvImages(dir, cfg.Name); err != nil {
 			display.Error("Pulling images failed: %v", err)
 			return handleFailure("pulling images failed: %w", err)
 		}
 	}
 
 	// Deploy the updated compose
-	// we can ignore the urls returned because they will be the same as before
-	if _, err = deployStack(dir, opts.Name, ports, opts.CustomHost); err != nil {
+	if err = deployStack(true, dir); err != nil {
 		display.Error("Deploy failed: %v", err)
 		return handleFailure("deploy failed: %w", err)
 	}
 
+	urls, err := cfg.BuildEnvURLs()
+	if err != nil {
+		display.Error("error building urls: %v", err)
+		return handleFailure("error building urls: %w", err)
+	}
+
 	// only repopulate the ontologies if the database has been cleaned
 	if opts.Force {
-		if err := common.PopulateOntologies(docker.ApiUrl); err != nil {
+		if err := common.PopulateOntologies(urls.APIURL); err != nil {
 			display.Error("error initializing the ontologies in the environment: %v", err)
 			return handleFailure("error initializing the ontologies in the environment: %w", err)
 		}
-		if err := db.DeleteIngestedFilesByEnvironment("docker", opts.Name); err != nil {
+		if err := db.DeleteIngestedFilesByEnvironment("docker", cfg.Name); err != nil {
 			return handleFailure("failed to clear ingested files tracking: %w", err)
 		}
 	}
@@ -164,16 +171,39 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 		display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
 	}
 
+	var backofficePort int64
+	if cfg.Components.Backoffice.Enabled {
+		backofficePort = int64(cfg.Components.Backoffice.GUI.Port)
+	}
+	docker, err = db.UpsertDocker(sqlc.Docker{
+		Name:           opts.Name,
+		Directory:      dir,
+		ApiUrl:         urls.APIURL,
+		GuiUrl:         urls.GUIURL,
+		BackofficeUrl:  urls.BackofficeURL,
+		ApiPort:        int64(cfg.Components.Gateway.Port),
+		GuiPort:        int64(cfg.Components.PlatformGUI.Port),
+		BackofficePort: &backofficePort,
+	})
+	if err != nil {
+		return handleFailure("failed to insert docker in db: %w", fmt.Errorf("%s (dir: %s): %w", opts.Name, dir, err))
+	}
+
 	return docker, nil
 }
 
 func (u *UpdateOpts) Validate() error {
-	if err := validate.EnvironmentExistsDocker(u.Name); err != nil {
-		return fmt.Errorf("no environment with name '%s' exists: %w", u.Name, err)
+	// TODO: also check the cfg.Name if there is
+	if u.Name == "" {
+		return fmt.Errorf("environment name is required")
 	}
 
-	if err := validate.CustomHost(u.CustomHost); err != nil {
-		return fmt.Errorf("the custom host '%s' is not a valid ip or hostname: %w", u.CustomHost, err)
+	if u.Name != "" && u.Config != nil && u.Config.Name != "" {
+		display.Warn("Environment name provided in both cli arguments and config file; using cli provided environment name")
+	}
+
+	if err := validate.EnvironmentExistsDocker(u.Name); err != nil {
+		return fmt.Errorf("no environment with name '%s' exists: %w", u.Name, err)
 	}
 
 	if err := validate.IsFile(u.EnvFile); err != nil {
@@ -186,6 +216,10 @@ func (u *UpdateOpts) Validate() error {
 
 	if u.Reset && (u.EnvFile != "" || u.ComposeFile != "") {
 		return fmt.Errorf("cannot specify custom files when Reset is true; Reset uses embedded defaults")
+	}
+
+	if u.Config != nil && (u.ComposeFile != "" || u.EnvFile != "") {
+		return fmt.Errorf("cannot specify custom files when config is provided; the config is rendered to new files")
 	}
 
 	return nil

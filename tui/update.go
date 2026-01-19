@@ -112,7 +112,6 @@ func (a *App) showUpdateProgress(data *updateFormData, isDocker bool) {
 					ComposeFile: data.composeFile,
 					PullImages:  data.pullImages,
 					Force:       data.force,
-					CustomHost:  data.customHost,
 					Reset:       data.reset,
 				})
 			} else {

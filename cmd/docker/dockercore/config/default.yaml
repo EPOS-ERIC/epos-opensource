@@ -1,0 +1,117 @@
+# TODO: add description to each variable
+name: ""
+
+domain: "localhost" # Shared hostname/IP (e.g., epos.example.com)
+protocol: "http" # http or https
+
+components:
+  platform_gui:
+    base_url: "/" # this is the base path used to access the interface
+    port: 32000
+
+  gateway:
+    port: 33000
+    aai:
+      enabled: false
+      service_endpoint: ""
+      security_key: ""
+    base_url: "/api/v1"
+    swagger_page:
+      tile: "EPOS API Gateway" # API_TITLE
+      version: "2.0.0" # API_VERSION
+      contact_email: "" # CONTACT_EMAIL
+
+  backoffice:
+    enabled: false
+    gui:
+      base_url: "/backoffice" # this is the base path used to access the interface
+      port: 34000
+    service:
+      auth:
+        enabled: false
+        only_admin: false
+
+  converter:
+    enabled: false
+    auth:
+      enabled: false
+      only_admin: false
+
+  resources_service:
+    auth:
+      enabled: false
+      only_admin: false
+    cache_ttl: 5000
+    # api_context: "/api/v1" # the base path of the gateway use to build the execute urls and stuff. it needs to be the gateway base_url + "/api/v1"
+
+  ingestor_service:
+    auth:
+      enabled: false
+      only_admin: false
+    hash: "FA9BEB99E4029AD5A6615399E7BBAE21356086B3"
+
+  external_access_service:
+    auth:
+      enabled: false
+      only_admin: false
+
+  sharing_service:
+    enabled: true
+    auth:
+      enabled: false
+      only_admin: false
+
+  rabbitmq:
+    host: "rabbitmq"
+    username: "rabbitmq-user"
+    password: "changeme"
+    vhost: "changeme"
+
+  metadata_database:
+    user: "metadatauser"
+    password: "changeme"
+    host: "metadata-database"
+    port: 5432
+    db_name: "cerif"
+
+    connection_pool_init_size: 5
+    connection_pool_min_size: 5
+    connection_pool_max_size: 15
+
+  email_sender_service:
+    enabled: false
+
+    environment_type: "development"
+    sender: "data-portal"
+    sender_name: "EPOS Platform Opensource"
+    mail_type: "API"
+
+    # you should change these to use yours, these defaults will NOT work
+    sender_domain: "your.domain.com"
+    mail_host: "mail.domain.com"
+    mail_user: "user@email.com"
+    mail_password: "changeme"
+    dev_emails: "foo.bar@somewhere.com;change.me@somewhere.com"
+    mail_api_url: "https://api.example.email/"
+    mail_api_key: "changeme"
+
+monitoring:
+  enabled: false
+  url: ""
+  user: ""
+  password: ""
+
+images:
+  rabbitmq_image: "rabbitmq:3.13.7-management"
+  dataportal_image: "epos/data-portal:latest"
+  gateway_image: "ghcr.io/epos-eric/epos-api-gateway:latest"
+  metadata_database_image: "ghcr.io/epos-eric/metadata-database/deploy:latest"
+  resources_service_image: "ghcr.io/epos-eric/resources-service:latest"
+  ingestor_service_image: "ghcr.io/epos-eric/ingestor-service:latest"
+  external_access_image: "ghcr.io/epos-eric/external-access-service:latest"
+  converter_service_image: "ghcr.io/epos-eric/converter-service-go:latest"
+  converter_routine_image: "ghcr.io/epos-eric/converter-routine-go:latest"
+  backoffice_service_image: "ghcr.io/epos-eric/backoffice-service:latest"
+  backoffice_ui_image: "epos/backoffice-ui:latest"
+  email_sender_service_image: "ghcr.io/epos-eric/email-sender-service:latest"
+  sharing_service_image: "ghcr.io/epos-eric/sharing-service:latest"

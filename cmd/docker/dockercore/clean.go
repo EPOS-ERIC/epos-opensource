@@ -30,11 +30,7 @@ func Clean(opts CleanOpts) (*sqlc.Docker, error) {
 		return nil, fmt.Errorf("failed to get docker info for %s: %w", opts.Name, err)
 	}
 
-	ports := &DeploymentPorts{
-		GUI:        int(docker.GuiPort),
-		API:        int(docker.ApiPort),
-		Backoffice: int(docker.BackofficePort),
-	}
+	// TODO: check if the logic here can be simplified now that we use restart in the depends_on in the docker compose
 
 	metadataContainer := fmt.Sprintf("%s-metadata-database", opts.Name)
 	backOfficeContainer := fmt.Sprintf("%s-backoffice-service", opts.Name)
@@ -47,7 +43,7 @@ func Clean(opts CleanOpts) (*sqlc.Docker, error) {
 		display.Error("Unexpected error: %v", mainErr)
 
 		display.Step("Attempting recovery")
-		if _, err := deployStack(docker.Directory, opts.Name, ports, ""); err != nil {
+		if err := deployStack(false, docker.Directory); err != nil {
 			return nil, fmt.Errorf("unable to recover from error: %w", err)
 		}
 
@@ -95,7 +91,7 @@ func Clean(opts CleanOpts) (*sqlc.Docker, error) {
 		return handleFailure("failed to stop container: %w", fmt.Errorf("%s: %w", resourcesContainer, err))
 	}
 
-	if _, err := deployStack(docker.Directory, opts.Name, ports, ""); err != nil {
+	if err := deployStack(false, docker.Directory); err != nil {
 		return handleFailure("failed to restart the environment: %w", err)
 	}
 

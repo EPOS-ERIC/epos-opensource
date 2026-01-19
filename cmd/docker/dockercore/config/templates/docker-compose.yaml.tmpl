@@ -2,34 +2,59 @@ services:
   dataportal:
     image: ${DATAPORTAL_IMAGE}
     platform: linux/amd64
-    container_name: ${ENV_NAME:-epos-platform}-data-portal
     ports:
-      - "${DATAPORTAL_PORT:-32000}:80"
+      - "${DATAPORTAL_PORT}:80"
+    container_name: ${ENV_NAME:-epos-platform}-data-portal
     networks:
       - epos_network
     restart: always
     environment:
-      - BASE_URL=${DEPLOY_PATH}
+      - BASE_URL=/
       - API_HOST=http://gateway:5000/api
     depends_on:
       gateway:
         condition: service_healthy
 
+{{if .Components.Backoffice.Enabled}}
   backoffice-ui:
     image: ${BACKOFFICE_UI_IMAGE}
     platform: linux/amd64
-    container_name: ${ENV_NAME:-epos-platform}-backoffice-ui
     ports:
       - "${BACKOFFICE_PORT:-34000}:80"
+    container_name: ${ENV_NAME:-epos-platform}-backoffice-ui
     networks:
       - epos_network
     restart: always
     environment:
-      - BASE_URL=${DEPLOY_PATH}
+      - BASE_URL=/
       - API_HOST=http://gateway:5000/api
     depends_on:
       gateway:
         condition: service_healthy
+
+  backoffice-service:
+    image: ${BACKOFFICE_SERVICE_IMAGE}
+    platform: linux/amd64
+    container_name: ${ENV_NAME:-epos-platform}-backoffice-service
+    networks:
+      - epos_network
+    restart: always
+    environment:
+      - POSTGRESQL_CONNECTION_STRING
+      - CONNECTION_POOL_INIT_SIZE
+      - CONNECTION_POOL_MIN_SIZE
+      - CONNECTION_POOL_MAX_SIZE
+    healthcheck:
+      test: "curl --fail --silent http://localhost:8080/api/backoffice-service/v1/actuator/health | grep UP || exit 1"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      metadata-database:
+        condition: service_healthy
+        restart: true
+{{end}}
 
   gateway:
     image: ${GATEWAY_IMAGE}
@@ -67,16 +92,24 @@ services:
         condition: service_healthy
       external-access-service:
         condition: service_healthy
+{{if .Components.Converter.Enabled}}
       converter-service:
         condition: service_healthy
       converter-routine:
         condition: service_healthy
+{{end}}
+{{if .Components.Backoffice.Enabled}}
       backoffice-service:
         condition: service_healthy
+{{end}}
+{{if .Components.EmailSenderService.Enabled}}
       email-sender-service:
         condition: service_healthy
+{{end}}
+{{if .Components.SharingService.Enabled}}
       sharing-service:
         condition: service_healthy
+{{end}}
 
   rabbitmq:
     image: ${RABBITMQ_IMAGE}
@@ -108,17 +141,22 @@ services:
       - BROKER_PASSWORD=${RABBITMQ_PASSWORD}
       - BROKER_VHOST=${RABBITMQ_VHOST}
 
-      - FACETS_DEFAULT
-      - FACETS_TYPE_DEFAULT
+      - FACETS_DEFAULT=true
+      - FACETS_TYPE_DEFAULT=categories
 
-      - APICONTEXT=${API_PATH}
-      # TODO: fix this to not use localhost but use the deploy hostname
-      - APIHOST=http://localhost:${GATEWAY_PORT-33000}/
+      - APICONTEXT=/api/v1
 
-      - MONITORING
-      - MONITORING_URL
-      - MONITORING_USER
-      - MONITORING_PWD
+      - APIHOST=http://localhost:${GATEWAY_PORT:-33000}/
+      - PERSISTENCE_NAME="EPOSDataModel"
+
+{{if .Monitoring.Enabled}}
+      - MONITORING=true
+      - MONITORING_URL=${MONITORING_URL}
+      - MONITORING_USER=${MONITORING_USER}
+      - MONITORING_PWD=${MONITORING_PWD}
+{{else}}
+      - MONITORING=false
+{{end}}
 
       - CACHE_TTL
 
@@ -136,8 +174,10 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+        restart: true
       metadata-database:
         condition: service_healthy
+        restart: true
 
   ingestor-service:
     image: ${INGESTOR_SERVICE_IMAGE}
@@ -147,7 +187,7 @@ services:
       - epos_network
     restart: always
     environment:
-      - PERSISTENCE_NAME
+      - PERSISTENCE_NAME=EPOSDataModel
       - POSTGRESQL_CONNECTION_STRING
       - INGESTOR_HASH
       - BASECONTEXT=
@@ -163,6 +203,7 @@ services:
     depends_on:
       metadata-database:
         condition: service_healthy
+        restart: true
 
   external-access-service:
     image: ${EXTERNAL_ACCESS_IMAGE}
@@ -190,9 +231,12 @@ services:
     depends_on:
       metadata-database:
         condition: service_healthy
+        restart: true
       rabbitmq:
         condition: service_healthy
+        restart: true
 
+{{if .Components.Converter.Enabled}}
   converter-service:
     image: ${CONVERTER_SERVICE_IMAGE}
     platform: linux/amd64
@@ -243,7 +287,7 @@ services:
       - BROKER_PASSWORD=${RABBITMQ_PASSWORD}
       - BROKER_VHOST=${RABBITMQ_VHOST}
 
-      - POSTGRESQL_CONNECTION_STRING=${POSTGRESQL_CONNECTION_STRING}
+      - POSTGRESQL_CONNECTION_STRING
     healthcheck:
       test:
         [
@@ -257,29 +301,9 @@ services:
     depends_on:
       metadata-database:
         condition: service_healthy
+{{end}}
 
-  backoffice-service:
-    image: ${BACKOFFICE_SERVICE_IMAGE}
-    platform: linux/amd64
-    container_name: ${ENV_NAME:-epos-platform}-backoffice-service
-    networks:
-      - epos_network
-    restart: always
-    environment:
-      - POSTGRESQL_CONNECTION_STRING
-      - CONNECTION_POOL_INIT_SIZE
-      - CONNECTION_POOL_MIN_SIZE
-      - CONNECTION_POOL_MAX_SIZE
-    healthcheck:
-      test: "curl --fail --silent http://localhost:8080/api/backoffice-service/v1/actuator/health | grep UP || exit 1"
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    depends_on:
-      metadata-database:
-        condition: service_healthy
-
+{{if .Components.EmailSenderService.Enabled}}
   email-sender-service:
     image: ${EMAIL_SENDER_SERVICE_IMAGE}
     platform: linux/amd64
@@ -305,7 +329,7 @@ services:
       - MAIL_API_URL
       - MAIL_API_KEY
 
-      - PERSISTENCE_NAME
+      - PERSISTENCE_NAME="EPOSDataModel"
     healthcheck:
       test: "curl --fail --silent http://localhost:8080/api/email-sender-service/v1/actuator/health | grep UP || exit 1"
       interval: 15s
@@ -315,7 +339,10 @@ services:
     depends_on:
       metadata-database:
         condition: service_healthy
+        restart: true
+{{end}}
 
+{{if .Components.SharingService.Enabled}}
   sharing-service:
     image: ${SHARING_SERVICE_IMAGE}
     platform: linux/amd64
@@ -325,7 +352,7 @@ services:
     restart: always
     environment:
       - POSTGRESQL_CONNECTION_STRING
-      - PERSISTENCE_NAME_SHARING
+      - PERSISTENCE_NAME_SHARING="EPOSSharing"
     healthcheck:
       test: "curl --fail --silent http://localhost:8080/api/sharing-service/v1/actuator/health | grep UP || exit 1"
       interval: 15s
@@ -335,6 +362,8 @@ services:
     depends_on:
       metadata-database:
         condition: service_healthy
+        restart: true
+{{end}}
 
   metadata-database:
     restart: always
@@ -348,7 +377,7 @@ services:
     volumes:
       - psqldata:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5

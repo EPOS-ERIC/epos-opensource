@@ -54,7 +54,6 @@ func PopulateOntologies(baseURL string) error {
 		q.Set("path", ont.path)
 		q.Set("name", ont.name)
 		q.Set("type", ont.ontType)
-		q.Set("securityCode", "changeme") // TODO: remove this from the ingestor
 		reqURL.RawQuery = q.Encode()
 
 		display.Step("  [%d/3] Loading %s ontology...", i+1, ont.name)
@@ -64,6 +63,8 @@ func PopulateOntologies(baseURL string) error {
 			return fmt.Errorf("error creating ontology request for %s: %w", ont.name, err)
 		}
 		req.Header.Set("Accept", "*/*")
+
+		display.Debug("sending request: %s", req.URL.String())
 
 		resp, err := httpClient.Do(req)
 		if err != nil {

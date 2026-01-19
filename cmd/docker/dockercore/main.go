@@ -3,31 +3,23 @@ package dockercore
 import (
 	_ "embed"
 	"fmt"
-	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 
+	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore/config"
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/display"
-
-	"github.com/joho/godotenv"
 )
 
 const platform = "docker"
 
-//go:embed static/docker-compose.yaml
-var ComposeFile string
-
-//go:embed static/.env
-var EnvFile string
-
 // NewEnvDir creates a new environment directory with .env and docker-compose.yaml files.
+// TODO: update documentation
 // If customEnvFilePath or customComposeFilePath are provided, it reads the content from those files.
 // If they are empty strings, it uses default content for the respective files.
 // Returns the path to the created environment directory.
 // If any error occurs after directory creation, the directory and its contents are automatically cleaned up.
-func NewEnvDir(customEnvFilePath, customComposeFilePath, customPath, name string) (string, error) {
+func NewEnvDir(customEnvFilePath, customComposeFilePath, customPath, name string, cfg *config.EnvConfig) (string, error) {
 	envPath, err := common.BuildEnvPath(customPath, name, platform)
 	if err != nil {
 		return "", err
@@ -55,8 +47,15 @@ func NewEnvDir(customEnvFilePath, customComposeFilePath, customPath, name string
 		}
 	}()
 
+	cfg.Name = name
+
+	files, err := cfg.Render()
+	if err != nil {
+		return "", fmt.Errorf("failed to render config: %w", err)
+	}
+
 	// Get .env file content (from file path or use default)
-	envContent, err := common.GetContentFromPathOrDefault(customEnvFilePath, EnvFile)
+	envContent, err := common.GetContentFromPathOrDefault(customEnvFilePath, files[".env"])
 	if err != nil {
 		return "", fmt.Errorf("failed to get .env file content: %w", err)
 	}
@@ -67,7 +66,7 @@ func NewEnvDir(customEnvFilePath, customComposeFilePath, customPath, name string
 	}
 
 	// Get docker-compose.yaml file content (from file path or use default)
-	composeContent, err := common.GetContentFromPathOrDefault(customComposeFilePath, ComposeFile)
+	composeContent, err := common.GetContentFromPathOrDefault(customComposeFilePath, files["docker-compose.yaml"])
 	if err != nil {
 		return "", fmt.Errorf("failed to get docker-compose.yaml file content: %w", err)
 	}
@@ -79,32 +78,4 @@ func NewEnvDir(customEnvFilePath, customComposeFilePath, customPath, name string
 
 	success = true
 	return envPath, nil
-}
-
-func buildEnvURLs(dir string, ports *DeploymentPorts, customHost string) (urls Urls, err error) {
-	env, err := godotenv.Read(filepath.Join(dir, ".env"))
-	if err != nil {
-		return urls, fmt.Errorf("failed to read .env file at %s: %w", filepath.Join(dir, ".env"), err)
-	}
-
-	apiPath, ok := env["API_PATH"]
-	if !ok {
-		return urls, fmt.Errorf("environment variable API_PATH is not set")
-	}
-
-	host := "localhost"
-	if customHost != "" {
-		host = customHost
-	}
-
-	urls.guiURL = fmt.Sprintf("http://%s:%d", host, ports.GUI)
-
-	urls.apiURL, err = url.JoinPath(fmt.Sprintf("http://%s:%d", host, ports.API), apiPath)
-	if err != nil {
-		return urls, fmt.Errorf("error building gateway URL: %w", err)
-	}
-
-	urls.backofficeURL = fmt.Sprintf("http://%s:%d", host, ports.Backoffice)
-
-	return urls, nil
 }

@@ -45,7 +45,7 @@ Multiple directories and/or files can be provided and will be processed in order
 			os.Exit(1)
 		}
 
-		display.Urls(d.GuiUrl, d.ApiUrl, d.BackofficeUrl, fmt.Sprintf("epos-opensource docker populate %s", name))
+		display.URLs(d.GuiUrl, d.ApiUrl, fmt.Sprintf("epos-opensource docker populate %s", name), d.BackofficeUrl)
 	},
 }
 

@@ -43,7 +43,7 @@ This action is irreversible.`,
 			os.Exit(1)
 		}
 
-		display.Urls(kube.GuiUrl, kube.ApiUrl, kube.BackofficeUrl, fmt.Sprintf("epos-opensource k8s clean %s", name))
+		display.URLs(kube.GuiUrl, kube.ApiUrl, fmt.Sprintf("epos-opensource k8s clean %s", name), kube.BackofficeUrl)
 	},
 }
 

@@ -46,7 +46,7 @@ NOTE: To execute the population it will try to use port-forwarding to the cluste
 			os.Exit(1)
 		}
 
-		display.Urls(k.GuiUrl, k.ApiUrl, k.BackofficeUrl, fmt.Sprintf("epos-opensource k8s populate %s", name))
+		display.URLs(k.GuiUrl, k.ApiUrl, fmt.Sprintf("epos-opensource k8s populate %s", name), k.BackofficeUrl)
 	},
 }
 

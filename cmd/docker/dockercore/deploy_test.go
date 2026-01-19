@@ -34,14 +34,14 @@ func TestDeploy(t *testing.T) {
 			name: "deploy (default path)",
 			opts: dockercore.DeployOpts{Name: "docker-deploy-test"},
 			want: &sqlc.Docker{
-				Name:           "docker-deploy-test",
-				Directory:      "", // ignore
-				ApiUrl:         "http://localhost:33000/api/v1",
-				GuiUrl:         "http://localhost:32000",
-				BackofficeUrl:  "http://localhost:34000",
-				ApiPort:        33000,
-				GuiPort:        32000,
-				BackofficePort: 34000,
+				Name:      "docker-deploy-test",
+				Directory: "", // ignore
+				ApiUrl:    "http://localhost:33000/api/v1",
+				GuiUrl:    "http://localhost:32000",
+				// BackofficeUrl:  "http://localhost:34000",
+				ApiPort: 33000,
+				GuiPort: 32000,
+				// BackofficePort: 34000,
 			},
 		},
 		{
@@ -51,14 +51,14 @@ func TestDeploy(t *testing.T) {
 				Path: tempDirCustomPath,
 			},
 			want: &sqlc.Docker{
-				Name:           "docker-deploy-test",
-				Directory:      tempDirCustomPath,
-				ApiUrl:         "http://localhost:33000/api/v1",
-				GuiUrl:         "http://localhost:32000",
-				BackofficeUrl:  "http://localhost:34000",
-				ApiPort:        33000,
-				GuiPort:        32000,
-				BackofficePort: 34000,
+				Name:      "docker-deploy-test",
+				Directory: tempDirCustomPath,
+				ApiUrl:    "http://localhost:33000/api/v1",
+				GuiUrl:    "http://localhost:32000",
+				// BackofficeUrl:  "http://localhost:34000",
+				ApiPort: 33000,
+				GuiPort: 32000,
+				// BackofficePort: 34000,
 			},
 		},
 	}
@@ -99,7 +99,7 @@ func TestDeploy(t *testing.T) {
 
 			testEndpoint(tt.want.ApiUrl+"/ui", t)
 			testEndpoint(tt.want.GuiUrl, t)
-			testEndpoint(tt.want.BackofficeUrl, t)
+			// testEndpoint(tt.want.BackofficeUrl, t)
 		})
 	}
 }

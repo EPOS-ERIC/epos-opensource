@@ -37,7 +37,7 @@ var UpdateCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		display.Urls(k.GuiUrl, k.ApiUrl, k.BackofficeUrl, fmt.Sprintf("epos-opensource k8s update %s", name))
+		display.URLs(k.GuiUrl, k.ApiUrl, fmt.Sprintf("epos-opensource k8s update %s", name), k.BackofficeUrl)
 	},
 }
 

@@ -17,7 +17,7 @@ func TestUpdateOpts_Validate(t *testing.T) {
 		},
 		{
 			name:    "To many files in parallel",
-			opts:    UpdateOpts{Name: "test", CustomHost: "ht!tp://invalid-url"},
+			opts:    UpdateOpts{Name: "test"},
 			wantErr: true,
 		},
 		{

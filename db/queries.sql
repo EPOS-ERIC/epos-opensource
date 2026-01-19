@@ -43,7 +43,7 @@ SELECT
 FROM
     docker;
 
--- name: InsertDocker :one
+-- name: UpsertDocker :one
 INSERT INTO
     docker (
         name,
@@ -56,7 +56,16 @@ INSERT INTO
         backoffice_port
     )
 VALUES
-    (?, ?, ?, ?, ?, ?, ?, ?)
+    (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (name) DO
+UPDATE
+SET
+    directory = excluded.directory,
+    api_url = excluded.api_url,
+    gui_url = excluded.gui_url,
+    backoffice_url = excluded.backoffice_url,
+    gui_port = excluded.gui_port,
+    api_port = excluded.api_port,
+    backoffice_port = excluded.backoffice_port
 RETURNING
     *;
 

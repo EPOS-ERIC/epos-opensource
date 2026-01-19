@@ -17,14 +17,14 @@ func InsertK8s(name, dir, contextStr, apiURL, guiURL, backofficeURL, protocol st
 		return nil, fmt.Errorf("error getting db connection: %w", err)
 	}
 	k, err := q.InsertK8s(context.Background(), sqlc.InsertK8sParams{
-		Name:          name,
-		Directory:     dir,
-		Context:       contextStr,
-		ApiUrl:        apiURL,
-		GuiUrl:        guiURL,
-		Protocol:      protocol,
-		BackofficeUrl: backofficeURL,
-		TlsEnabled:    tlsEnabled,
+		Name:      name,
+		Directory: dir,
+		Context:   contextStr,
+		ApiUrl:    apiURL,
+		GuiUrl:    guiURL,
+		Protocol:  protocol,
+		// BackofficeUrl: backofficeURL, //TODO
+		TlsEnabled: tlsEnabled,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error inserting k8s %s (dir: %s) in db: %w", name, dir, err)
@@ -74,13 +74,13 @@ func GetAllK8s() ([]sqlc.K8s, error) {
 	return ks, nil
 }
 
-// InsertDocker adds a new docker entry to the database.
-func InsertDocker(docker sqlc.Docker) (*sqlc.Docker, error) {
+// UpsertDocker adds a new docker entry to the database.
+func UpsertDocker(docker sqlc.Docker) (*sqlc.Docker, error) {
 	q, err := Get()
 	if err != nil {
 		return nil, fmt.Errorf("error getting db connection: %w", err)
 	}
-	d, err := q.InsertDocker(context.Background(), sqlc.InsertDockerParams{
+	d, err := q.UpsertDocker(context.Background(), sqlc.UpsertDockerParams{
 		Name:           docker.Name,
 		Directory:      docker.Directory,
 		ApiUrl:         docker.ApiUrl,
