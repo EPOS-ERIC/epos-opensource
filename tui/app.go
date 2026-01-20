@@ -152,7 +152,6 @@ func (a *App) init() {
 	display.Stdout = a.outputWriter
 	display.Stderr = a.outputWriter
 	command.Stdout = a.outputWriter
-	command.Stderr = a.outputWriter
 
 	a.envList = NewEnvList(a)
 	a.detailsPanel = NewDetailsPanel(a)
