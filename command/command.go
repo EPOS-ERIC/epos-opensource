@@ -59,7 +59,10 @@ func RunCommand(cmd *exec.Cmd, interceptOut bool) (string, error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if isDockerCmd && !interceptOut {
-			fmt.Println(line)
+			_, err := fmt.Fprintf(Stdout, "%s\n", line)
+			if err != nil {
+				return "", fmt.Errorf("failed to write to stdout: %w", err)
+			}
 		} else {
 			stderrLines = append(stderrLines, line)
 		}
