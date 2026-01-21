@@ -1,37 +1,38 @@
--- Kubernetes queries
--- name: GetAllKubernetes :many
+-- K8s queries
+-- name: GetAllK8s :many
 SELECT
     *
 FROM
-    kubernetes;
+    k8s;
 
--- name: InsertKubernetes :one
+-- name: InsertK8s :one
 INSERT INTO
-    kubernetes (
+    k8s (
         name,
         directory,
         context,
         api_url,
         gui_url,
         backoffice_url,
-        protocol
+        protocol,
+        tls_enabled
     )
 VALUES
-    (?, ?, ?, ?, ?, ?, ?)
+    (?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING
     *;
 
--- name: DeleteKubernetes :exec
+-- name: DeleteK8s :exec
 DELETE FROM
-    kubernetes
+    k8s
 WHERE
     name = ?;
 
--- name: GetKubernetesByName :one
+-- name: GetK8sByName :one
 SELECT
     *
 FROM
-    kubernetes
+    k8s
 WHERE
     name = ?;
 
@@ -90,3 +91,36 @@ UPDATE
 SET
     tag_name = excluded.tag_name,
     fetched_at = excluded.fetched_at;
+
+-- name: InsertIngestedFile :exec
+INSERT INTO
+    ingested_files (
+        environment_type,
+        environment_name,
+        file_path,
+        ingested_at
+    )
+VALUES
+    (?, ?, ?, CURRENT_TIMESTAMP) ON CONFLICT (environment_type, environment_name, file_path) DO
+UPDATE
+SET
+    ingested_at = CURRENT_TIMESTAMP;
+
+-- name: DeleteIngestedFilesByEnvironment :exec
+DELETE FROM
+    ingested_files
+WHERE
+    environment_type = ?
+    AND environment_name = ?;
+
+-- name: GetIngestedFilesByEnvironment :many
+SELECT
+    file_path,
+    ingested_at
+FROM
+    ingested_files
+WHERE
+    environment_type = ?
+    AND environment_name = ?
+ORDER BY
+    ingested_at DESC;

@@ -14,16 +14,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/epos-eu/epos-opensource/command"
-	"github.com/epos-eu/epos-opensource/common"
-	"github.com/epos-eu/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/command"
+	"github.com/EPOS-ERIC/epos-opensource/common"
+	"github.com/EPOS-ERIC/epos-opensource/display"
 
 	"github.com/joho/godotenv"
 	"golang.org/x/sync/errgroup"
 )
 
 const (
-	platform           = "kubernetes"
+	platform           = "k8s"
 	embedManifestsPath = "static/manifests"
 )
 
@@ -256,7 +256,7 @@ func waitDeployments(dir, namespace string, names []string, context string) erro
 		g.Go(func() error {
 			return runKubectl(dir, false, context,
 				"rollout", "status", fmt.Sprintf("deployment/%s", n),
-				"--timeout", (10 * time.Minute).String(),
+				"--timeout", (2 * time.Minute).String(),
 				"-n", namespace)
 		})
 	}
@@ -265,7 +265,7 @@ func waitDeployments(dir, namespace string, names []string, context string) erro
 
 // deployManifests deploys all resources to the namespace in stages:
 // 1. Create namespace, 2. Setup environment, 3. Deploy infra, 4. Deploy services, 5. Deploy gateway/portal.
-func deployManifests(dir, namespace string, createNamespace bool, context, protocol string) error {
+func deployManifests(dir, namespace string, createNamespace bool, context string, tlsEnabled bool) error {
 	if createNamespace {
 		display.Step("Creating namespace %s", namespace)
 		if err := runKubectl(dir, true, context, "get", "namespace", namespace); err != nil {
@@ -341,15 +341,12 @@ func deployManifests(dir, namespace string, createNamespace bool, context, proto
 		return fmt.Errorf("gateway and dataportal deployment failed: %w", err)
 	}
 
-	// deploy the ingresses *after* the top-level services
+	// deploy the ingresses AFTER the top-level services
 	var ingresses string
-	switch protocol {
-	case "https":
+	if tlsEnabled {
 		ingresses = "ingresses-secure.yaml"
-	case "http":
+	} else {
 		ingresses = "ingresses-insecure.yaml"
-	default:
-		return fmt.Errorf("unknown protocol %s", protocol)
 	}
 
 	display.Step("Deploying ingresses")
@@ -510,4 +507,38 @@ func waitIngresses(kubeContext string, ingressNames []string, namespace string) 
 	}
 	display.Done("All ingresses are ready")
 	return nil
+}
+
+func waitForPVCBound(kubeContext, namespace, pvcName string) error {
+	const (
+		maxWait  = 1 * time.Minute
+		interval = 5 * time.Second
+	)
+
+	display.Step("Waiting for PVC %s to be bound", pvcName)
+
+	ctx, cancel := context.WithTimeout(context.Background(), maxWait)
+	defer cancel()
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("timeout waiting for PVC %s to be bound", pvcName)
+		case <-ticker.C:
+			args := []string{"get", "pvc", pvcName, "-n", namespace, "-o", "jsonpath={.status.phase}", "--context", kubeContext}
+			cmd := exec.Command("kubectl", args...)
+			out, err := command.RunCommand(cmd, true)
+			if err != nil {
+				continue // PVC might not exist yet, keep trying
+			}
+			phase := strings.TrimSpace(out)
+			if phase == "Bound" {
+				display.Done("PVC %s is bound", pvcName)
+				return nil
+			}
+		}
+	}
 }

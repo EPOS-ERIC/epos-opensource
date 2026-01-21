@@ -5,11 +5,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/epos-eu/epos-opensource/common"
-	"github.com/epos-eu/epos-opensource/db"
-	"github.com/epos-eu/epos-opensource/db/sqlc"
-	"github.com/epos-eu/epos-opensource/display"
-	"github.com/epos-eu/epos-opensource/validate"
+	"github.com/EPOS-ERIC/epos-opensource/common"
+	"github.com/EPOS-ERIC/epos-opensource/db"
+	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
+	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/validate"
 )
 
 type PopulateOpts struct {
@@ -35,8 +35,11 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 		return nil, fmt.Errorf("error getting docker environment from db called '%s': %w", opts.Name, err)
 	}
 
+	var allSuccessfulFiles []string
+
 	if opts.PopulateExamples {
-		err := common.PopulateExample(docker.ApiUrl, opts.Parallel)
+		successfulExamples, err := common.PopulateExample(docker.ApiUrl, opts.Parallel)
+		allSuccessfulFiles = append(allSuccessfulFiles, successfulExamples...)
 		if err != nil {
 			return nil, fmt.Errorf("error populating environment with examples: %w", err)
 		}
@@ -48,8 +51,17 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 			return nil, fmt.Errorf("error finding absolute path for given metadata path '%s': %w", p, err)
 		}
 
-		if err := common.PopulateEnv(absPath, docker.ApiUrl, opts.Parallel); err != nil {
+		successfulFiles, err := common.PopulateEnv(absPath, docker.ApiUrl, opts.Parallel)
+		allSuccessfulFiles = append(allSuccessfulFiles, successfulFiles...)
+		if err != nil {
 			return nil, fmt.Errorf("error populating environment: %w", err)
+		}
+	}
+
+	// Insert ingested files into database
+	for _, filePath := range allSuccessfulFiles {
+		if err := db.InsertIngestedFile("docker", opts.Name, filePath); err != nil {
+			return nil, fmt.Errorf("error inserting ingested file record: %w", err)
 		}
 	}
 
@@ -58,7 +70,7 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 }
 
 func (p *PopulateOpts) Validate() error {
-	if p.Parallel < 1 && p.Parallel > 20 {
+	if p.Parallel < 1 || p.Parallel > 20 {
 		return fmt.Errorf("parallel uploads must be between 1 and 20")
 	}
 
@@ -71,6 +83,7 @@ func (p *PopulateOpts) Validate() error {
 		if err != nil {
 			return fmt.Errorf("error stating path %q: %w", item, err)
 		}
+
 		if !info.IsDir() {
 			if filepath.Ext(item) != ".ttl" {
 				return fmt.Errorf("file %s is not a .ttl file", item)

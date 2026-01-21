@@ -1,4 +1,4 @@
-// Package k8score contains the internal functions used by the kubernetes cmd to manage the environments
+// Package k8score contains the internal functions used by the k8s cmd to manage the environments
 package k8score
 
 import (
@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/epos-eu/epos-opensource/common"
-	"github.com/epos-eu/epos-opensource/db"
-	"github.com/epos-eu/epos-opensource/db/sqlc"
-	"github.com/epos-eu/epos-opensource/display"
-	"github.com/epos-eu/epos-opensource/validate"
+	"github.com/EPOS-ERIC/epos-opensource/common"
+	"github.com/EPOS-ERIC/epos-opensource/db"
+	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
+	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/validate"
 )
 
 type UpdateOpts struct {
@@ -32,20 +32,20 @@ type UpdateOpts struct {
 // find the old env, if it does not exist give an error
 // if it exists, create a copy of it in a tmp dir
 // if no custom env/manifests provided and not resetting, use the existing files from the tmp dir as defaults
-// if force is set delete the kubernetes namespace for the original env
-// then remove the contents of the env dir and create the updated env file and kubernetes manifests using existing or embedded files as appropriate
+// if force is set delete the K8s namespace for the original env
+// then remove the contents of the env dir and create the updated env file and K8s manifests using existing or embedded files as appropriate
 // deploy the updated manifests
 // if everything goes right, delete the tmp dir and finish
 // else restore the tmp dir, deploy the old restored env and give an error in output
-func Update(opts UpdateOpts) (*sqlc.Kubernetes, error) {
+func Update(opts UpdateOpts) (*sqlc.K8s, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid parameters for update command: %w", err)
 	}
 	display.Step("Updating environment: %s", opts.Name)
 
-	kube, err := db.GetKubernetesByName(opts.Name)
+	kube, err := db.GetK8sByName(opts.Name)
 	if err != nil {
-		return nil, fmt.Errorf("error getting kubernetes environment from db called '%s': %w", opts.Name, err)
+		return nil, fmt.Errorf("error getting k8s environment from db called '%s': %w", opts.Name, err)
 	}
 
 	display.Info("Environment directory: %s", kube.Directory)
@@ -73,7 +73,7 @@ func Update(opts UpdateOpts) (*sqlc.Kubernetes, error) {
 		if err := common.RestoreTmpDir(tmpDir, kube.Directory); err != nil {
 			return fmt.Errorf("failed to restore from backup: %w", err)
 		}
-		if err := deployManifests(kube.Directory, opts.Name, true, kube.Context, kube.Protocol); err != nil {
+		if err := deployManifests(kube.Directory, opts.Name, true, kube.Context, kube.TlsEnabled); err != nil {
 			return fmt.Errorf("failed to deploy restored environment: %w", err)
 		}
 		return nil
@@ -90,7 +90,7 @@ func Update(opts UpdateOpts) (*sqlc.Kubernetes, error) {
 			if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
 				display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
 			}
-			return nil, fmt.Errorf("kubernetes namespace deletion failed: %w", err)
+			return nil, fmt.Errorf("K8s namespace deletion failed: %w", err)
 		}
 		display.Done("Stopped environment: %s", opts.Name)
 	}
@@ -126,7 +126,7 @@ func Update(opts UpdateOpts) (*sqlc.Kubernetes, error) {
 	display.Done("Updated environment created in directory: %s", dir)
 
 	// Deploy the updated manifests
-	if err := deployManifests(dir, opts.Name, opts.Force, kube.Context, kube.Protocol); err != nil {
+	if err := deployManifests(dir, opts.Name, opts.Force, kube.Context, kube.TlsEnabled); err != nil {
 		display.Error("Deploy failed: %v", err)
 		if restoreErr := restoreFromTmp(); restoreErr != nil {
 			display.Error("Restore failed: %v", restoreErr)
@@ -148,6 +148,15 @@ func Update(opts UpdateOpts) (*sqlc.Kubernetes, error) {
 				display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
 			}
 			return nil, fmt.Errorf("error initializing the ontologies in the environment: %w", err)
+		}
+		if err := db.DeleteIngestedFilesByEnvironment("k8s", opts.Name); err != nil {
+			if restoreErr := restoreFromTmp(); restoreErr != nil {
+				display.Error("Restore failed: %v", restoreErr)
+			}
+			if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
+				display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
+			}
+			return nil, fmt.Errorf("failed to clear ingested files tracking: %w", err)
 		}
 	}
 

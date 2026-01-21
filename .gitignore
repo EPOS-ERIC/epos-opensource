@@ -2,3 +2,5 @@
 epos-opensource
 .vscode
 .DS_Store
+_epos-opensource
+*.log

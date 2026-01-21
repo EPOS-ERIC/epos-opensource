@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"os/exec"
 
-	"github.com/epos-eu/epos-opensource/command"
-	"github.com/epos-eu/epos-opensource/common"
-	"github.com/epos-eu/epos-opensource/db"
-	"github.com/epos-eu/epos-opensource/db/sqlc"
-	"github.com/epos-eu/epos-opensource/display"
-	"github.com/epos-eu/epos-opensource/validate"
+	"github.com/EPOS-ERIC/epos-opensource/command"
+	"github.com/EPOS-ERIC/epos-opensource/common"
+	"github.com/EPOS-ERIC/epos-opensource/db"
+	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
+	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/validate"
 )
 
 type CleanOpts struct {
@@ -71,6 +71,12 @@ func Clean(opts CleanOpts) (*sqlc.Docker, error) {
 	}
 
 	display.Done("Database volume cleaned")
+
+	// Clear ingested files tracking
+	if err := db.DeleteIngestedFilesByEnvironment("docker", opts.Name); err != nil {
+		return handleFailure("failed to clear ingested files tracking: %w", err)
+	}
+
 	display.Step("Restarting services")
 
 	if _, err := command.RunCommand(exec.Command("docker", "stop", backOfficeContainer), false); err != nil {

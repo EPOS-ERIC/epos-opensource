@@ -5,11 +5,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/epos-eu/epos-opensource/common"
-	"github.com/epos-eu/epos-opensource/db"
-	"github.com/epos-eu/epos-opensource/db/sqlc"
-	"github.com/epos-eu/epos-opensource/display"
-	"github.com/epos-eu/epos-opensource/validate"
+	"github.com/EPOS-ERIC/epos-opensource/common"
+	"github.com/EPOS-ERIC/epos-opensource/db"
+	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
+	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/validate"
 )
 
 type PopulateOpts struct {
@@ -23,15 +23,15 @@ type PopulateOpts struct {
 	PopulateExamples bool
 }
 
-func Populate(opts PopulateOpts) (*sqlc.Kubernetes, error) {
+func Populate(opts PopulateOpts) (*sqlc.K8s, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid parameters for populate command: %w", err)
 	}
 	display.Step("Populating environment %s with %d directories", opts.Name, len(opts.TTLDirs))
 
-	kube, err := db.GetKubernetesByName(opts.Name)
+	kube, err := db.GetK8sByName(opts.Name)
 	if err != nil {
-		return nil, fmt.Errorf("error getting kubernetes environment from db called '%s': %w", opts.Name, err)
+		return nil, fmt.Errorf("error getting k8s environment from db called '%s': %w", opts.Name, err)
 	}
 
 	port, err := common.FindFreePort()
@@ -44,29 +44,44 @@ func Populate(opts PopulateOpts) (*sqlc.Kubernetes, error) {
 
 		url := fmt.Sprintf("http://%s:%d/api/ingestor-service/v1/", host, port)
 
+		var allSuccessfulFiles []string
+
 		if opts.PopulateExamples {
-			err := common.PopulateExample(url, opts.Parallel)
+			successfulExamples, err := common.PopulateExample(url, opts.Parallel)
+			allSuccessfulFiles = append(allSuccessfulFiles, successfulExamples...)
 			if err != nil {
 				display.Warn("error populating environment with examples through port-forward: %v. Trying with direct URL: %s", err, kube.ApiUrl)
-				if err := common.PopulateExample(kube.ApiUrl, opts.Parallel); err != nil {
+				successfulExamples, err = common.PopulateExample(kube.ApiUrl, opts.Parallel)
+				allSuccessfulFiles = append(allSuccessfulFiles, successfulExamples...)
+				if err != nil {
 					return fmt.Errorf("error populating environment with examples with direct URL: %w", err)
 				}
 			}
 		}
 
-		for _, path := range opts.TTLDirs {
-			path, err = filepath.Abs(path)
+		for _, p := range opts.TTLDirs {
+			absPath, err := filepath.Abs(p)
 			if err != nil {
-				return fmt.Errorf("error finding absolute path for given metadata path '%s': %w", path, err)
+				return fmt.Errorf("error finding absolute path for given metadata path '%s': %w", p, err)
 			}
 
-			if err = common.PopulateEnv(path, url, opts.Parallel); err != nil {
+			successfulFiles, err := common.PopulateEnv(absPath, url, opts.Parallel)
+			allSuccessfulFiles = append(allSuccessfulFiles, successfulFiles...)
+			if err != nil {
 				display.Warn("error populating environment through port-forward: %v. Trying with direct URL: %s", err, kube.ApiUrl)
-				if err = common.PopulateEnv(path, kube.ApiUrl, opts.Parallel); err != nil {
+				successfulFiles, err = common.PopulateEnv(absPath, kube.ApiUrl, opts.Parallel)
+				allSuccessfulFiles = append(allSuccessfulFiles, successfulFiles...)
+				if err != nil {
 					return fmt.Errorf("error populating environment with direct URL: %w", err)
 				}
 			}
+		}
 
+		// Insert ingested files into database
+		for _, filePath := range allSuccessfulFiles {
+			if err := db.InsertIngestedFile("k8s", opts.Name, filePath); err != nil {
+				return fmt.Errorf("error inserting ingested file record: %w", err)
+			}
 		}
 		return nil
 	})
@@ -79,7 +94,7 @@ func Populate(opts PopulateOpts) (*sqlc.Kubernetes, error) {
 }
 
 func (p *PopulateOpts) Validate() error {
-	if p.Parallel < 1 && p.Parallel > 20 {
+	if p.Parallel < 1 || p.Parallel > 20 {
 		return fmt.Errorf("parallel uploads must be between 1 and 20")
 	}
 

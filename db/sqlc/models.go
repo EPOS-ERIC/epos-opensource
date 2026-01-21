@@ -19,7 +19,14 @@ type Docker struct {
 	BackofficePort int64
 }
 
-type Kubernetes struct {
+type IngestedFile struct {
+	EnvironmentType string
+	EnvironmentName string
+	FilePath        string
+	IngestedAt      *time.Time
+}
+
+type K8s struct {
 	Name          string
 	Directory     string
 	Context       string
@@ -27,6 +34,7 @@ type Kubernetes struct {
 	GuiUrl        string
 	BackofficeUrl string
 	Protocol      string
+	TlsEnabled    bool
 }
 
 type LatestReleaseCache struct {

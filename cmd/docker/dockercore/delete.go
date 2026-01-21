@@ -5,10 +5,10 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/epos-eu/epos-opensource/common"
-	"github.com/epos-eu/epos-opensource/db"
-	"github.com/epos-eu/epos-opensource/display"
-	"github.com/epos-eu/epos-opensource/validate"
+	"github.com/EPOS-ERIC/epos-opensource/common"
+	"github.com/EPOS-ERIC/epos-opensource/db"
+	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/validate"
 )
 
 type DeleteOpts struct {
@@ -39,6 +39,10 @@ func Delete(opts DeleteOpts) error {
 
 			if err := common.RemoveEnvDir(env.Directory); err != nil {
 				return fmt.Errorf("failed to remove directory %s: %w", env.Directory, err)
+			}
+
+			if err := db.DeleteIngestedFilesByEnvironment("docker", envName); err != nil {
+				return fmt.Errorf("failed to delete ingested files for '%s': %w", envName, err)
 			}
 
 			if err := db.DeleteDocker(envName); err != nil {

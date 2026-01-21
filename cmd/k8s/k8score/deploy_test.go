@@ -47,7 +47,7 @@ func TestDeployOpts_Validate(t *testing.T) {
 			err := tt.opts.Validate()
 			if err != nil {
 				if !tt.wantErr {
-					t.Fatalf("Deploy Kubernetes Validation Test Failed = %v, wantErr %v", err, tt.wantErr)
+					t.Fatalf("Deploy K8s Validation Test Failed = %v, wantErr %v", err, tt.wantErr)
 				}
 			}
 		})

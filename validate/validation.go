@@ -8,7 +8,7 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/epos-eu/epos-opensource/db"
+	"github.com/EPOS-ERIC/epos-opensource/db"
 )
 
 var (
@@ -29,15 +29,15 @@ func Name(name string) error {
 }
 
 // CustomHost validates IP address or hostname
-func CustomHost(CustomHost string) error {
-	if CustomHost == "" {
+func CustomHost(customHost string) error {
+	if customHost == "" {
 		return nil
 	}
 
-	ip := net.ParseIP(CustomHost)
+	ip := net.ParseIP(customHost)
 	if ip == nil {
-		if !validHostnameRegex.MatchString(CustomHost) {
-			return fmt.Errorf("custom host %q is not a valid ip or hostname", CustomHost)
+		if !validHostnameRegex.MatchString(customHost) {
+			return fmt.Errorf("custom host %q is not a valid ip or hostname", customHost)
 		}
 	}
 
@@ -64,19 +64,19 @@ func EnvironmentExistsDocker(name string) error {
 	return fmt.Errorf("no environment with name'%s' exists", name)
 }
 
-// EnvironmentNotExistK8s checks that Kubernetes environment doesn't exist
+// EnvironmentNotExistK8s checks that K8s environment doesn't exist
 func EnvironmentNotExistK8s(name string) error {
-	_, err := db.GetKubernetesByName(name)
+	_, err := db.GetK8sByName(name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil
 		}
-		return fmt.Errorf("error getting installed kubernetes environment from db: %w", err)
+		return fmt.Errorf("error getting installed k8s environment from db: %w", err)
 	}
 	return fmt.Errorf("an environment with name '%s' already exists", name)
 }
 
-// EnvironmentExistsK8s checks that Kubernetes environment exists
+// EnvironmentExistsK8s checks that K8s environment exists
 func EnvironmentExistsK8s(name string) error {
 	if err := EnvironmentNotExistK8s(name); err != nil {
 		return nil

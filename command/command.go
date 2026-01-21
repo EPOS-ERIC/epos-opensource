@@ -6,16 +6,19 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 
-	"github.com/epos-eu/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/display"
 )
+
+var Stdout io.Writer = os.Stdout
 
 // RunCommand executes a command and handles its output.
 // If interceptOut is true, stdout is captured and returned as a string.
-// If interceptOut is false, stdout is passed through to os.Stdout.
+// If interceptOut is false, stdout is passed through to Stdout.
 // Stderr is handled specially for docker commands (printed as normal output)
 // and for other commands (shown as warnings on success, errors on failure).
 func RunCommand(cmd *exec.Cmd, interceptOut bool) (string, error) {
@@ -27,7 +30,7 @@ func RunCommand(cmd *exec.Cmd, interceptOut bool) (string, error) {
 	if interceptOut {
 		cmd.Stdout = &stdout
 	} else {
-		cmd.Stdout = os.Stdout
+		cmd.Stdout = Stdout
 	}
 	cmd.Stdin = os.Stdin
 
@@ -56,7 +59,10 @@ func RunCommand(cmd *exec.Cmd, interceptOut bool) (string, error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if isDockerCmd && !interceptOut {
-			fmt.Println(line)
+			_, err := fmt.Fprintf(Stdout, "%s\n", line)
+			if err != nil {
+				return "", fmt.Errorf("failed to write to stdout: %w", err)
+			}
 		} else {
 			stderrLines = append(stderrLines, line)
 		}

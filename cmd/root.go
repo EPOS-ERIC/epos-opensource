@@ -8,9 +8,12 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/epos-eu/epos-opensource/common"
-	"github.com/epos-eu/epos-opensource/db"
-	"github.com/epos-eu/epos-opensource/display"
+	"golang.org/x/term"
+
+	"github.com/EPOS-ERIC/epos-opensource/common"
+	"github.com/EPOS-ERIC/epos-opensource/db"
+	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/tui"
 	"github.com/google/go-github/v72/github"
 	"github.com/spf13/cobra"
 )
@@ -20,10 +23,15 @@ var rootCmd = &cobra.Command{
 	Use:   "epos-opensource",
 	Short: "Manage EPOS environments and utilities.",
 	Long: `epos-opensource provides commands for managing local EPOS environments
-using Docker Compose or Kubernetes. Use the "docker" and "kubernetes" command
+using Docker Compose or K8s. Use the "docker" and "k8s" command
 groups to deploy, populate, update, or delete an environment.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		if cmd.Name() == "update" {
+		if cmd.Name() == "update" || cmd.Name() == "completion" {
+			return
+		}
+
+		// Skip update check if stdout is not a terminal (e.g., completion, piping)
+		if !term.IsTerminal(int(os.Stdout.Fd())) {
 			return
 		}
 
@@ -50,6 +58,14 @@ groups to deploy, populate, update, or delete an environment.`,
 			return
 		}
 
+		// If current version has pre-release and same base as latest it's a dev build of the current release
+		if currentVer.Prerelease() != "" &&
+			currentVer.Major() == latestVer.Major() &&
+			currentVer.Minor() == latestVer.Minor() &&
+			currentVer.Patch() == latestVer.Patch() {
+			return
+		}
+
 		if currentVer.LessThan(latestVer) {
 			display.UpdateAvailable(current, tag)
 		}
@@ -58,7 +74,10 @@ groups to deploy, populate, update, or delete an environment.`,
 	// If no subcommand is provided, show help.
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
-			_ = cmd.Help()
+			if err := tui.Run(); err != nil {
+				fmt.Printf("Alas, there's been an error: %v", err)
+				os.Exit(1)
+			}
 		}
 	},
 	Version: common.GetVersion(),
