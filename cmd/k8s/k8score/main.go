@@ -101,7 +101,7 @@ func NewEnvDir(customEnvFilePath, customManifestsDirPath, customPath, name, cont
 		return "", fmt.Errorf("failed to set 'HOST_NAME' environment variable: %w", err)
 	}
 	expandedEnv := os.ExpandEnv(string(envContent))
-	if err := common.CreateFileWithContent(path.Join(envPath, ".env"), expandedEnv); err != nil {
+	if err := common.CreateFileWithContent(path.Join(envPath, ".env"), expandedEnv, false); err != nil {
 		return "", fmt.Errorf("failed to create .env file: %w", err)
 	}
 
@@ -142,7 +142,7 @@ func copyCustomManifests(customManifestsDirPath, envPath string) error {
 		}
 
 		destPath := filepath.Join(envPath, de.Name())
-		if err := common.CreateFileWithContent(destPath, string(data)); err != nil {
+		if err := common.CreateFileWithContent(destPath, string(data), false); err != nil {
 			return fmt.Errorf("failed to create manifest file %q: %w", de.Name(), err)
 		}
 	}
@@ -153,7 +153,7 @@ func copyCustomManifests(customManifestsDirPath, envPath string) error {
 func copyEmbeddedManifests(envPath string) error {
 	for filename, content := range EmbeddedManifestContents {
 		destPath := filepath.Join(envPath, filename)
-		if err := common.CreateFileWithContent(destPath, content); err != nil {
+		if err := common.CreateFileWithContent(destPath, content, false); err != nil {
 			return fmt.Errorf("failed to create embedded manifest %q: %w", filename, err)
 		}
 	}
@@ -212,7 +212,7 @@ func loadEnvAndExpandManifests(envPath, name, protocol, host string) error {
 		}
 
 		expanded := os.ExpandEnv(string(data))
-		if err := common.CreateFileWithContent(filePath, expanded); err != nil {
+		if err := common.CreateFileWithContent(filePath, expanded, false); err != nil {
 			return fmt.Errorf("failed to write expanded manifest file %q: %w", de.Name(), err)
 		}
 	}

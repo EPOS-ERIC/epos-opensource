@@ -58,12 +58,12 @@ func Render(opts RenderOpts) ([]string, error) {
 	}
 
 	envFilePath := filepath.Join(opts.OutputPath, ".env")
-	if err := common.CreateFileWithContent(envFilePath, files[".env"]); err != nil {
+	if err := common.CreateFileWithContent(envFilePath, files[".env"], true); err != nil {
 		return nil, fmt.Errorf("failed to create .env file: %w", err)
 	}
 
 	composeFilePath := filepath.Join(opts.OutputPath, "docker-compose.yaml")
-	if err := common.CreateFileWithContent(composeFilePath, files["docker-compose.yaml"]); err != nil {
+	if err := common.CreateFileWithContent(composeFilePath, files["docker-compose.yaml"], true); err != nil {
 		return nil, fmt.Errorf("failed to create docker-compose.yaml file: %w", err)
 	}
 

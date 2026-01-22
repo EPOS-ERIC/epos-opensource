@@ -2,32 +2,31 @@ package dockercore
 
 import (
 	"testing"
+
+	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore/config"
 )
 
 func TestUpdateOpts_Validate(t *testing.T) {
+	invalidConfig := &config.EnvConfig{}
+
 	tests := []struct {
 		name    string
 		opts    UpdateOpts
 		wantErr bool
 	}{
 		{
+			name:    "Empty environment name",
+			opts:    UpdateOpts{OldEnvName: ""},
+			wantErr: true,
+		},
+		{
 			name:    "Environment does not exist",
-			opts:    UpdateOpts{Name: "does-not-exist"},
+			opts:    UpdateOpts{OldEnvName: "does-not-exist"},
 			wantErr: true,
 		},
 		{
-			name:    "To many files in parallel",
-			opts:    UpdateOpts{Name: "test"},
-			wantErr: true,
-		},
-		{
-			name:    "Reset with custom env file",
-			opts:    UpdateOpts{Name: "test", Reset: true, EnvFile: "/fake/path"},
-			wantErr: true,
-		},
-		{
-			name:    "Reset with custom compose file",
-			opts:    UpdateOpts{Name: "test", Reset: true, ComposeFile: "/fake/path"},
+			name:    "Reset with custom config returns error",
+			opts:    UpdateOpts{OldEnvName: "test", Reset: true, NewConfig: invalidConfig},
 			wantErr: true,
 		},
 	}
@@ -35,10 +34,8 @@ func TestUpdateOpts_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.opts.Validate()
-			if err != nil {
-				if !tt.wantErr {
-					t.Fatalf("Update Validation Test Failed error = %v, wantErr %v", err, tt.wantErr)
-				}
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

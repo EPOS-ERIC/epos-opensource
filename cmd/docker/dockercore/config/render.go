@@ -5,8 +5,6 @@ import (
 	"embed"
 	"fmt"
 	"text/template"
-
-	"github.com/EPOS-ERIC/epos-opensource/common"
 )
 
 //go:embed templates/*.tmpl
@@ -32,8 +30,8 @@ func (e *EnvConfig) Render() (map[string]string, error) {
 		return nil, fmt.Errorf("error executing template: %w", err)
 	}
 
-	results["docker-compose.yaml"] = common.GenerateExportHeader() + compose.String()
-	results[".env"] = common.GenerateExportHeader() + env.String()
+	results["docker-compose.yaml"] = compose.String()
+	results[".env"] = env.String()
 
 	return results, nil
 }

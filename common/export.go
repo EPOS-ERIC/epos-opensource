@@ -20,7 +20,6 @@ func Export(path, filename string, content []byte) error {
 		dir = path
 	}
 
-	// Check if directory exists, create if it doesn't
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err = os.MkdirAll(dir, 0o750)
 		if err != nil {
@@ -28,9 +27,8 @@ func Export(path, filename string, content []byte) error {
 		}
 	}
 
-	// Create the file in the directory
 	filePath := filepath.Join(dir, filename)
-	if err := os.WriteFile(filePath, content, 0o600); err != nil {
+	if err := CreateFileWithContent(filePath, string(content), false); err != nil {
 		return fmt.Errorf("failed to write content to file %s: %w", filePath, err)
 	}
 

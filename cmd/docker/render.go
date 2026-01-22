@@ -28,7 +28,7 @@ the environment directory with .env and docker-compose.yaml files.`,
 		var cfg *config.EnvConfig
 		var err error
 		if configFilePath != "" {
-			cfg, err = config.LoadConfigFromFile(configFilePath)
+			cfg, err = config.LoadConfig(configFilePath)
 			if err != nil {
 				display.Error("Failed to load config: %v", err)
 				os.Exit(1)

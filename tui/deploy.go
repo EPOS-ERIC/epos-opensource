@@ -181,11 +181,9 @@ func (a *App) showDeployProgress(data *deployFormData, isDocker bool) {
 
 			if isDocker {
 				docker, derr := dockercore.Deploy(dockercore.DeployOpts{
-					Name:        data.name,
-					EnvFile:     data.envFile,
-					ComposeFile: data.composeFile,
-					Path:        data.path,
-					PullImages:  data.pullImages,
+					// Name:       data.name,
+					Path:       data.path,
+					PullImages: data.pullImages,
 				})
 				err = derr
 				if docker != nil {

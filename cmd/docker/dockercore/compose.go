@@ -16,6 +16,7 @@ func composeCommand(dir string, args ...string) *exec.Cmd {
 }
 
 // pullEnvImages pulls docker images for the environment with custom messages
+// TODO make this take just the image struct and pull those, not using the env file
 func pullEnvImages(dir, name string) error {
 	display.Step("Pulling images for environment: %s", name)
 	if _, err := command.RunCommand(composeCommand(dir, "pull"), false); err != nil {

@@ -107,12 +107,9 @@ func (a *App) showUpdateProgress(data *updateFormData, isDocker bool) {
 			var err error
 			if isDocker {
 				_, err = dockercore.Update(dockercore.UpdateOpts{
-					Name:        data.name,
-					EnvFile:     data.envFile,
-					ComposeFile: data.composeFile,
-					PullImages:  data.pullImages,
-					Force:       data.force,
-					Reset:       data.reset,
+					PullImages: data.pullImages,
+					Force:      data.force,
+					Reset:      data.reset,
 				})
 			} else {
 				_, err = k8score.Update(k8score.UpdateOpts{

@@ -1,117 +1,190 @@
-# TODO: add description to each variable
+# Environment name. Can be any identifier (e.g., production, staging, test-deploy)
 name: ""
 
-domain: "localhost" # Shared hostname/IP (e.g., epos.example.com)
-protocol: "http" # http or https
+# Shared hostname/IP where all services are accessible (e.g., epos.example.com)
+domain: "localhost"
+
+# Protocol for accessing services. Must be http or https
+protocol: "http"
 
 components:
   platform_gui:
-    base_url: "/" # this is the base path used to access the interface
+    # URL path prefix for accessing the platform GUI interface
+    base_url: "/"
+    # Port number where the platform GUI will be accessible
     port: 32000
 
   gateway:
+    # Port number where the API gateway will be accessible
     port: 33000
+
     aai:
+      # Enable/disable AAI (Authentication and Authorization Infrastructure) integration
       enabled: false
+      # AAI service endpoint URL (required when AAI is enabled)
       service_endpoint: ""
+      # Security key for AAI authentication (required when AAI is enabled)
       security_key: ""
+
+    # Base URL path for the API gateway. Must start with / and end with /api/v1
     base_url: "/api/v1"
+
     swagger_page:
-      tile: "EPOS API Gateway" # API_TITLE
-      version: "2.0.0" # API_VERSION
-      contact_email: "" # CONTACT_EMAIL
+      # Title displayed on the API Gateway Swagger documentation page
+      tile: "EPOS API Gateway"
+      # API version shown in Swagger documentation
+      version: "2.0.0"
+      # Contact email displayed in Swagger documentation
+      contact_email: ""
 
   backoffice:
+    # Enable/disable the backoffice module
     enabled: false
+
     gui:
-      base_url: "/backoffice" # this is the base path used to access the interface
+      # URL path prefix for accessing the backoffice interface
+      base_url: "/backoffice"
+      # Port number where the backoffice GUI will be accessible
       port: 34000
+
     service:
       auth:
+        # Enable/disable authentication for the backoffice service
         enabled: false
+        # Restrict backoffice access to admin users only
         only_admin: false
 
   converter:
+    # Enable/disable the converter service
     enabled: false
     auth:
+      # Enable/disable authentication for the converter service
       enabled: false
+      # Restrict converter access to admin users only
       only_admin: false
 
   resources_service:
     auth:
+      # Enable/disable authentication for the resources service
       enabled: false
+      # Restrict resources service access to admin users only
       only_admin: false
+    # Cache TTL in milliseconds for database data when making searches
     cache_ttl: 5000
-    # api_context: "/api/v1" # the base path of the gateway use to build the execute urls and stuff. it needs to be the gateway base_url + "/api/v1"
 
   ingestor_service:
     auth:
+      # Enable/disable authentication for the ingestor service
       enabled: false
+      # Restrict ingestor service access to admin users only
       only_admin: false
+    # Validation hash for the ingestor service
     hash: "FA9BEB99E4029AD5A6615399E7BBAE21356086B3"
 
   external_access_service:
     auth:
+      # Enable/disable authentication for the external access service
       enabled: false
+      # Restrict external access service to admin users only
       only_admin: false
 
   sharing_service:
+    # Enable/disable the sharing service (allows sharing user configurations via URL)
     enabled: true
     auth:
+      # Enable/disable authentication for the sharing service
       enabled: false
+      # Restrict sharing service access to admin users only
       only_admin: false
 
   rabbitmq:
+    # RabbitMQ server hostname or IP address
     host: "rabbitmq"
+    # RabbitMQ authentication username
     username: "rabbitmq-user"
+    # RabbitMQ authentication password
     password: "changeme"
+    # RabbitMQ virtual host for message isolation
     vhost: "changeme"
 
   metadata_database:
+    # Database user for authentication
     user: "metadatauser"
+    # Database password for authentication
     password: "changeme"
+    # Database server hostname or IP address
     host: "metadata-database"
+    # Database server port number
     port: 5432
+    # Name of the database to connect to
     db_name: "cerif"
-
+    # Initial size of the database connection pool
     connection_pool_init_size: 5
+    # Minimum number of connections to maintain in the pool
     connection_pool_min_size: 5
+    # Maximum number of connections allowed in the pool
     connection_pool_max_size: 15
 
   email_sender_service:
+    # Enable/disable the email sender service
     enabled: false
-
+    # Environment type. Must be development, production, or staging
     environment_type: "development"
+    # Identifier for the email sender
     sender: "data-portal"
+    # Display name for the email sender
     sender_name: "EPOS Platform Opensource"
+    # Email delivery method. Must be API
     mail_type: "API"
-
-    # you should change these to use yours, these defaults will NOT work
+    # Domain used for sending emails
     sender_domain: "your.domain.com"
+    # Mail server hostname (for SMTP-based delivery)
     mail_host: "mail.domain.com"
+    # Mail server authentication username
     mail_user: "user@email.com"
+    # Mail server authentication password
     mail_password: "changeme"
+    # Semicolon-separated list of email addresses to receive notifications in development
     dev_emails: "foo.bar@somewhere.com;change.me@somewhere.com"
+    # API endpoint URL for email service
     mail_api_url: "https://api.example.email/"
+    # API key for authenticating with the email service
     mail_api_key: "changeme"
 
 monitoring:
+  # Enable/disable monitoring integration
   enabled: false
+  # Monitoring service URL
   url: ""
+  # Monitoring service authentication username
   user: ""
+  # Monitoring service authentication password
   password: ""
 
 images:
+  # Docker image for RabbitMQ message broker
   rabbitmq_image: "rabbitmq:3.13.7-management"
+  # Docker image for the data portal service
   dataportal_image: "epos/data-portal:latest"
+  # Docker image for the API gateway service
   gateway_image: "ghcr.io/epos-eric/epos-api-gateway:latest"
+  # Docker image for the metadata database
   metadata_database_image: "ghcr.io/epos-eric/metadata-database/deploy:latest"
+  # Docker image for the resources service
   resources_service_image: "ghcr.io/epos-eric/resources-service:latest"
+  # Docker image for the ingestor service
   ingestor_service_image: "ghcr.io/epos-eric/ingestor-service:latest"
+  # Docker image for the external access service
   external_access_image: "ghcr.io/epos-eric/external-access-service:latest"
+  # Docker image for the converter service
   converter_service_image: "ghcr.io/epos-eric/converter-service-go:latest"
+  # Docker image for the converter routine
   converter_routine_image: "ghcr.io/epos-eric/converter-routine-go:latest"
+  # Docker image for the backoffice service
   backoffice_service_image: "ghcr.io/epos-eric/backoffice-service:latest"
+  # Docker image for the backoffice UI
   backoffice_ui_image: "epos/backoffice-ui:latest"
+  # Docker image for the email sender service
   email_sender_service_image: "ghcr.io/epos-eric/email-sender-service:latest"
+  # Docker image for the sharing service
   sharing_service_image: "ghcr.io/epos-eric/sharing-service:latest"

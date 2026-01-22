@@ -16,82 +16,89 @@ import (
 )
 
 type UpdateOpts struct {
-	// Optional. path to an env file to use. If not set the default embedded one will be used
-	EnvFile string
-	// Optional. path to a docker-compose.yaml file. If not set the default embedded one will be used
-	ComposeFile string
-	// Required. name of the environment
-	Name string
-	// Optional. whether to pull the images before deploying or not
+	// Pull images before deploying the updated environment
 	PullImages bool
-	// Optional. whether to do a docker compose down before updating the environment. Useful to reset the environment's database
+	// Stop and remove containers before updating. Useful to reset the database
 	Force bool
-	// Optional. reset the environment config to the embedded defaults
+	// Reset config to embedded defaults. Cannot be used with NewConfig
 	Reset bool
-	// Optional. config to use for the deployment
-	Config *config.EnvConfig
+	// Name of the environment to update (required)
+	OldEnvName string
+	// New configuration to apply. If nil, preserves existing config
+	NewConfig *config.EnvConfig
 }
 
-// Update logic:
-// find the old env, if it does not exist give an error
-// if it exists, create a copy of it in a tmp dir
-// if no custom env/compose files provided and not resetting, use the existing files from the tmp dir as defaults
-// if force is set do a docker compose down on the original env
-// then remove the contents of the env dir and create the updated env file and docker-compose using existing or embedded files as appropriate
-// if pullImages is set before deploying pull the images for the updated env
-// deploy the updated compose
-// if everything goes right, delete the tmp dir and finish
-// else restore the tmp dir, deploy the old restored env and give an error in output
+// Update updates an existing Docker environment with new configuration.
+// It performs a safe update with rollback capability:
+//   - Creates a backup of the current environment in a temp directory
+//   - Deploys the new configuration
+//   - On failure, restores the backup automatically
+//
+// Options:
+//   - PullImages: Pull images before deploying
+//   - Force: Stop and reset the database before updating
+//   - Reset: Reset config to embedded defaults (ignores NewConfig if set)
+//   - OldEnvName: Name of the environment to update (required)
+//   - NewConfig: New configuration to apply (optional - preserves existing if nil)
+//
+// Returns the updated Docker record on success.
+// Returns an error if validation fails or update cannot complete.
 func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid parameters for update command: %w", err)
 	}
 
-	cfg := opts.Config
-	if cfg == nil {
-		cfg = config.GetDefaultConfig()
-	}
-
-	if opts.Name != "" {
-		cfg.Name = opts.Name
-	} else if cfg.Name == "" {
-		return nil, fmt.Errorf("environment name is required. Provide it as an argument or in the config file")
-	}
-
-	docker, err := db.GetDockerByName(cfg.Name)
+	docker, err := db.GetDockerByName(opts.OldEnvName)
 	if err != nil {
-		return nil, fmt.Errorf("error getting docker environment from db called '%s': %w", cfg.Name, err)
+		return nil, fmt.Errorf("error getting docker environment from db called '%s': %w", opts.OldEnvName, err)
 	}
+
+	oldConfig, err := config.LoadConfig(filepath.Join(docker.Directory, "config.yaml"))
+	if err != nil {
+		return nil, fmt.Errorf("error loading config from directory '%s': %w", docker.Directory, err)
+	}
+
+	if opts.Reset {
+		opts.NewConfig = config.GetDefaultConfig()
+	}
+
+	if opts.NewConfig == nil {
+		opts.NewConfig = oldConfig
+	}
+
+	if opts.NewConfig.Name == "" {
+		opts.NewConfig.Name = oldConfig.Name
+	}
+
+	display.Step("Updating environment: %s", opts.OldEnvName)
 
 	if !opts.PullImages {
-		updates, err := common.CheckEnvForUpdates(cfg.Images)
+		updates, err := opts.NewConfig.CheckForUpdates()
 		if err != nil {
 			log.Printf("error checking for updates: %v", err)
 		}
-		display.ImageUpdatesAvailable(updates, cfg.Name)
+		display.ImageUpdatesAvailable(updates, opts.NewConfig.Name)
 	}
 
-	display.Step("Updating environment: %s", cfg.Name)
-
-	// If it exists, create a copy of it in a tmp dir
-	tmpDir, err := common.CreateTmpCopy(docker.Directory)
+	bkpedir, err := common.CreateTmpCopy(docker.Directory)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create backup copy: %w", err)
 	}
 
 	handleFailure := func(msg string, mainErr error) (*sqlc.Docker, error) {
+		display.Error("Failed to update environment: %v", mainErr)
 		display.Step("Restoring environment from backup")
 		if err := common.RemoveEnvDir(docker.Directory); err != nil {
 			display.Error("Failed to remove corrupted directory: %v", err)
 		}
-		if err := common.RestoreTmpDir(tmpDir, docker.Directory); err != nil {
+		if err := common.RestoreTmpDir(bkpedir, docker.Directory); err != nil {
 			display.Error("Failed to restore from backup: %v", err)
 		} else {
 			if err := deployStack(true, docker.Directory); err != nil {
 				display.Error("Failed to deploy restored environment: %v", err)
 			}
 		}
-		if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
+		if cleanupErr := common.RemoveTmpDir(bkpedir); cleanupErr != nil {
 			display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
 		}
 		return nil, fmt.Errorf(msg, mainErr)
@@ -101,10 +108,11 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 
 	// If force is set do a docker compose down on the original env
 	if opts.Force {
+		display.Step("Stopping old environment")
 		if err := downStack(docker.Directory, true); err != nil {
 			return handleFailure("docker compose down failed: %w", err)
 		}
-		display.Done("Stopped environment: %s", cfg.Name)
+		display.Done("Stopped environment: %s", oldConfig.Name)
 	}
 
 	display.Step("Removing old environment directory")
@@ -116,19 +124,8 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 
 	display.Step("Creating new environment directory")
 
-	// when updating use the same config as before unless explicitly specified
-	if opts.Config == nil {
-		if opts.EnvFile == "" && !opts.Reset {
-			opts.EnvFile = filepath.Join(tmpDir, ".env")
-		}
-		if opts.ComposeFile == "" && !opts.Reset {
-			opts.ComposeFile = filepath.Join(tmpDir, "docker-compose.yaml")
-		}
-	}
-
 	// create the directory in the parent
-	path := filepath.Dir(docker.Directory)
-	dir, err := NewEnvDir(opts.EnvFile, opts.ComposeFile, path, cfg.Name, cfg)
+	dir, err := NewEnvDir(docker.Directory, opts.NewConfig)
 	if err != nil {
 		return handleFailure("failed to prepare environment directory: %w", err)
 	}
@@ -137,7 +134,7 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 
 	// If pullImages is set before deploying pull the images for the updated env
 	if opts.PullImages {
-		if err := pullEnvImages(dir, cfg.Name); err != nil {
+		if err := pullEnvImages(dir, opts.NewConfig.Name); err != nil {
 			display.Error("Pulling images failed: %v", err)
 			return handleFailure("pulling images failed: %w", err)
 		}
@@ -149,7 +146,7 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 		return handleFailure("deploy failed: %w", err)
 	}
 
-	urls, err := cfg.BuildEnvURLs()
+	urls, err := opts.NewConfig.BuildEnvURLs()
 	if err != nil {
 		display.Error("error building urls: %v", err)
 		return handleFailure("error building urls: %w", err)
@@ -161,65 +158,60 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 			display.Error("error initializing the ontologies in the environment: %v", err)
 			return handleFailure("error initializing the ontologies in the environment: %w", err)
 		}
-		if err := db.DeleteIngestedFilesByEnvironment("docker", cfg.Name); err != nil {
+		if err := db.DeleteIngestedFilesByEnvironment("docker", opts.NewConfig.Name); err != nil {
 			return handleFailure("failed to clear ingested files tracking: %w", err)
 		}
 	}
 
 	// If everything goes right, delete the tmp dir and finish
-	if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
+	if cleanupErr := common.RemoveTmpDir(bkpedir); cleanupErr != nil {
 		display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
 	}
 
-	var backofficePort int64
-	if cfg.Components.Backoffice.Enabled {
-		backofficePort = int64(cfg.Components.Backoffice.GUI.Port)
+	err = db.DeleteDocker(opts.OldEnvName)
+	if err != nil {
+		return handleFailure("failed to delete old docker in db: %w", fmt.Errorf("%s (dir: %s): %w", opts.OldEnvName, docker.Directory, err))
 	}
-	docker, err = db.UpsertDocker(sqlc.Docker{
-		Name:           opts.Name,
+
+	var backofficePort int64
+	if opts.NewConfig.Components.Backoffice.Enabled {
+		backofficePort = int64(opts.NewConfig.Components.Backoffice.GUI.Port)
+	}
+
+	newDocker, err := db.UpsertDocker(sqlc.Docker{
+		Name:           opts.NewConfig.Name,
 		Directory:      dir,
 		ApiUrl:         urls.APIURL,
 		GuiUrl:         urls.GUIURL,
 		BackofficeUrl:  urls.BackofficeURL,
-		ApiPort:        int64(cfg.Components.Gateway.Port),
-		GuiPort:        int64(cfg.Components.PlatformGUI.Port),
+		ApiPort:        int64(opts.NewConfig.Components.Gateway.Port),
+		GuiPort:        int64(opts.NewConfig.Components.PlatformGUI.Port),
 		BackofficePort: &backofficePort,
 	})
 	if err != nil {
-		return handleFailure("failed to insert docker in db: %w", fmt.Errorf("%s (dir: %s): %w", opts.Name, dir, err))
+		return handleFailure("failed to insert docker in db: %w", fmt.Errorf("%s (dir: %s): %w", opts.NewConfig.Name, dir, err))
 	}
 
-	return docker, nil
+	return newDocker, nil
 }
 
 func (u *UpdateOpts) Validate() error {
-	// TODO: also check the cfg.Name if there is
-	if u.Name == "" {
-		return fmt.Errorf("environment name is required")
+	if u.OldEnvName == "" {
+		return fmt.Errorf("name is required")
 	}
 
-	if u.Name != "" && u.Config != nil && u.Config.Name != "" {
-		display.Warn("Environment name provided in both cli arguments and config file; using cli provided environment name")
+	if err := validate.EnvironmentExistsDocker(u.OldEnvName); err != nil {
+		return fmt.Errorf("no environment with name '%s' exists: %w", u.OldEnvName, err)
 	}
 
-	if err := validate.EnvironmentExistsDocker(u.Name); err != nil {
-		return fmt.Errorf("no environment with name '%s' exists: %w", u.Name, err)
+	if u.Reset && u.NewConfig != nil {
+		return fmt.Errorf("cannot specify custom config when Reset is true")
 	}
 
-	if err := validate.IsFile(u.EnvFile); err != nil {
-		return fmt.Errorf("the path to .env '%s' is not a file: %w", u.EnvFile, err)
-	}
-
-	if err := validate.IsFile(u.ComposeFile); err != nil {
-		return fmt.Errorf("the path to docker-compose '%s' is not a file: %w", u.ComposeFile, err)
-	}
-
-	if u.Reset && (u.EnvFile != "" || u.ComposeFile != "") {
-		return fmt.Errorf("cannot specify custom files when Reset is true; Reset uses embedded defaults")
-	}
-
-	if u.Config != nil && (u.ComposeFile != "" || u.EnvFile != "") {
-		return fmt.Errorf("cannot specify custom files when config is provided; the config is rendered to new files")
+	if u.NewConfig != nil {
+		if err := u.NewConfig.Validate(); err != nil {
+			return fmt.Errorf("invalid config: %w", err)
+		}
 	}
 
 	return nil

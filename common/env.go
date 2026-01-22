@@ -24,13 +24,13 @@ func init() {
 }
 
 // CreateFileWithContent creates a file with given content
-func CreateFileWithContent(filePath, content string) error {
+func CreateFileWithContent(filePath, content string, doNotEdit bool) error {
 	file, err := os.Create(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to create file %s: %w", filePath, err)
 	}
 	defer file.Close()
-	if _, err := file.WriteString(content); err != nil {
+	if _, err := file.WriteString(GenerateExportHeader(doNotEdit) + content); err != nil {
 		return fmt.Errorf("failed to write content to file %s: %w", filePath, err)
 	}
 	return nil

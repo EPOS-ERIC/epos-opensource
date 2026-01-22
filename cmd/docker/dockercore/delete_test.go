@@ -1,7 +1,6 @@
 package dockercore
 
 import (
-	_ "embed"
 	"testing"
 )
 
@@ -12,8 +11,18 @@ func TestDeleteOpts_Validate(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "Environment does not exist",
+			name:    "non-existent environment returns error",
 			opts:    DeleteOpts{Name: []string{"does_not_exist"}},
+			wantErr: true,
+		},
+		{
+			name:    "empty slice returns no error",
+			opts:    DeleteOpts{Name: []string{}},
+			wantErr: false,
+		},
+		{
+			name:    "first of multiple non-existent environments fails",
+			opts:    DeleteOpts{Name: []string{"env1", "does_not_exist", "env3"}},
 			wantErr: true,
 		},
 	}
@@ -21,10 +30,8 @@ func TestDeleteOpts_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.opts.Validate()
-			if err != nil {
-				if !tt.wantErr {
-					t.Fatalf("DeleteOpts.Validate() error = %v, wantErr %v", err, tt.wantErr)
-				}
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

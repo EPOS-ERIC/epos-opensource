@@ -146,7 +146,7 @@ services:
 
       - APICONTEXT=/api/v1
 
-      - APIHOST=http://localhost:${GATEWAY_PORT:-33000}/
+      - APIHOST=http://${HOST}:${GATEWAY_PORT:-33000}/
       - PERSISTENCE_NAME="EPOSDataModel"
 
 {{if .Monitoring.Enabled}}

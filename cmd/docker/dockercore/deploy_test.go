@@ -27,12 +27,12 @@ func TestDeploy(t *testing.T) {
 	}{
 		{
 			name:    "deploy with invalid name",
-			opts:    dockercore.DeployOpts{Name: ""},
+			opts:    dockercore.DeployOpts{},
 			wantErr: true,
 		},
 		{
 			name: "deploy (default path)",
-			opts: dockercore.DeployOpts{Name: "docker-deploy-test"},
+			opts: dockercore.DeployOpts{},
 			want: &sqlc.Docker{
 				Name:      "docker-deploy-test",
 				Directory: "", // ignore
@@ -47,7 +47,6 @@ func TestDeploy(t *testing.T) {
 		{
 			name: "deploy with custom path",
 			opts: dockercore.DeployOpts{
-				Name: "docker-deploy-test",
 				Path: tempDirCustomPath,
 			},
 			want: &sqlc.Docker{

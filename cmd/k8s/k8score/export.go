@@ -11,19 +11,14 @@ type ExportOpts struct {
 }
 
 func Export(opts ExportOpts) error {
-	header := common.GenerateExportHeader()
-
-	envContent := header + EnvFile
-
-	err := common.Export(opts.Path, ".env", []byte(envContent))
+	err := common.Export(opts.Path, ".env", []byte(EnvFile))
 	if err != nil {
 		return err
 	}
 	display.Done("Exported file: %s", ".env")
 
 	for name, content := range EmbeddedManifestContents {
-		fileContent := header + content
-		err = common.Export(opts.Path, name, []byte(fileContent))
+		err = common.Export(opts.Path, name, []byte(content))
 		if err != nil {
 			return err
 		}

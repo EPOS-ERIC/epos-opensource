@@ -15,16 +15,12 @@ type ExportOpts struct {
 }
 
 func Export(opts ExportOpts) error {
-	header := common.GenerateExportHeader()
-
 	path, err := filepath.Abs(opts.Path)
 	if err != nil {
 		return fmt.Errorf("failed to get absolute path for export path %s: %w", opts.Path, err)
 	}
 
 	cfg := config.GetDefaultConfigBytes()
-
-	cfg = append([]byte(header), cfg...)
 
 	err = common.Export(opts.Path, "config.yaml", cfg)
 	if err != nil {

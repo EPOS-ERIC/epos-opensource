@@ -132,3 +132,20 @@ type Monitoring struct {
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
 }
+
+func (e *EnvConfig) UsingDefaultPorts() bool {
+	defaultConfig := GetDefaultConfig()
+
+	if e.Components.PlatformGUI.Port != defaultConfig.Components.PlatformGUI.Port {
+		return false
+	}
+	if e.Components.Gateway.Port != defaultConfig.Components.Gateway.Port {
+		return false
+	}
+	if e.Components.Backoffice.Enabled {
+		if e.Components.Backoffice.GUI.Port != defaultConfig.Components.Backoffice.GUI.Port {
+			return false
+		}
+	}
+	return true
+}
