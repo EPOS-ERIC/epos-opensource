@@ -273,7 +273,9 @@ func deployManifests(dir, namespace string, createNamespace bool, context string
 				return fmt.Errorf("failed to create namespace %s: %w", namespace, err)
 			}
 		} else {
-			return fmt.Errorf("namespace %s already exists", namespace)
+			// return fmt.Errorf("namespace %s already exists", namespace)
+			// don't fail if the namespace already exists
+			display.Info("Namespace %s already exists, using it", namespace)
 		}
 	}
 
