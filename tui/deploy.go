@@ -191,14 +191,14 @@ func (a *App) showDeployProgress(data *deployFormData, isDocker bool) {
 				}
 			} else {
 				k8s, kerr := k8score.Deploy(k8score.DeployOpts{
-					Name:        data.name,
-					EnvFile:     data.envFile,
-					ManifestDir: data.manifestDir,
-					Path:        data.path,
-					Context:     data.context,
-					Protocol:    data.protocol,
-					CustomHost:  data.host,
-					TLSEnabled:  data.tlsEnabled,
+					// Name:        data.name,
+					// EnvFile:     data.envFile,
+					// ManifestDir: data.manifestDir,
+					Path:    data.path,
+					Context: data.context,
+					// Protocol:    data.protocol,
+					// CustomHost:  data.host,
+					// TLSEnabled:  data.tlsEnabled,
 				})
 				err = kerr
 				if k8s != nil {

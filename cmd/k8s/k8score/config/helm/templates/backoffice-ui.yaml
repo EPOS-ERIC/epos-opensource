@@ -1,0 +1,116 @@
+{{- if .Values.components.backoffice.enabled }}
+{{- $base_url := .Values.components.backoffice.gui.base_url | default "/backoffice" }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backoffice-ui
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backoffice-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "epos.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backoffice-ui
+  template:
+    metadata:
+      labels:
+        {{- include "epos.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: backoffice-ui
+    spec:
+      {{- include "epos.imagePullSecrets" . | nindent 6 }}
+      initContainers:
+      - name: wait-for-gateway
+        image: busybox:latest
+        command:
+        - /bin/sh
+        - -c
+        - |-
+          until nc -z gateway 5000; do
+            sleep 1;
+          done
+      - name: wait-for-backoffice
+        image: busybox:latest
+        command:
+        - /bin/sh
+        - -c
+        - |-
+          until nc -z backoffice-service 8080; do
+            sleep 1;
+          done
+      containers:
+      - name: backoffice-ui
+        image: {{ .Values.images.backoffice_ui_image }}
+        envFrom:
+        - configMapRef:
+            name: backoffice-ui
+        ports:
+        - containerPort: 80
+          name: http
+        {{- include "epos.nodeSelector" . | nindent 6 }}
+        {{- include "epos.tolerations" . | nindent 6 }}
+        {{- include "epos.affinity" . | nindent 6 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backoffice-ui
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backoffice-ui
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+    name: http
+  selector:
+    {{- include "epos.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: backoffice-ui
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: backoffice-ui
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backoffice-ui
+  annotations:
+	{{- if .Values.url_prefix_namespace }}
+    nginx.ingress.kubernetes.io/rewrite-target: /{{ .Release.Namespace }}{{ .Values.components.backoffice.gui.base_url }}
+	{{- else }}
+    nginx.ingress.kubernetes.io/rewrite-target: {{ .Values.components.backoffice.gui.base_url }}
+	{{- end }}
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+	  {{- if .Values.url_prefix_namespace }}
+      - path: /{{ .Release.Namespace }}{{ .Values.components.backoffice.gui.base_url }}
+	  {{- else }}
+      - path: {{ .Values.components.backoffice.gui.base_url }}
+	  {{- end }}
+        pathType: Prefix
+        backend:
+          service:
+            name: backoffice-ui
+            port:
+              number: 80
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backoffice-ui
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backoffice-ui
+data:
+  {{- if .Values.url_prefix_namespace }}
+  BASE_URL: /{{ .Release.Namespace }}{{ .Values.components.backoffice.gui.base_url }}
+  {{- else }}
+  BASE_URL: {{ .Values.components.backoffice.gui.base_url }}
+  {{- end }}
+  API_HOST: http://gateway:5000/api
+{{- end }}

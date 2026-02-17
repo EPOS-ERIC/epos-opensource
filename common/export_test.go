@@ -78,7 +78,7 @@ func TestExport(t *testing.T) {
 			path, cleanup := tt.setup(t)
 			defer cleanup()
 
-			err := Export(path, tt.filename, tt.content)
+			gotPath, err := Export(path, tt.filename, tt.content)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("Export() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -95,6 +95,10 @@ func TestExport(t *testing.T) {
 					}
 					return path
 				}(), tt.filename)
+
+			if gotPath != fp {
+				t.Fatalf("Export() path = %q, want %q", gotPath, fp)
+			}
 
 			gotData, err := os.ReadFile(fp)
 			if err != nil {

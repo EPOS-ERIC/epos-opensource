@@ -1,0 +1,94 @@
+{{- if .Values.components.backoffice.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backoffice-service
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backoffice-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "epos.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backoffice-service
+  template:
+    metadata:
+      labels:
+        {{- include "epos.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: backoffice-service
+    spec:
+      {{- include "epos.imagePullSecrets" . | nindent 6 }}
+      initContainers:
+      - name: wait-for-metadata-database
+        image: busybox:latest
+        command:
+        - /bin/sh
+        - -c
+        - |-
+          until nc -z metadata-database 5432; do
+            sleep 1;
+          done
+      containers:
+      - name: backoffice-service
+        image: {{ .Values.images.backoffice_service_image }}
+        ports:
+        - containerPort: 8080
+          name: http
+        envFrom:
+        - configMapRef:
+            name: backoffice-service
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - curl --fail --silent http://localhost:8080/api/backoffice-service/v1/actuator/health | grep UP || exit 1
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 5
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - curl --fail --silent http://localhost:8080/api/backoffice-service/v1/actuator/health | grep UP || exit 1
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 5
+      {{- include "epos.nodeSelector" . | nindent 6 }}
+      {{- include "epos.tolerations" . | nindent 6 }}
+      {{- include "epos.affinity" . | nindent 6 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backoffice-service
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backoffice-service
+spec:
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  selector:
+    {{- include "epos.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: backoffice-service
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backoffice-service
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backoffice-service
+data:
+  POSTGRESQL_CONNECTION_STRING: "{{ include "epos.postgresqlConnectionString" . }}"
+  CONNECTION_POOL_INIT_SIZE: {{ .Values.components.metadata_database.connection_pool_init_size | quote }}
+  CONNECTION_POOL_MIN_SIZE: {{ .Values.components.metadata_database.connection_pool_min_size | quote }}
+  CONNECTION_POOL_MAX_SIZE: {{ .Values.components.metadata_database.connection_pool_max_size | quote }}
+{{- end }}

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score"
+	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score/config"
 	"github.com/EPOS-ERIC/epos-opensource/display"
 
 	"github.com/spf13/cobra"
@@ -16,24 +17,35 @@ var DeployCmd = &cobra.Command{
 	Short: "Create and deploy a new K8s environment in a dedicated namespace.",
 	Long: `Sets up a new K8s environment in a fresh namespace, applying all required manifests and configuration. Fails if the namespace already exists.
 NOTE: to execute the deploy it will try to use port-forwarding to the cluster. If that fails it will retry using the external api.`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		protocol := "http"
-		if secure {
-			protocol = "https"
+		display.Debug("configFilePath: %s", configFilePath)
+		display.Debug("context: %s", context)
+
+		var cfg *config.EnvConfig
+		var err error
+		if configFilePath == "" {
+			cfg = config.GetDefaultConfig()
+		} else {
+			cfg, err = config.LoadConfig(configFilePath)
+			if err != nil {
+				display.Error("Failed to load config: %v", err)
+				os.Exit(1)
+			}
+		}
+
+		if len(args) > 0 && args[0] != "" {
+			cfg.Name = args[0]
+			if configFilePath != "" {
+				display.Warn("Using environment name from command line: %s", cfg.Name)
+			}
 		}
 
 		k, err := k8score.Deploy(k8score.DeployOpts{
-			EnvFile:     envFile,
-			ManifestDir: manifestsDir,
-			Path:        path,
-			Name:        name,
-			Context:     context,
-			Protocol:    protocol,
-			CustomHost:  host,
-			TLSEnabled:  tlsManifest,
+			Context: context,
+			Config:  cfg,
 		})
 		if err != nil {
 			display.Error("%v", err)
@@ -45,11 +57,6 @@ NOTE: to execute the deploy it will try to use port-forwarding to the cluster. I
 }
 
 func init() {
-	DeployCmd.Flags().StringVarP(&envFile, "env-file", "e", "", "Path to the environment variables file (.env)")
-	DeployCmd.Flags().StringVarP(&path, "path", "p", "", "Location for the environment files")
-	DeployCmd.Flags().StringVarP(&manifestsDir, "manifests-dir", "m", "", "Path to the directory containing the manifests files")
-	DeployCmd.Flags().StringVarP(&context, "context", "c", "", "kubectl context used for the environment deployment. Uses current if not set")
-	DeployCmd.Flags().BoolVarP(&secure, "secure", "s", false, "Use https as the protocol. If not set uses http by default")
-	DeployCmd.Flags().StringVar(&host, "host", "", "Host (either IP or hostname) to use for exposing the environment. If not set the nginx ingress controller IP is used by default")
-	DeployCmd.Flags().BoolVar(&tlsManifest, "tls", false, "Use TLS-enabled ingress manifests (ingresses-secure.yaml). False by default")
+	DeployCmd.Flags().StringVar(&context, "context", "", "kubectl context used for the environment deployment. Uses current if not set")
+	DeployCmd.Flags().StringVarP(&configFilePath, "config", "c", "", "Path to YAML configuration file")
 }

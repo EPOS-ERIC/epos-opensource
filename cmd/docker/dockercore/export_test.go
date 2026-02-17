@@ -11,70 +11,63 @@ import (
 
 func TestExport(t *testing.T) {
 	tests := []struct {
-		name          string
-		setupPath     func(t *testing.T) (string, func())
-		wantErr       bool
-		wantFileMatch bool
+		name      string
+		setupPath func(t *testing.T) string
+		wantErr   bool
 	}{
 		{
-			name: "success - existing dir",
-			setupPath: func(t *testing.T) (string, func()) {
-				return t.TempDir(), func() {}
+			name: "success - exports docker config filename",
+			setupPath: func(t *testing.T) string {
+				return t.TempDir()
 			},
-			wantErr:       false,
-			wantFileMatch: true,
-		},
-		{
-			name: "success - dir auto-created",
-			setupPath: func(t *testing.T) (string, func()) {
-				path := filepath.Join(t.TempDir(), "nested", "dir")
-				return path, func() {}
-			},
-			wantErr:       false,
-			wantFileMatch: true,
+			wantErr: false,
 		},
 		{
 			name: "failure - path is a file",
-			setupPath: func(t *testing.T) (string, func()) {
+			setupPath: func(t *testing.T) string {
 				tmpFile, err := os.CreateTemp(t.TempDir(), "not-a-dir")
 				if err != nil {
 					t.Fatalf("failed to create temp file: %v", err)
 				}
 				_ = tmpFile.Close()
-				return tmpFile.Name(), func() {}
+				return tmpFile.Name()
 			},
-			wantErr:       true,
-			wantFileMatch: false,
+			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			exportPath, cleanup := tt.setupPath(t)
-			defer cleanup()
+			exportPath := tt.setupPath(t)
 
 			err := Export(ExportOpts{Path: exportPath})
-
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("Export() error = %v, wantErr %v", err, tt.wantErr)
 			}
+			if tt.wantErr {
+				return
+			}
 
-			if !tt.wantErr {
-				filePath := filepath.Join(exportPath, "config.yaml")
-				if _, err := os.Stat(filePath); os.IsNotExist(err) {
-					t.Errorf("Export() did not create config.yaml")
-				}
+			dockerConfigPath := filepath.Join(exportPath, "docker-config.yaml")
+			if _, err := os.Stat(dockerConfigPath); err != nil {
+				t.Fatalf("Export() did not create docker-config.yaml: %v", err)
+			}
 
-				if tt.wantFileMatch {
-					content, err := os.ReadFile(filePath)
-					if err != nil {
-						t.Errorf("failed to read exported file: %v", err)
-					}
-					expected := config.GetDefaultConfigBytes()
-					if !bytes.HasSuffix(content, expected) {
-						t.Errorf("Export() content does not end with default config")
-					}
-				}
+			legacyPath := filepath.Join(exportPath, "config.yaml")
+			if _, err := os.Stat(legacyPath); err == nil {
+				t.Fatalf("Export() unexpectedly created legacy config.yaml")
+			} else if !os.IsNotExist(err) {
+				t.Fatalf("stat legacy config.yaml: %v", err)
+			}
+
+			content, err := os.ReadFile(dockerConfigPath)
+			if err != nil {
+				t.Fatalf("failed to read exported file: %v", err)
+			}
+
+			expected := config.GetDefaultConfigBytes()
+			if !bytes.HasSuffix(content, expected) {
+				t.Fatalf("Export() content does not end with default docker config")
 			}
 		})
 	}

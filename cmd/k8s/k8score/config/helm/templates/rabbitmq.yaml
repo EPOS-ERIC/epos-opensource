@@ -1,0 +1,79 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "epos.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: rabbitmq
+  template:
+    metadata:
+      labels:
+        {{- include "epos.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: rabbitmq
+    spec:
+      {{- include "epos.imagePullSecrets" . | nindent 6 }}
+      containers:
+      - name: rabbitmq
+        image: {{ .Values.images.rabbitmq_image }}
+        ports:
+        - containerPort: 5672
+          name: amqp
+        envFrom:
+        - configMapRef:
+            name: rabbitmq
+        livenessProbe:
+          exec:
+            command:
+            - rabbitmq-diagnostics
+            - check_running
+          initialDelaySeconds: 20
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 5
+        readinessProbe:
+          exec:
+            command:
+            - rabbitmq-diagnostics
+            - check_running
+          initialDelaySeconds: 20
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 5
+      {{- include "epos.nodeSelector" . | nindent 6 }}
+      {{- include "epos.tolerations" . | nindent 6 }}
+      {{- include "epos.affinity" . | nindent 6 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
+spec:
+  ports:
+  - port: 5672
+    targetPort: 5672
+    name: amqp
+  selector:
+    {{- include "epos.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
+data:
+  RABBITMQ_DEFAULT_PASS: {{ .Values.components.rabbitmq.password }}
+  RABBITMQ_DEFAULT_USER: {{ .Values.components.rabbitmq.username }}
+  RABBITMQ_DEFAULT_VHOST: {{ .Values.components.rabbitmq.vhost }}

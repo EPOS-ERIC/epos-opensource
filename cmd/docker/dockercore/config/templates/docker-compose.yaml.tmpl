@@ -282,11 +282,6 @@ services:
     environment:
       - LOG_LEVEL=INFO
 
-      - BROKER_HOST=${RABBITMQ_HOST}
-      - BROKER_USERNAME=${RABBITMQ_USERNAME}
-      - BROKER_PASSWORD=${RABBITMQ_PASSWORD}
-      - BROKER_VHOST=${RABBITMQ_VHOST}
-
       - POSTGRESQL_CONNECTION_STRING
     healthcheck:
       test:

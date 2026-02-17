@@ -4,33 +4,26 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score/config"
 	"github.com/EPOS-ERIC/epos-opensource/common"
-	"github.com/EPOS-ERIC/epos-opensource/db"
 	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
 	"github.com/EPOS-ERIC/epos-opensource/display"
 	"github.com/EPOS-ERIC/epos-opensource/validate"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
 )
 
 type DeployOpts struct {
-	// Optional. path to an env file to use. If not set the default embedded one will be used
-	EnvFile string
-	// Optional. path to a directory that will contain the custom manifest to use for the deploy
-	ManifestDir string
-	// Optional. path to a custom directory to store the .env and manifests in
+	// Optional. TODO
 	Path string
-	// Required. name of the environment
-	Name string
 	// Optional. the K8s context to be used. uses current kubeclt default if not set
 	Context string
-	// Optional. the protocol to use for the deployment. currently supports http and https
-	Protocol string
-	// Optional. custom ip (or hostname) to use instead of using the generated one
-	CustomHost string
-	// Optional. use TLS-enabled ingress manifests (ingresses-secure.yaml)
-	TLSEnabled bool
+	// Environment configuration (required)
+	Config *config.EnvConfig
 }
 
 func Deploy(opts DeployOpts) (*sqlc.K8s, error) {
+	// TODO: do we really need this context fallback?
 	if opts.Context == "" {
 		ctx, err := common.GetCurrentKubeContext()
 		if err != nil {
@@ -38,116 +31,87 @@ func Deploy(opts DeployOpts) (*sqlc.K8s, error) {
 		}
 		opts.Context = ctx
 	}
+
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid deploy parameters: %w", err)
 	}
-	display.Info("Using kubectl context: %s", opts.Context)
-	display.Step("Creating environment: %s", opts.Name)
 
-	host := opts.CustomHost
-	if host == "" {
-		generatedHost, err := getAPIHost(opts.Context)
-		if err != nil {
-			return nil, fmt.Errorf("error getting api host: %w", err)
-		}
-		host = generatedHost
-	}
+	// TODO: add info/logs
 
-	dir, err := NewEnvDir(opts.EnvFile, opts.ManifestDir, opts.Path, opts.Name, opts.Context, opts.Protocol, host)
+	// TODO: handle failure?
+
+	urls, err := opts.Config.BuildEnvURLs()
 	if err != nil {
-		return nil, fmt.Errorf("failed to prepare environment directory: %w", err)
+		display.Error("error building urls: %v", err)
+		return nil, nil
+		// return handleFailure("error building urls: %w", err)
 	}
 
-	display.Done("Environment created in directory: %s", dir)
+	display.Debug("urls: %+v", urls)
 
-	handleFailure := func(msg string, mainErr error) (*sqlc.K8s, error) {
-		if err := deleteNamespace(opts.Name, opts.Context); err != nil {
-			display.Warn("error deleting namespace %s, %v", opts.Name, err)
-		}
-		if err := common.RemoveEnvDir(dir); err != nil {
-			return nil, fmt.Errorf("error deleting environment %s: %w", dir, err)
-		}
-		display.Error("stack deployment failed")
-		return nil, fmt.Errorf(msg, mainErr)
-	}
+	// TODO: deploy using helm sdk
 
-	if err := deployManifests(dir, opts.Name, true, opts.Context, opts.TLSEnabled); err != nil {
-		display.Error("Deploy failed: %v", err)
-		return handleFailure("deploy failed: %w", err)
-	}
-
-	portalURL, gatewayURL, backofficeURL, err := buildEnvURLs(dir, opts.Protocol, host)
+	chart, err := config.GetChart()
 	if err != nil {
-		display.Error("error building env urls for the environment: %v", err)
-		return handleFailure("error building env urls for environment '%s': %w", fmt.Errorf("%s: %w", dir, err))
+		return nil, fmt.Errorf("TODO: %w", err)
 	}
 
-	display.Info("Generated URL for platform interface: %s", portalURL)
-	display.Info("Generated URL for gateway: %s", gatewayURL)
-	display.Info("Generated URL for backoffice: %s", backofficeURL)
-
-	display.Step("Starting port-forward to gateway pod for ontologies")
-
-	localPort, err := common.FindFreePort()
+	values, err := opts.Config.AsValues()
 	if err != nil {
-		return handleFailure("could not find free port: %w", err)
+		return nil, fmt.Errorf("TODO: %w", err)
 	}
 
-	err = ForwardAndRun(opts.Name, "ingestor-service", localPort, 8080, opts.Context, func(host string, port int) error {
-		url := fmt.Sprintf("http://%s:%d/api/ingestor-service/v1/", host, port)
-		if err := common.PopulateOntologies(url); err != nil {
-			return fmt.Errorf("error populating ontologies through port-forward: %w", err)
-		}
-		return nil
-	})
+	settings := cli.New()
+	settings.KubeContext = opts.Context
+	settings.SetNamespace(opts.Config.Name)
+
+	actionConfig := &action.Configuration{}
+	if err := actionConfig.Init(
+		settings.RESTClientGetter(),
+		opts.Config.Name,
+		"secret",
+		func(format string, v ...any) { display.Info(format, v...) },
+	); err != nil {
+		return nil, fmt.Errorf("failed to init helm action config: %w", err)
+	}
+
+	client := action.NewInstall(actionConfig)
+	client.ReleaseName = opts.Config.Name
+	client.Namespace = opts.Config.Name
+	client.CreateNamespace = true
+
+	rel, err := client.Run(chart, values.AsMap())
 	if err != nil {
-		display.Warn("error initializing the ontologies in the environment, trying with direct URL: %s. error: %v", gatewayURL, err)
-
-		err := common.PopulateOntologies(gatewayURL)
-		if err != nil {
-			display.Error("error initializing the ontologies in the environment: %v", err)
-			return handleFailure("error initializing the ontologies: %w", err)
-		}
+		return nil, fmt.Errorf("failed to install helm chart: %w", err)
 	}
 
-	kube, err := db.InsertK8s(opts.Name, dir, opts.Context, gatewayURL, portalURL, backofficeURL, opts.Protocol, opts.TLSEnabled)
-	if err != nil {
-		display.Error("failed to insert k8s in db: %v", err)
-		return handleFailure("failed to insert k8s %s (dir: %s) in db: %w", fmt.Errorf("%s, %s, %w", opts.Name, dir, err))
-	}
+	display.Debug("Installed release: %s (status: %s)", rel.Name, rel.Info.Status)
 
-	return kube, nil
+	return nil, nil
 }
 
 func (d *DeployOpts) Validate() error {
-	if err := validate.Name(d.Name); err != nil {
-		return fmt.Errorf("'%s' is an invalid name for an environment: %w", d.Name, err)
+	if d.Config == nil {
+		return fmt.Errorf("config is required")
 	}
 
-	if err := validate.EnvironmentNotExistK8s(d.Name); err != nil {
-		return fmt.Errorf("an environment with the name '%s' already exists: %w", d.Name, err)
+	if err := d.Config.Validate(); err != nil {
+		return fmt.Errorf("invalid config: %w", err)
+	}
+
+	if err := validate.Name(d.Config.Name); err != nil {
+		return fmt.Errorf("'%s' is an invalid name for an environment: %w", d.Config.Name, err)
+	}
+
+	if err := validate.EnvironmentNotExistK8s(d.Config.Name); err != nil {
+		return fmt.Errorf("an environment with the name '%s' already exists: %w", d.Config.Name, err)
 	}
 
 	if err := validate.PathExists(d.Path); err != nil {
 		return fmt.Errorf("the path '%s' is not a valid path: %w", d.Path, err)
 	}
 
-	if err := validate.PathExists(d.ManifestDir); err != nil {
-		return fmt.Errorf("the manifest directory path '%s' is not a valid path: %w", d.ManifestDir, err)
-	}
-
-	if err := validate.CustomHost(d.CustomHost); err != nil {
-		return fmt.Errorf("the custom host '%s' is not a valid ip or hostname: %w", d.CustomHost, err)
-	}
-
-	if d.Protocol != "http" && d.Protocol != "https" {
-		return fmt.Errorf("invalid protocol '%s': must be either 'http' or 'https'", d.Protocol)
-	}
-
-	if err := validate.IsFile(d.EnvFile); err != nil {
-		return fmt.Errorf("the path to .env '%s' is not a file: %w", d.EnvFile, err)
-	}
-
+	// TODO: do we really need this?
 	contexts, err := common.GetKubeContexts()
 	if err != nil {
 		return fmt.Errorf("failed to list kubectl contexts: %w", err)

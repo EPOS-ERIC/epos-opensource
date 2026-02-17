@@ -1,0 +1,104 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dataportal
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: dataportal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "epos.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: dataportal
+  template:
+    metadata:
+      labels:
+        {{- include "epos.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: dataportal
+    spec:
+      {{- include "epos.imagePullSecrets" . | nindent 6 }}
+      initContainers:
+      - name: wait-for-gateway
+        image: busybox:latest
+        command:
+        - /bin/sh
+        - -c
+        - |-
+          until nc -z gateway 5000; do
+            sleep 1;
+          done
+      containers:
+      - name: dataportal
+        image: {{ .Values.images.dataportal_image }}
+        envFrom:
+        - configMapRef:
+            name: dataportal
+        ports:
+        - containerPort: 80
+          name: http
+        {{- include "epos.nodeSelector" . | nindent 6 }}
+        {{- include "epos.tolerations" . | nindent 6 }}
+        {{- include "epos.affinity" . | nindent 6 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dataportal
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: dataportal
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+    name: http
+  selector:
+    {{- include "epos.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: dataportal
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dataportal
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: dataportal
+  annotations:
+	{{- if .Values.url_prefix_namespace }}
+    nginx.ingress.kubernetes.io/rewrite-target: /{{ .Release.Namespace }}{{ .Values.components.platform_gui.base_url }}
+	{{- else }}
+    nginx.ingress.kubernetes.io/rewrite-target: {{ .Values.components.platform_gui.base_url }}
+	{{- end }}
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+	  {{- if .Values.url_prefix_namespace }}
+      - path: /{{ .Release.Namespace }}{{ .Values.components.platform_gui.base_url }}
+	  {{- else }}
+      - path: {{ .Values.components.platform_gui.base_url }}
+	  {{- end }}
+        pathType: Prefix
+        backend:
+          service:
+            name: dataportal
+            port:
+              number: 80
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dataportal
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: dataportal
+data:
+  {{- if .Values.url_prefix_namespace }}
+  BASE_URL: /{{ .Release.Namespace }}{{ .Values.components.platform_gui.base_url }}
+  {{- else }}
+  BASE_URL: {{ .Values.components.platform_gui.base_url }}
+  {{- end }}
+  API_HOST: http://gateway:5000/api

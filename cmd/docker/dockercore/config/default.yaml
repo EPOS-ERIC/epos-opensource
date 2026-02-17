@@ -70,7 +70,7 @@ components:
       # Restrict resources service access to admin users only
       only_admin: false
     # Cache TTL in milliseconds for database data when making searches
-    cache_ttl: 5000
+    cache_ttl: 50000
 
   ingestor_service:
     auth:
@@ -90,7 +90,7 @@ components:
 
   sharing_service:
     # Enable/disable the sharing service (allows sharing user configurations via URL)
-    enabled: true
+    enabled: false
     auth:
       # Enable/disable authentication for the sharing service
       enabled: false

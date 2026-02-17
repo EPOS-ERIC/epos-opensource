@@ -1,6 +1,7 @@
 package k8score
 
 import (
+	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score/config"
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/display"
 )
@@ -11,20 +12,16 @@ type ExportOpts struct {
 }
 
 func Export(opts ExportOpts) error {
-	err := common.Export(opts.Path, ".env", []byte(EnvFile))
+	cfg := config.GetDefaultConfigBytes()
+
+	path, err := common.Export(opts.Path, "k8s-config.yaml", cfg)
 	if err != nil {
 		return err
 	}
-	display.Done("Exported file: %s", ".env")
 
-	for name, content := range EmbeddedManifestContents {
-		err = common.Export(opts.Path, name, []byte(content))
-		if err != nil {
-			return err
-		}
-		display.Done("Exported file: %s", name)
-	}
+	display.Done("Exported config: %s", path)
 
-	display.Done("All files exported to %s", opts.Path)
+	display.Info("You can now use the config to deploy the environment with 'epos-opensource k8s deploy --config %s'", path)
+
 	return nil
 }

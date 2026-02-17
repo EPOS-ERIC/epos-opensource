@@ -161,21 +161,6 @@ func copyEmbeddedManifests(envPath string) error {
 	return nil
 }
 
-// getAPIHost returns the public host for the environment.
-// If HOST_NAME is set in the .env file, it is returned.
-// Otherwise, it attempts to get the ingress controller IP/hostname, and if that fails, falls back to the local IP.
-func getAPIHost(context string) (string, error) {
-	ip, err := getIngressControllerIP(context)
-	if err != nil {
-		display.Warn("error getting ingress IP, falling back to local IP: %v", err)
-		ip, err = common.GetLocalIP()
-		if err != nil {
-			return "", fmt.Errorf("error getting IP address: %w", err)
-		}
-	}
-	return ip, nil
-}
-
 func loadEnvAndExpandManifests(envPath, name, protocol, host string) error {
 	envFilePath := path.Join(envPath, ".env")
 	if err := godotenv.Load(envFilePath); err != nil {
@@ -407,56 +392,6 @@ func buildEnvURLs(dir, protocol, host string) (portalURL, gatewayURL, backoffice
 	}
 
 	return portalURL, gatewayURL, backofficeURL, nil
-}
-
-// getIngressControllerIP returns the ingress controller IP or hostname for the context
-func getIngressControllerIP(context string) (string, error) {
-	if context == "" {
-		return "", fmt.Errorf("context must be provided and cannot be empty")
-	}
-	const (
-		maxWait  = 30 * time.Second
-		interval = 2 * time.Second
-	)
-	fields := [][2]string{
-		{"hostname", "{.status.loadBalancer.ingress[0].hostname}"},
-		{"ip", "{.status.loadBalancer.ingress[0].ip}"},
-	}
-
-	display.Step("Waiting for ingress IP/hostname to be assigned...")
-	start := time.Now()
-	var lastErr error
-
-	for time.Since(start) < maxWait {
-		for _, field := range fields {
-			desc := field[0]
-			jsonpath := field[1]
-			args := []string{"get", "service", "ingress-nginx-controller", "-n", "ingress-nginx", "-o", "jsonpath=" + jsonpath, "--context", context}
-			cmd := exec.Command("kubectl", args...)
-			out, err := command.RunCommand(cmd, true)
-			if err != nil {
-				lastErr = fmt.Errorf("error getting ingress %s: %w", desc, err)
-				continue
-			}
-			value := strings.TrimSpace(out)
-			if value != "" {
-				if desc == "hostname" && value == "localhost" {
-					localIP, err := common.GetLocalIP()
-					if err != nil {
-						return "", fmt.Errorf("error getting local IP: %w", err)
-					}
-					value = localIP
-				}
-				display.Done("Ingress assigned %s: %s", desc, value)
-				return value, nil
-			}
-		}
-		time.Sleep(interval)
-	}
-	if lastErr != nil {
-		return "", fmt.Errorf("error waiting for ingress to be ready, last error: %w", lastErr)
-	}
-	return "", fmt.Errorf("error getting ingress IP: both ip and hostname are empty after waiting %s", maxWait)
 }
 
 func waitIngresses(kubeContext string, ingressNames []string, namespace string) error {

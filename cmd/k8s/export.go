@@ -16,7 +16,6 @@ var ExportCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		path := args[0]
-
 		err := k8score.Export(k8score.ExportOpts{
 			Path: path,
 		})
