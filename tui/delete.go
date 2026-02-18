@@ -1,8 +1,8 @@
 package tui
 
 import (
-	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore"
-	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 )
 
 // showDeleteConfirm displays a confirmation dialog for deleting a Docker or K8s environment.
@@ -49,11 +49,11 @@ func (a *App) showDeleteProgress(envName string, isDocker bool) {
 		IsDocker:  isDocker,
 		Task: func() (string, error) {
 			if isDocker {
-				return "", dockercore.Delete(dockercore.DeleteOpts{
+				return "", docker.Delete(docker.DeleteOpts{
 					Name: []string{envName},
 				})
 			}
-			return "", k8score.Delete(k8score.DeleteOpts{
+			return "", k8s.Delete(k8s.DeleteOpts{
 				Name: []string{envName},
 			})
 		},

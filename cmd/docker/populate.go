@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore"
 	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker"
 	"github.com/spf13/cobra"
 )
 
@@ -34,7 +34,7 @@ Multiple directories and/or files can be provided and will be processed in order
 		name := args[0]
 		ttlPaths := args[1:]
 
-		d, err := dockercore.Populate(dockercore.PopulateOpts{
+		env, err := docker.Populate(docker.PopulateOpts{
 			TTLDirs:          ttlPaths,
 			Name:             name,
 			Parallel:         parallel,
@@ -45,7 +45,7 @@ Multiple directories and/or files can be provided and will be processed in order
 			os.Exit(1)
 		}
 
-		display.URLs(d.GuiUrl, d.ApiUrl, fmt.Sprintf("epos-opensource docker populate %s", name), d.BackofficeUrl)
+		display.URLs(env.GuiUrl, env.ApiUrl, fmt.Sprintf("epos-opensource docker populate %s", name), env.BackofficeUrl)
 	},
 }
 

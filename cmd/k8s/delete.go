@@ -4,9 +4,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score"
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 
 	"github.com/spf13/cobra"
 )
@@ -19,6 +19,9 @@ var DeleteCmd = &cobra.Command{
 	ValidArgsFunction: validArgsFunction,
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0:]
+
+		display.Debug("name: %v", name)
+		display.Debug("context: %s", context)
 
 		if !deleteForce {
 			envList := strings.Join(name, ", ")
@@ -35,8 +38,9 @@ var DeleteCmd = &cobra.Command{
 			}
 		}
 
-		err := k8score.Delete(k8score.DeleteOpts{
-			Name: name,
+		err := k8s.Delete(k8s.DeleteOpts{
+			Name:    name,
+			Context: context,
 		})
 		if err != nil {
 			display.Error("%v", err)
@@ -47,4 +51,5 @@ var DeleteCmd = &cobra.Command{
 
 func init() {
 	DeleteCmd.Flags().BoolVarP(&deleteForce, "force", "f", false, "Force delete without confirmation prompt")
+	DeleteCmd.Flags().StringVar(&context, "context", "", "kubectl context used for the environment deployment. Uses current if not set")
 }

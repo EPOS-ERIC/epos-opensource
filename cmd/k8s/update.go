@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score"
 	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 
 	"github.com/spf13/cobra"
 )
@@ -24,13 +24,13 @@ var UpdateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		k, err := k8score.Update(k8score.UpdateOpts{
-			EnvFile:     envFile,
-			ManifestDir: manifestsDir,
-			Name:        name,
-			Force:       force,
-			CustomHost:  host,
-			Reset:       reset,
+		k, err := k8s.Update(k8s.UpdateOpts{
+			// EnvFile:     envFile,
+			// ManifestDir: manifestsDir,
+			// Name:        name,
+			Force: force,
+			// CustomHost:  host,
+			Reset: reset,
 		})
 		if err != nil {
 			display.Error("%v", err)

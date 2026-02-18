@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore"
-	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore/config"
 	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/config"
 
 	"github.com/spf13/cobra"
 )
@@ -39,7 +39,7 @@ var UpdateCmd = &cobra.Command{
 			}
 		}
 
-		d, err := dockercore.Update(dockercore.UpdateOpts{
+		d, err := docker.Update(docker.UpdateOpts{
 			PullImages: pullImages,
 			Force:      force,
 			Reset:      reset,

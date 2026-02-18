@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score"
 	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +35,7 @@ NOTE: To execute the population it will try to use port-forwarding to the cluste
 		name := args[0]
 		ttlPaths := args[1:]
 
-		k, err := k8score.Populate(k8score.PopulateOpts{
+		env, err := k8s.Populate(k8s.PopulateOpts{
 			TTLDirs:          ttlPaths,
 			Name:             name,
 			Parallel:         parallel,
@@ -46,7 +46,7 @@ NOTE: To execute the population it will try to use port-forwarding to the cluste
 			os.Exit(1)
 		}
 
-		display.URLs(k.GuiUrl, k.ApiUrl, fmt.Sprintf("epos-opensource k8s populate %s", name), k.BackofficeUrl)
+		display.URLs(env.GuiUrl, env.ApiUrl, fmt.Sprintf("epos-opensource k8s populate %s", name), env.BackofficeUrl)
 	},
 }
 

@@ -11,6 +11,8 @@ import (
 	"github.com/EPOS-ERIC/epos-opensource/db"
 )
 
+// TODO: we have to update the validation considering the new refactored version, for example k8s won't have the db anymore
+
 var (
 	validHostnameRegex = regexp.MustCompile(`^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$`)
 	validEnv           = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
@@ -66,22 +68,26 @@ func EnvironmentExistsDocker(name string) error {
 
 // EnvironmentNotExistK8s checks that K8s environment doesn't exist
 func EnvironmentNotExistK8s(name string) error {
-	_, err := db.GetK8sByName(name)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil
-		}
-		return fmt.Errorf("error getting installed k8s environment from db: %w", err)
-	}
-	return fmt.Errorf("an environment with name '%s' already exists", name)
+	// TODO
+	// _, err := db.GetK8sByName(name)
+	// if err != nil {
+	// 	if errors.Is(err, sql.ErrNoRows) {
+	// 		return nil
+	// 	}
+	// 	return fmt.Errorf("error getting installed k8s environment from db: %w", err)
+	// }
+	// return fmt.Errorf("an environment with name '%s' already exists", name)
+	return nil
 }
 
 // EnvironmentExistsK8s checks that K8s environment exists
 func EnvironmentExistsK8s(name string) error {
-	if err := EnvironmentNotExistK8s(name); err != nil {
-		return nil
-	}
-	return fmt.Errorf("no environment with name '%s' exists", name)
+	// TODO
+	// if err := EnvironmentNotExistK8s(name); err != nil {
+	// 	return nil
+	// }
+	// return fmt.Errorf("no environment with name '%s' exists", name)
+	return nil
 }
 
 // PathExists validates that a given path points to an existing directory on the filesystem.

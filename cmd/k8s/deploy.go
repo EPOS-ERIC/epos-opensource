@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score"
-	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score/config"
 	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s/config"
 
 	"github.com/spf13/cobra"
 )
@@ -43,7 +43,7 @@ NOTE: to execute the deploy it will try to use port-forwarding to the cluster. I
 			}
 		}
 
-		k, err := k8score.Deploy(k8score.DeployOpts{
+		env, err := k8s.Deploy(k8s.DeployOpts{
 			Context: context,
 			Config:  cfg,
 		})
@@ -52,7 +52,7 @@ NOTE: to execute the deploy it will try to use port-forwarding to the cluster. I
 			os.Exit(1)
 		}
 
-		display.URLs(k.GuiUrl, k.ApiUrl, fmt.Sprintf("epos-opensource k8s deploy %s", name), k.BackofficeUrl)
+		display.URLs(env.GuiUrl, env.ApiUrl, fmt.Sprintf("epos-opensource k8s deploy %s", name), env.BackofficeUrl)
 	},
 }
 

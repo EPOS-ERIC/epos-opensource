@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore"
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker"
 
 	"github.com/spf13/cobra"
 )
@@ -35,7 +35,7 @@ This action is irreversible.`,
 			}
 		}
 
-		docker, err := dockercore.Clean(dockercore.CleanOpts{
+		env, err := docker.Clean(docker.CleanOpts{
 			Name: name,
 		})
 		if err != nil {
@@ -43,7 +43,7 @@ This action is irreversible.`,
 			os.Exit(1)
 		}
 
-		display.URLs(docker.GuiUrl, docker.ApiUrl, fmt.Sprintf("epos-opensource docker clean %s", name), docker.BackofficeUrl)
+		display.URLs(env.GuiUrl, env.ApiUrl, fmt.Sprintf("epos-opensource docker clean %s", name), env.BackofficeUrl)
 	},
 }
 

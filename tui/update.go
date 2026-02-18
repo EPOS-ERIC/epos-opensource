@@ -3,8 +3,8 @@ package tui
 import (
 	"strings"
 
-	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore"
-	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 )
 
 // updateFormData holds the form field values.
@@ -106,19 +106,19 @@ func (a *App) showUpdateProgress(data *updateFormData, isDocker bool) {
 		Task: func() (string, error) {
 			var err error
 			if isDocker {
-				_, err = dockercore.Update(dockercore.UpdateOpts{
+				_, err = docker.Update(docker.UpdateOpts{
 					PullImages: data.pullImages,
 					Force:      data.force,
 					Reset:      data.reset,
 				})
 			} else {
-				_, err = k8score.Update(k8score.UpdateOpts{
-					Name:        data.name,
-					EnvFile:     data.envFile,
-					ManifestDir: data.manifestDir,
-					Force:       data.force,
-					CustomHost:  data.customHost,
-					Reset:       data.reset,
+				_, err = k8s.Update(k8s.UpdateOpts{
+					// Name:        data.name,
+					// EnvFile:     data.envFile,
+					// ManifestDir: data.manifestDir,
+					Force: data.force,
+					// CustomHost:  data.customHost,
+					Reset: data.reset,
 				})
 			}
 			return "", err

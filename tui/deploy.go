@@ -3,9 +3,9 @@ package tui
 import (
 	"fmt"
 
-	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore"
-	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score"
 	"github.com/EPOS-ERIC/epos-opensource/common"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 	"github.com/EPOS-ERIC/epos-opensource/validate"
 )
 
@@ -180,17 +180,17 @@ func (a *App) showDeployProgress(data *deployFormData, isDocker bool) {
 			var guiURL string
 
 			if isDocker {
-				docker, derr := dockercore.Deploy(dockercore.DeployOpts{
+				env, derr := docker.Deploy(docker.DeployOpts{
 					// Name:       data.name,
 					Path:       data.path,
 					PullImages: data.pullImages,
 				})
 				err = derr
-				if docker != nil {
-					guiURL = docker.GuiUrl
+				if env != nil {
+					guiURL = env.GuiUrl
 				}
 			} else {
-				k8s, kerr := k8score.Deploy(k8score.DeployOpts{
+				env, kerr := k8s.Deploy(k8s.DeployOpts{
 					// Name:        data.name,
 					// EnvFile:     data.envFile,
 					// ManifestDir: data.manifestDir,
@@ -201,8 +201,8 @@ func (a *App) showDeployProgress(data *deployFormData, isDocker bool) {
 					// TLSEnabled:  data.tlsEnabled,
 				})
 				err = kerr
-				if k8s != nil {
-					guiURL = k8s.GuiUrl
+				if env != nil {
+					guiURL = env.GuiUrl
 				}
 			}
 

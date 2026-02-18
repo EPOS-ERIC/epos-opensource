@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score"
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 
 	"github.com/spf13/cobra"
 )
@@ -35,7 +35,7 @@ This action is irreversible.`,
 			}
 		}
 
-		kube, err := k8score.Clean(k8score.CleanOpts{
+		env, err := k8s.Clean(k8s.CleanOpts{
 			Name: name,
 		})
 		if err != nil {
@@ -43,7 +43,7 @@ This action is irreversible.`,
 			os.Exit(1)
 		}
 
-		display.URLs(kube.GuiUrl, kube.ApiUrl, fmt.Sprintf("epos-opensource k8s clean %s", name), kube.BackofficeUrl)
+		display.URLs(env.GuiUrl, env.ApiUrl, fmt.Sprintf("epos-opensource k8s clean %s", name), env.BackofficeUrl)
 	},
 }
 

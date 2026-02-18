@@ -3,9 +3,9 @@ package docker
 import (
 	"os"
 
-	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore"
-	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore/config"
 	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/config"
 	"github.com/spf13/cobra"
 )
 
@@ -34,7 +34,7 @@ the environment directory with .env and docker-compose.yaml files.`,
 				os.Exit(1)
 			}
 		}
-		outputPaths, err := dockercore.Render(dockercore.RenderOpts{
+		outputPaths, err := docker.Render(docker.RenderOpts{
 			Name:       name,
 			Config:     cfg,
 			OutputPath: renderOutputPath,

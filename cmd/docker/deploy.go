@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore"
-	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore/config"
 	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/config"
 
 	"github.com/spf13/cobra"
 )
@@ -41,7 +41,7 @@ var DeployCmd = &cobra.Command{
 			}
 		}
 
-		docker, err := dockercore.Deploy(dockercore.DeployOpts{
+		env, err := docker.Deploy(docker.DeployOpts{
 			Path:       path,
 			PullImages: pullImages,
 			Config:     cfg,
@@ -51,7 +51,7 @@ var DeployCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		display.URLs(docker.GuiUrl, docker.ApiUrl, fmt.Sprintf("epos-opensource docker deploy %s", docker.Name), docker.BackofficeUrl)
+		display.URLs(env.GuiUrl, env.ApiUrl, fmt.Sprintf("epos-opensource docker deploy %s", env.Name), env.BackofficeUrl)
 	},
 }
 

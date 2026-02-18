@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore"
-	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score"
 	"github.com/EPOS-ERIC/epos-opensource/config"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -326,14 +326,14 @@ func (a *App) showPopulateProgress(envName string, paths []string, examples, isD
 		Task: func() (string, error) {
 			var err error
 			if isDocker {
-				_, err = dockercore.Populate(dockercore.PopulateOpts{
+				_, err = docker.Populate(docker.PopulateOpts{
 					Name:             envName,
 					TTLDirs:          paths,
 					PopulateExamples: examples,
 					Parallel:         1,
 				})
 			} else {
-				_, err = k8score.Populate(k8score.PopulateOpts{
+				_, err = k8s.Populate(k8s.PopulateOpts{
 					Name:             envName,
 					TTLDirs:          paths,
 					PopulateExamples: examples,

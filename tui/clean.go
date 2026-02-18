@@ -3,8 +3,8 @@ package tui
 import (
 	"fmt"
 
-	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore"
-	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 )
 
 // showCleanConfirm displays a confirmation dialog for cleaning an environment.
@@ -48,21 +48,21 @@ func (a *App) showCleanProgress(envName string, isDocker bool) {
 		IsDocker:  isDocker,
 		Task: func() (string, error) {
 			if isDocker {
-				docker, err := dockercore.Clean(dockercore.CleanOpts{
+				env, err := docker.Clean(docker.CleanOpts{
 					Name: envName,
 				})
 				if err != nil {
 					return "", err
 				}
-				return fmt.Sprintf("Environment cleaned successfully! GUI: %s", docker.GuiUrl), nil
+				return fmt.Sprintf("Environment cleaned successfully! GUI: %s", env.GuiUrl), nil
 			} else {
-				kube, err := k8score.Clean(k8score.CleanOpts{
+				env, err := k8s.Clean(k8s.CleanOpts{
 					Name: envName,
 				})
 				if err != nil {
 					return "", err
 				}
-				return fmt.Sprintf("Environment cleaned successfully! GUI: %s", kube.GuiUrl), nil
+				return fmt.Sprintf("Environment cleaned successfully! GUI: %s", env.GuiUrl), nil
 			}
 		},
 	})

@@ -3,9 +3,9 @@ package k8s
 import (
 	"os"
 
-	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score"
-	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score/config"
 	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s/config"
 	"github.com/spf13/cobra"
 )
 
@@ -31,7 +31,7 @@ the environment directory with .env and k8s-compose.yaml files.`,
 				os.Exit(1)
 			}
 		}
-		outputPaths, err := k8score.Render(k8score.RenderOpts{
+		outputPaths, err := k8s.Render(k8s.RenderOpts{
 			Name:       name,
 			Config:     cfg,
 			OutputPath: renderOutputPath,
