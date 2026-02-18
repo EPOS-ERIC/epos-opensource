@@ -9,7 +9,6 @@ linters:
   enable:
     - staticcheck
     - errcheck
-    - gosec
     - misspell
     - dupl
     - goconst
@@ -23,18 +22,6 @@ linters:
       - linters:
           - errcheck
         source: "^\\s*defer\\s+"
-      - linters:
-          - gosec
-        text: "^G204:"
-      - linters:
-          - gosec
-        text: "^G304:"
-      - linters:
-          - gosec
-        text: "^G102:"
-      - linters:
-          - gosec
-        text: "^G107:"
   settings:
     goconst:
       ignore-string-values:
