@@ -27,7 +27,7 @@ require (
 require (
 	aead.dev/minisign v0.2.0 // indirect
 	cel.dev/expr v0.24.0 // indirect
-	filippo.io/edwards25519 v1.1.0 // indirect
+	filippo.io/edwards25519 v1.1.1 // indirect
 	github.com/akavel/rsrc v0.10.2 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.16.3 // indirect
