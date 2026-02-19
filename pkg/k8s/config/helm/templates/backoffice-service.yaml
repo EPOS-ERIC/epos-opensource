@@ -1,3 +1,10 @@
+{{- define "epos.backofficeServiceConfigData" -}}
+POSTGRESQL_CONNECTION_STRING: "{{ include "epos.postgresqlConnectionString" . }}"
+CONNECTION_POOL_INIT_SIZE: {{ .Values.components.metadata_database.connection_pool_init_size | quote }}
+CONNECTION_POOL_MIN_SIZE: {{ .Values.components.metadata_database.connection_pool_min_size | quote }}
+CONNECTION_POOL_MAX_SIZE: {{ .Values.components.metadata_database.connection_pool_max_size | quote }}
+{{- end -}}
+
 {{- if .Values.components.backoffice.enabled }}
 ---
 apiVersion: apps/v1
@@ -18,6 +25,8 @@ spec:
       labels:
         {{- include "epos.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: backoffice-service
+      annotations:
+        checksum/backoffice-service-config: {{ include "epos.backofficeServiceConfigData" . | sha256sum }}
     spec:
       {{- include "epos.imagePullSecrets" . | nindent 6 }}
       initContainers:
@@ -87,8 +96,5 @@ metadata:
     {{- include "epos.labels" . | nindent 4 }}
     app.kubernetes.io/component: backoffice-service
 data:
-  POSTGRESQL_CONNECTION_STRING: "{{ include "epos.postgresqlConnectionString" . }}"
-  CONNECTION_POOL_INIT_SIZE: {{ .Values.components.metadata_database.connection_pool_init_size | quote }}
-  CONNECTION_POOL_MIN_SIZE: {{ .Values.components.metadata_database.connection_pool_min_size | quote }}
-  CONNECTION_POOL_MAX_SIZE: {{ .Values.components.metadata_database.connection_pool_max_size | quote }}
+  {{- include "epos.backofficeServiceConfigData" . | nindent 2 }}
 {{- end }}

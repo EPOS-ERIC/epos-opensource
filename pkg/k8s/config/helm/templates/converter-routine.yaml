@@ -1,3 +1,8 @@
+{{- define "epos.converterRoutineConfigData" -}}
+LOG_LEVEL: "INFO"
+POSTGRESQL_CONNECTION_STRING: "{{ include "epos.postgresqlConnectionString" . }}"
+{{- end -}}
+
 {{- if .Values.components.converter.enabled }}
 ---
 apiVersion: apps/v1
@@ -18,6 +23,8 @@ spec:
       labels:
         {{- include "epos.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: converter-routine
+      annotations:
+        checksum/converter-routine-config: {{ include "epos.converterRoutineConfigData" . | sha256sum }}
     spec:
       {{- include "epos.imagePullSecrets" . | nindent 6 }}
       initContainers:
@@ -93,6 +100,5 @@ metadata:
     {{- include "epos.labels" . | nindent 4 }}
     app.kubernetes.io/component: converter-routine
 data:
-  LOG_LEVEL: "INFO"
-  POSTGRESQL_CONNECTION_STRING: "{{ include "epos.postgresqlConnectionString" . }}"
+  {{- include "epos.converterRoutineConfigData" . | nindent 2 }}
 {{- end }}

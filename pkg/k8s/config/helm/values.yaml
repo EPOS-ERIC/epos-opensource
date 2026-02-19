@@ -1,6 +1,6 @@
 # TODO: add descriptions to all fields
 domain: "localhost"
-protocol: "http"
+protocol: "https"
 tls_enabled: false # TODO
 
 url_prefix_namespace: true

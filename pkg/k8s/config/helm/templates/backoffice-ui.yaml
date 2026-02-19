@@ -1,3 +1,12 @@
+{{- define "epos.backofficeUIConfigData" -}}
+{{- if .Values.url_prefix_namespace }}
+BASE_URL: /{{ .Release.Namespace }}{{ .Values.components.backoffice.gui.base_url }}
+{{- else }}
+BASE_URL: {{ .Values.components.backoffice.gui.base_url }}
+{{- end }}
+API_HOST: http://gateway:5000/api
+{{- end -}}
+
 {{- if .Values.components.backoffice.enabled }}
 {{- $base_url := .Values.components.backoffice.gui.base_url | default "/backoffice" }}
 ---
@@ -19,6 +28,8 @@ spec:
       labels:
         {{- include "epos.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: backoffice-ui
+      annotations:
+        checksum/backoffice-ui-config: {{ include "epos.backofficeUIConfigData" . | sha256sum }}
     spec:
       {{- include "epos.imagePullSecrets" . | nindent 6 }}
       initContainers:
@@ -107,10 +118,5 @@ metadata:
     {{- include "epos.labels" . | nindent 4 }}
     app.kubernetes.io/component: backoffice-ui
 data:
-  {{- if .Values.url_prefix_namespace }}
-  BASE_URL: /{{ .Release.Namespace }}{{ .Values.components.backoffice.gui.base_url }}
-  {{- else }}
-  BASE_URL: {{ .Values.components.backoffice.gui.base_url }}
-  {{- end }}
-  API_HOST: http://gateway:5000/api
+  {{- include "epos.backofficeUIConfigData" . | nindent 2 }}
 {{- end }}

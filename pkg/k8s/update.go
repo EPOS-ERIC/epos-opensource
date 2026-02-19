@@ -34,11 +34,15 @@ func Update(opts UpdateOpts) (*Env, error) {
 		return nil, fmt.Errorf("invalid parameters for update command: %w", err)
 	}
 
+	if opts.NewConfig == nil && opts.Reset {
+		opts.NewConfig = config.GetDefaultConfig()
+	}
+
 	if opts.NewConfig != nil && opts.NewConfig.Name == "" {
 		opts.NewConfig.Name = opts.OldEnvName
 	}
 
-	if opts.NewConfig == nil {
+	if opts.NewConfig == nil && !opts.Reset {
 		oldEnv, err := GetEnv(opts.OldEnvName, opts.Context)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get environment: %w", err)

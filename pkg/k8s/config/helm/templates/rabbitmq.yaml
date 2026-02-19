@@ -1,3 +1,9 @@
+{{- define "epos.rabbitmqConfigData" -}}
+RABBITMQ_DEFAULT_PASS: {{ .Values.components.rabbitmq.password }}
+RABBITMQ_DEFAULT_USER: {{ .Values.components.rabbitmq.username }}
+RABBITMQ_DEFAULT_VHOST: {{ .Values.components.rabbitmq.vhost }}
+{{- end -}}
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -17,6 +23,8 @@ spec:
       labels:
         {{- include "epos.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: rabbitmq
+      annotations:
+        checksum/rabbitmq-config: {{ include "epos.rabbitmqConfigData" . | sha256sum }}
     spec:
       {{- include "epos.imagePullSecrets" . | nindent 6 }}
       containers:
@@ -74,6 +82,4 @@ metadata:
     {{- include "epos.labels" . | nindent 4 }}
     app.kubernetes.io/component: rabbitmq
 data:
-  RABBITMQ_DEFAULT_PASS: {{ .Values.components.rabbitmq.password }}
-  RABBITMQ_DEFAULT_USER: {{ .Values.components.rabbitmq.username }}
-  RABBITMQ_DEFAULT_VHOST: {{ .Values.components.rabbitmq.vhost }}
+  {{- include "epos.rabbitmqConfigData" . | nindent 2 }}

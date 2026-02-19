@@ -7,7 +7,6 @@ import (
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/db"
-	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
 	"github.com/EPOS-ERIC/epos-opensource/display"
 	"github.com/EPOS-ERIC/epos-opensource/validate"
 )
@@ -15,6 +14,8 @@ import (
 type PopulateOpts struct {
 	// Required. name of the environment
 	Name string
+	// Optional. Kubernetes context to use; defaults to the current kubectl context when unset.
+	Context string
 	// Required. list of directories or ttl files to populate the environment with
 	TTLDirs []string
 	// Optional. number of parallel uploads to do to the default is 1
@@ -23,23 +24,30 @@ type PopulateOpts struct {
 	PopulateExamples bool
 }
 
-func Populate(opts PopulateOpts) (*sqlc.K8s, error) {
+func Populate(opts PopulateOpts) (*Env, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid parameters for populate command: %w", err)
 	}
+
 	display.Step("Populating environment %s with %d directories", opts.Name, len(opts.TTLDirs))
 
-	kube, err := db.GetK8sByName(opts.Name)
+	env, err := GetEnv(opts.Name, opts.Context)
 	if err != nil {
-		return nil, fmt.Errorf("error getting k8s environment from db called '%s': %w", opts.Name, err)
+		return nil, fmt.Errorf("error getting environment: %w", err)
 	}
 
 	port, err := common.FindFreePort()
 	if err != nil {
 		return nil, fmt.Errorf("error getting free port: %w", err)
 	}
+
+	URLs, err := env.BuildEnvURLs()
+	if err != nil {
+		return nil, fmt.Errorf("error building environment URLs: %w", err)
+	}
+
 	// start a port forward locally to the ingestor service and use that to do the populate posts
-	err = ForwardAndRun(opts.Name, "ingestor-service", port, 8080, kube.Context, func(host string, port int) error {
+	err = ForwardAndRun(opts.Name, "ingestor-service", port, 8080, opts.Context, func(host string, port int) error {
 		display.Step("Starting port-forward to ingestor-service pod")
 
 		url := fmt.Sprintf("http://%s:%d/api/ingestor-service/v1/", host, port)
@@ -50,8 +58,9 @@ func Populate(opts PopulateOpts) (*sqlc.K8s, error) {
 			successfulExamples, err := common.PopulateExample(url, opts.Parallel)
 			allSuccessfulFiles = append(allSuccessfulFiles, successfulExamples...)
 			if err != nil {
-				display.Warn("error populating environment with examples through port-forward: %v. Trying with direct URL: %s", err, kube.ApiUrl)
-				successfulExamples, err = common.PopulateExample(kube.ApiUrl, opts.Parallel)
+				display.Warn("error populating environment with examples through port-forward: %v. Trying with direct URL: %s", err, URLs.APIURL)
+
+				successfulExamples, err = common.PopulateExample(URLs.APIURL, opts.Parallel)
 				allSuccessfulFiles = append(allSuccessfulFiles, successfulExamples...)
 				if err != nil {
 					return fmt.Errorf("error populating environment with examples with direct URL: %w", err)
@@ -68,8 +77,8 @@ func Populate(opts PopulateOpts) (*sqlc.K8s, error) {
 			successfulFiles, err := common.PopulateEnv(absPath, url, opts.Parallel)
 			allSuccessfulFiles = append(allSuccessfulFiles, successfulFiles...)
 			if err != nil {
-				display.Warn("error populating environment through port-forward: %v. Trying with direct URL: %s", err, kube.ApiUrl)
-				successfulFiles, err = common.PopulateEnv(absPath, kube.ApiUrl, opts.Parallel)
+				display.Warn("error populating environment through port-forward: %v. Trying with direct URL: %s", err, URLs.APIURL)
+				successfulFiles, err = common.PopulateEnv(absPath, URLs.APIURL, opts.Parallel)
 				allSuccessfulFiles = append(allSuccessfulFiles, successfulFiles...)
 				if err != nil {
 					return fmt.Errorf("error populating environment with direct URL: %w", err)
@@ -90,7 +99,8 @@ func Populate(opts PopulateOpts) (*sqlc.K8s, error) {
 	}
 
 	display.Done("Finished populating environment with ttl files from %d directories", len(opts.TTLDirs))
-	return kube, nil
+
+	return env, nil
 }
 
 func (p *PopulateOpts) Validate() error {
@@ -107,6 +117,7 @@ func (p *PopulateOpts) Validate() error {
 		if err != nil {
 			return fmt.Errorf("error stating path %q: %w", item, err)
 		}
+
 		if !info.IsDir() {
 			if filepath.Ext(item) != ".ttl" {
 				return fmt.Errorf("file %s is not a .ttl file", item)

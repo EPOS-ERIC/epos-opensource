@@ -36,6 +36,7 @@ NOTE: To execute the population it will try to use port-forwarding to the cluste
 		ttlPaths := args[1:]
 
 		env, err := k8s.Populate(k8s.PopulateOpts{
+			Context:          context,
 			TTLDirs:          ttlPaths,
 			Name:             name,
 			Parallel:         parallel,
@@ -46,11 +47,18 @@ NOTE: To execute the population it will try to use port-forwarding to the cluste
 			os.Exit(1)
 		}
 
-		display.URLs(env.GuiUrl, env.ApiUrl, fmt.Sprintf("epos-opensource k8s populate %s", name), env.BackofficeUrl)
+		URLs, err := env.BuildEnvURLs()
+		if err != nil {
+			display.Error("Failed to build environment URLs: %v", err)
+			os.Exit(1)
+		}
+
+		display.URLs(URLs.GUIURL, URLs.APIURL, fmt.Sprintf("epos-opensource k8s populate %s", name), URLs.BackofficeURL)
 	},
 }
 
 func init() {
 	PopulateCmd.Flags().IntVarP(&parallel, "parallel", "p", 1, "Number of parallel uploads to perform when ingesting TTL files")
 	PopulateCmd.Flags().BoolVar(&populateExamples, "example", false, "Populate the environment with example data")
+	PopulateCmd.Flags().StringVar(&context, "context", "", "kubectl context used for the environment deployment. Uses current if not set")
 }

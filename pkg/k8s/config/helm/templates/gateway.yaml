@@ -1,3 +1,27 @@
+{{- define "epos.gatewayConfigData" -}}
+LOAD_RESOURCES_API: "{{.Values.components.resources_service.auth.enabled}}:{{.Values.components.resources_service.auth.only_admin}}"
+LOAD_INGESTOR_API: "{{.Values.components.ingestor_service.auth.enabled}}:{{.Values.components.ingestor_service.auth.only_admin}}"
+LOAD_EXTERNAL_ACCESS_API: "{{.Values.components.external_access_service.auth.enabled}}:{{.Values.components.external_access_service.auth.only_admin}}"
+{{- if .Values.components.backoffice.enabled}}
+LOAD_BACKOFFICE_API: "{{ .Values.components.backoffice.service.auth.enabled }}:{{ .Values.components.backoffice.service.auth.only_admin }}"
+{{- end}}
+{{- if .Values.components.sharing_service.enabled}}
+LOAD_SHARING_API: "{{ .Values.components.sharing_service.auth.enabled }}:{{ .Values.components.sharing_service.auth.only_admin }}"
+{{- end}}
+{{- if .Values.components.converter.enabled}}
+LOAD_CONVERTER_API: "{{ .Values.components.converter.auth.enabled }}:{{ .Values.components.converter.auth.only_admin }}"
+{{- end}}
+{{- if .Values.components.email_sender_service.enabled}}
+LOAD_EMAIL_SENDER_API: "{{ .Values.components.email_sender_service.auth.enabled }}:{{ .Values.components.email_sender_service.auth.only_admin }}"
+{{- end}}
+IS_AAI_ENABLED: "{{ .Values.components.gateway.aai.enabled }}"
+SECURITY_KEY: "{{ .Values.components.gateway.aai.security_key }}"
+AAI_SERVICE_ENDPOINT: "{{ .Values.components.gateway.aai.service_endpoint }}"
+{{- if .Values.url_prefix_namespace }}
+BASECONTEXT: "/{{ .Release.Namespace }}"
+{{- end }}
+{{- end -}}
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -17,6 +41,8 @@ spec:
       labels:
         {{- include "epos.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: gateway
+      annotations:
+        checksum/gateway-config: {{ include "epos.gatewayConfigData" . | sha256sum }}
     spec:
       {{- include "epos.imagePullSecrets" . | nindent 6 }}
       initContainers:
@@ -157,27 +183,7 @@ metadata:
     {{- include "epos.labels" . | nindent 4 }}
     app.kubernetes.io/component: gateway
 data:
-  LOAD_RESOURCES_API: "{{.Values.components.resources_service.auth.enabled}}:{{.Values.components.resources_service.auth.only_admin}}"
-  LOAD_INGESTOR_API: "{{.Values.components.ingestor_service.auth.enabled}}:{{.Values.components.ingestor_service.auth.only_admin}}"
-  LOAD_EXTERNAL_ACCESS_API: "{{.Values.components.external_access_service.auth.enabled}}:{{.Values.components.external_access_service.auth.only_admin}}"
-  {{- if .Values.components.backoffice.enabled}}
-  LOAD_BACKOFFICE_API: "{{ .Values.components.backoffice.service.auth.enabled }}:{{ .Values.components.backoffice.service.auth.only_admin }}"
-  {{- end}}
-  {{- if .Values.components.sharing_service.enabled}}
-  LOAD_SHARING_API: "{{ .Values.components.sharing_service.auth.enabled }}:{{ .Values.components.sharing_service.auth.only_admin }}"
-  {{- end}}
-  {{- if .Values.components.converter.enabled}}
-  LOAD_CONVERTER_API: "{{ .Values.components.converter.auth.enabled }}:{{ .Values.components.converter.auth.only_admin }}"
-  {{- end}}
-  {{- if .Values.components.email_sender_service.enabled}}
-  LOAD_EMAIL_SENDER_API: "{{ .Values.components.email_sender_service.auth.enabled }}:{{ .Values.components.email_sender_service.auth.only_admin }}"
-  {{- end}}
-  IS_AAI_ENABLED: "{{ .Values.components.gateway.aai.enabled }}"
-  SECURITY_KEY: "{{ .Values.components.gateway.aai.security_key }}"
-  AAI_SERVICE_ENDPOINT: "{{ .Values.components.gateway.aai.service_endpoint }}"
-  {{- if .Values.url_prefix_namespace }}
-  BASECONTEXT: "/{{ .Release.Namespace }}"
-  {{- end }}
+  {{- include "epos.gatewayConfigData" . | nindent 2 }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress

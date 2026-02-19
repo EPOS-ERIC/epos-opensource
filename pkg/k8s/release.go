@@ -39,8 +39,8 @@ func ReleaseToEnv(rel *release.Release, context string) (*Env, error) {
 	}
 
 	return &Env{
-		Config: *config,
-		Name:      config.Name,
-		Context:   context,
+		Config:  *config,
+		Name:    config.Name,
+		Context: context,
 	}, nil
 }

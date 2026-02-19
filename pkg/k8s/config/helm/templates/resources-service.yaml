@@ -1,3 +1,32 @@
+{{- define "epos.resourcesServiceConfigData" -}}
+PERSISTENCE_NAME: "EPOSDataModel"
+POSTGRESQL_CONNECTION_STRING: "{{ include "epos.postgresqlConnectionString" . }}"
+CONNECTION_POOL_INIT_SIZE: {{ .Values.components.metadata_database.connection_pool_init_size | quote }}
+CONNECTION_POOL_MIN_SIZE: {{ .Values.components.metadata_database.connection_pool_min_size | quote }}
+CONNECTION_POOL_MAX_SIZE: {{ .Values.components.metadata_database.connection_pool_max_size | quote }}
+
+FACETS_DEFAULT: "true"
+FACETS_TYPE_DEFAULT: "categories"
+
+APICONTEXT: "/api/v1"
+
+APIHOST: {{ .Values.protocol }}://{{ .Values.domain }}/{{ .Release.Namespace }}
+
+MONITORING: "{{ .Values.monitoring.enabled }}"
+{{- if .Values.monitoring.enabled }}
+MONITORING_URL: {{ .Values.monitoring.url }}
+MONITORING_USER: {{ .Values.monitoring.user }}
+MONITORING_PWD: {{ .Values.monitoring.password }}
+{{- end }}
+
+CACHE_TTL: {{ .Values.components.resources_service.cache_ttl | quote }}
+
+BROKER_HOST: rabbitmq
+BROKER_USERNAME: {{ .Values.components.rabbitmq.username }}
+BROKER_PASSWORD: {{ .Values.components.rabbitmq.password }}
+BROKER_VHOST: {{ .Values.components.rabbitmq.vhost }}
+{{- end -}}
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -17,6 +46,8 @@ spec:
       labels:
         {{- include "epos.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: resources-service
+      annotations:
+        checksum/resources-service-config: {{ include "epos.resourcesServiceConfigData" . | sha256sum }}
     spec:
       {{- include "epos.imagePullSecrets" . | nindent 6 }}
       initContainers:
@@ -95,29 +126,4 @@ metadata:
     {{- include "epos.labels" . | nindent 4 }}
     app.kubernetes.io/component: resources-service
 data:
-  PERSISTENCE_NAME: "EPOSDataModel"
-  POSTGRESQL_CONNECTION_STRING: "{{ include "epos.postgresqlConnectionString" . }}"
-  CONNECTION_POOL_INIT_SIZE: {{ .Values.components.metadata_database.connection_pool_init_size | quote }}
-  CONNECTION_POOL_MIN_SIZE: {{ .Values.components.metadata_database.connection_pool_min_size | quote }}
-  CONNECTION_POOL_MAX_SIZE: {{ .Values.components.metadata_database.connection_pool_max_size | quote }}
-
-  FACETS_DEFAULT: "true"
-  FACETS_TYPE_DEFAULT: "categories"
-
-  APICONTEXT: "/api/v1"
-
-  APIHOST: http://gateway:5000/ # TODO: fix this to be the external gateway url
-
-  MONITORING: "{{ .Values.monitoring.enabled }}"
-  {{- if .Values.monitoring.enabled }}
-  MONITORING_URL: {{ .Values.monitoring.url }}
-  MONITORING_USER: {{ .Values.monitoring.user }}
-  MONITORING_PWD: {{ .Values.monitoring.password }}
-  {{- end }}
-
-  CACHE_TTL: {{ .Values.components.resources_service.cache_ttl | quote }}
-
-  BROKER_HOST: rabbitmq
-  BROKER_USERNAME: {{ .Values.components.rabbitmq.username }}
-  BROKER_PASSWORD: {{ .Values.components.rabbitmq.password }}
-  BROKER_VHOST: {{ .Values.components.rabbitmq.vhost }}
+  {{- include "epos.resourcesServiceConfigData" . | nindent 2 }}

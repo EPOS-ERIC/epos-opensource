@@ -1,3 +1,12 @@
+{{- define "epos.dataportalConfigData" -}}
+{{- if .Values.url_prefix_namespace }}
+BASE_URL: /{{ .Release.Namespace }}{{ .Values.components.platform_gui.base_url }}
+{{- else }}
+BASE_URL: {{ .Values.components.platform_gui.base_url }}
+{{- end }}
+API_HOST: http://gateway:5000/api
+{{- end -}}
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -17,6 +26,8 @@ spec:
       labels:
         {{- include "epos.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: dataportal
+      annotations:
+        checksum/dataportal-config: {{ include "epos.dataportalConfigData" . | sha256sum }}
     spec:
       {{- include "epos.imagePullSecrets" . | nindent 6 }}
       initContainers:
@@ -96,9 +107,4 @@ metadata:
     {{- include "epos.labels" . | nindent 4 }}
     app.kubernetes.io/component: dataportal
 data:
-  {{- if .Values.url_prefix_namespace }}
-  BASE_URL: /{{ .Release.Namespace }}{{ .Values.components.platform_gui.base_url }}
-  {{- else }}
-  BASE_URL: {{ .Values.components.platform_gui.base_url }}
-  {{- end }}
-  API_HOST: http://gateway:5000/api
+  {{- include "epos.dataportalConfigData" . | nindent 2 }}

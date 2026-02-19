@@ -1,3 +1,12 @@
+{{- define "epos.converterServiceConfigData" -}}
+LOG_LEVEL: "INFO"
+BROKER_HOST: rabbitmq
+BROKER_USERNAME: {{ .Values.components.rabbitmq.username }}
+BROKER_PASSWORD: {{ .Values.components.rabbitmq.password }}
+BROKER_VHOST: {{ .Values.components.rabbitmq.vhost }}
+POSTGRESQL_CONNECTION_STRING: "{{ include "epos.postgresqlConnectionString" . }}"
+{{- end -}}
+
 {{- if .Values.components.converter.enabled }}
 ---
 apiVersion: apps/v1
@@ -18,6 +27,8 @@ spec:
       labels:
         {{- include "epos.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: converter-service
+      annotations:
+        checksum/converter-service-config: {{ include "epos.converterServiceConfigData" . | sha256sum }}
     spec:
       {{- include "epos.imagePullSecrets" . | nindent 6 }}
       initContainers:
@@ -102,10 +113,5 @@ metadata:
     {{- include "epos.labels" . | nindent 4 }}
     app.kubernetes.io/component: converter-service
 data:
-  LOG_LEVEL: "INFO"
-  BROKER_HOST: rabbitmq
-  BROKER_USERNAME: {{ .Values.components.rabbitmq.username }}
-  BROKER_PASSWORD: {{ .Values.components.rabbitmq.password }}
-  BROKER_VHOST: {{ .Values.components.rabbitmq.vhost }}
-  POSTGRESQL_CONNECTION_STRING: "{{ include "epos.postgresqlConnectionString" . }}"
+  {{- include "epos.converterServiceConfigData" . | nindent 2 }}
 {{- end }}
