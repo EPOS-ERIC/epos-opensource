@@ -52,7 +52,13 @@ NOTE: to execute the deploy it will try to use port-forwarding to the cluster. I
 			os.Exit(1)
 		}
 
-		display.URLs(env.GuiUrl, env.ApiUrl, fmt.Sprintf("epos-opensource k8s deploy %s", name), env.BackofficeUrl)
+		URLs, err := env.BuildEnvURLs()
+		if err != nil {
+			display.Error("Failed to build environment URLs: %v", err)
+			os.Exit(1)
+		}
+
+		display.URLs(URLs.GUIURL, URLs.APIURL, fmt.Sprintf("epos-opensource k8s deploy %s", name), URLs.BackofficeURL)
 	},
 }
 

@@ -4,3 +4,5 @@ description: EPOS Platform Helm Chart
 version: 0.1.0
 appVersion: "1.0.0"
 type: application
+annotations:
+  managed-by: "epos"

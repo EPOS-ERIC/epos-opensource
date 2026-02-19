@@ -4,11 +4,9 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
-	"net"
 	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
@@ -70,20 +68,31 @@ func (e *EnvConfig) Save(path string) error {
 
 // BuildEnvURLs TODO
 func (e *EnvConfig) BuildEnvURLs() (*common.URLs, error) {
-	buildURL := func(port int, basePath string) (string, error) {
+	buildURL := func(paths ...string) (string, error) {
 		base := &url.URL{
 			Scheme: e.Protocol,
-			Host:   net.JoinHostPort(e.Domain, strconv.Itoa(port)),
+			Host:   e.Domain,
 		}
-		return url.JoinPath(base.String(), basePath)
+
+		path := base.String()
+
+		if e.URLPrefixNamespace {
+			var err error
+			path, err = url.JoinPath(path, e.Name)
+			if err != nil {
+				return "", fmt.Errorf("error joining namespace to base URL: %w", err)
+			}
+		}
+
+		return url.JoinPath(path, paths...)
 	}
 
-	guiURL, err := buildURL(e.Components.PlatformGUI.Port, e.Components.PlatformGUI.BaseURL)
+	guiURL, err := buildURL(e.Components.PlatformGUI.BaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("error building GUI URL: %w", err)
 	}
 
-	apiURL, err := buildURL(e.Components.Gateway.Port, e.Components.Gateway.BaseURL)
+	apiURL, err := buildURL(e.Components.Gateway.BaseURL, "/ui")
 	if err != nil {
 		return nil, fmt.Errorf("error building API URL: %w", err)
 	}
@@ -94,7 +103,7 @@ func (e *EnvConfig) BuildEnvURLs() (*common.URLs, error) {
 	}
 
 	if e.Components.Backoffice.Enabled {
-		backofficeURL, err := buildURL(e.Components.Backoffice.GUI.Port, e.Components.Backoffice.GUI.BaseURL)
+		backofficeURL, err := buildURL(e.Components.Backoffice.GUI.BaseURL, "/home")
 		if err != nil {
 			return nil, fmt.Errorf("error building Backoffice URL: %w", err)
 		}

@@ -22,12 +22,12 @@ var UpdateCmd = &cobra.Command{
 	Long:  "Re-deploy an existing Docker Compose environment after modifying its configuration.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		display.Debug("name: %v", args[0])
+		name := args[0]
+
+		display.Debug("name: %v", name)
 		display.Debug("force: %v", force)
 		display.Debug("configFilePath: %s", configFilePath)
 		display.Debug("pullImages: %v", pullImages)
-
-		name := args[0]
 
 		var cfg *config.EnvConfig
 		var err error
@@ -39,7 +39,7 @@ var UpdateCmd = &cobra.Command{
 			}
 		}
 
-		d, err := docker.Update(docker.UpdateOpts{
+		env, err := docker.Update(docker.UpdateOpts{
 			PullImages: pullImages,
 			Force:      force,
 			Reset:      reset,
@@ -51,7 +51,7 @@ var UpdateCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		display.URLs(d.GuiUrl, d.ApiUrl, fmt.Sprintf("epos-opensource docker update %s", name), d.BackofficeUrl)
+		display.URLs(env.GuiUrl, env.ApiUrl, fmt.Sprintf("epos-opensource docker update %s", name), env.BackofficeUrl)
 	},
 }
 

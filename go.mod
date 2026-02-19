@@ -8,11 +8,9 @@ require (
 	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/creack/pty v1.1.24
 	github.com/gdamore/tcell/v2 v2.13.4
-	github.com/google/go-cmp v0.7.0
 	github.com/google/go-containerregistry v0.20.6
 	github.com/google/go-github/v72 v72.0.0
 	github.com/jedib0t/go-pretty/v6 v6.6.7
-	github.com/joho/godotenv v1.5.1
 	github.com/minio/selfupdate v0.6.0
 	github.com/ncruces/zenity v0.10.14
 	github.com/pressly/goose/v3 v3.24.3
@@ -72,6 +70,7 @@ require (
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/cel-go v0.26.0 // indirect
 	github.com/google/gnostic-models v0.7.0 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gosuri/uitable v0.0.4 // indirect

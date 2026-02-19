@@ -202,7 +202,7 @@ func (a *App) showDeployProgress(data *deployFormData, isDocker bool) {
 				})
 				err = kerr
 				if env != nil {
-					guiURL = env.GuiUrl
+					// guiURL = env.GuiUrl
 				}
 			}
 

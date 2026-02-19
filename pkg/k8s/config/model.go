@@ -3,18 +3,20 @@ package config
 import "github.com/EPOS-ERIC/epos-opensource/common"
 
 type EnvConfig struct {
-	Name       string        `yaml:"name"`
-	Domain     string        `yaml:"domain"`
-	Protocol   string        `yaml:"protocol"`
-	Components Components    `yaml:"components"`
-	Jobs       Jobs          `yaml:"jobs"`
-	Monitoring Monitoring    `yaml:"monitoring"`
-	Images     common.Images `yaml:"images"`
+	Name               string           `yaml:"name"`
+	Domain             string           `yaml:"domain"`
+	Protocol           string           `yaml:"protocol"`
+	TLSEnabled         bool             `yaml:"tls_enabled"`
+	URLPrefixNamespace bool             `yaml:"url_prefix_namespace"`
+	Components         Components       `yaml:"components"`
+	Jobs               Jobs             `yaml:"jobs"`
+	Monitoring         Monitoring       `yaml:"monitoring"`
+	ImagePullSecrets   ImagePullSecrets `yaml:"image_pull_secrets"`
+	Images             common.Images    `yaml:"images"`
 }
 
 type PlatformGUI struct {
 	BaseURL string `yaml:"base_url"`
-	Port    int    `yaml:"port"`
 }
 
 type Aai struct {
@@ -33,12 +35,10 @@ type Gateway struct {
 	Aai         Aai         `yaml:"aai"`
 	BaseURL     string      `yaml:"base_url"`
 	SwaggerPage SwaggerPage `yaml:"swagger_page"`
-	Port        int         `yaml:"port"`
 }
 
 type GUI struct {
 	BaseURL string `yaml:"base_url"`
-	Port    int    `yaml:"port"`
 }
 
 type Auth struct {
@@ -163,4 +163,12 @@ type Monitoring struct {
 	URL      string `yaml:"url"`
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
+}
+
+type ImagePullSecrets struct {
+	Enabled          bool   `yaml:"enabled"`
+	RegistryServer   string `yaml:"registry_server"`
+	RegistryUsername string `yaml:"registry_username"`
+	RegistryPassword string `yaml:"registry_password"`
+	RegistryEmail    string `yaml:"registry_email"`
 }

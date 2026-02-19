@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net/url"
 	"os"
 	"time"
 
@@ -110,20 +109,6 @@ func Copyright() string {
 
 // URLs prints the URLs for the data portal, API gateway, and backoffice for a specific environment
 func URLs(portalURL, gatewayURL, title string, backofficeURL *string) {
-	if newGatewayURL, err := url.JoinPath(gatewayURL, "ui"); err != nil {
-		Warn("Could not construct gateway URL: %v", err)
-	} else {
-		gatewayURL = newGatewayURL
-	}
-
-	if backofficeURL != nil {
-		if newBackofficeURL, err := url.JoinPath(*backofficeURL, "home"); err != nil {
-			Warn("Could not construct backoffice URL: %v", err)
-		} else {
-			backofficeURL = &newBackofficeURL
-		}
-	}
-
 	t := table.NewWriter()
 	t.SetTitle(title)
 	t.SetStyle(table.StyleRounded)

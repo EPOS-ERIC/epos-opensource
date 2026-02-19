@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
-	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
 	"github.com/EPOS-ERIC/epos-opensource/display"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s/config"
 	"github.com/EPOS-ERIC/epos-opensource/validate"
@@ -23,14 +22,14 @@ type DeployOpts struct {
 	Config *config.EnvConfig
 }
 
-func Deploy(opts DeployOpts) (*sqlc.K8s, error) {
+func Deploy(opts DeployOpts) (*Env, error) {
 	// TODO: do we really need this context fallback?
 	if opts.Context == "" {
-		ctx, err := common.GetCurrentKubeContext()
+		context, err := common.GetCurrentKubeContext()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get current kubectl context: %w", err)
 		}
-		opts.Context = ctx
+		opts.Context = context
 	}
 
 	if err := opts.Validate(); err != nil {
@@ -39,13 +38,10 @@ func Deploy(opts DeployOpts) (*sqlc.K8s, error) {
 
 	// TODO: add info/logs
 
-	// TODO: handle failure?
-
 	urls, err := opts.Config.BuildEnvURLs()
 	if err != nil {
 		display.Error("error building urls: %v", err)
 		return nil, err
-		// return handleFailure("error building urls: %w", err)
 	}
 
 	display.Debug("urls: %+v", urls)
@@ -90,7 +86,12 @@ func Deploy(opts DeployOpts) (*sqlc.K8s, error) {
 
 	display.Debug("Installed release: %s (status: %s)", rel.Name, rel.Info.Status)
 
-	return nil, nil
+	env, err := ReleaseToEnv(rel, opts.Context)
+	if err != nil {
+		return nil, fmt.Errorf("TODO: %w", err)
+	}
+
+	return env, nil
 }
 
 func (d *DeployOpts) Validate() error {
