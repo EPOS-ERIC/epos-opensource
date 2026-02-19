@@ -89,7 +89,7 @@ func (a *App) showHelp() {
 					}
 					lineCount++
 				} else {
-					content.WriteString(fmt.Sprintf("  %s\n", key))
+					fmt.Fprintf(&content, "  %s\n", key)
 					if len(key)+2 > maxWidth {
 						maxWidth = len(key) + 2
 					}
