@@ -9,6 +9,7 @@ import (
 )
 
 func ReleaseToConfig(rel *release.Release) (*config.EnvConfig, error) {
+	// TODO: rename this function with a better name
 	if rel == nil {
 		return nil, fmt.Errorf("release is nil")
 	}
@@ -27,6 +28,7 @@ func ReleaseToConfig(rel *release.Release) (*config.EnvConfig, error) {
 }
 
 func ReleaseToEnv(rel *release.Release, context string) (*Env, error) {
+	// TODO: rename this function with a better name
 	if rel == nil {
 		return nil, fmt.Errorf("release is nil")
 	}

@@ -4,15 +4,22 @@ package k8s
 import (
 	_ "embed"
 	"fmt"
+	"slices"
+	"time"
 
-	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
+	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/display"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s/config"
+	"github.com/EPOS-ERIC/epos-opensource/validate"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
 )
 
 type UpdateOpts struct {
 	// Required. name of the environment
 	OldEnvName string
+	// Optional. Kubernetes context to use; defaults to the current kubectl context when unset.
+	Context string
 	// Optional. do an uninstall then an install (to wipe volumes and stuff) maybe we should rename the flag?
 	Force bool
 	// Optional. reset the environment config to the embedded defaults maybe we should rename the flag?
@@ -22,159 +29,122 @@ type UpdateOpts struct {
 }
 
 // Update TODO: add docs
-func Update(opts UpdateOpts) (*sqlc.K8s, error) {
+func Update(opts UpdateOpts) (*Env, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid parameters for update command: %w", err)
 	}
 
+	if opts.NewConfig.Name == "" {
+		opts.NewConfig.Name = opts.OldEnvName
+	}
+
 	display.Step("Updating environment: %s", opts.OldEnvName)
-
-	// kube, err := db.GetK8sByName(opts.Name)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("error getting k8s environment from db called '%s': %w", opts.Name, err)
-	// }
-
-	// display.Info("Environment directory: %s", kube.Directory)
-
-	// // If it exists, create a copy of it in a tmp dir
-	// tmpDir, err := common.CreateTmpCopy(kube.Directory)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to create backup copy: %w", err)
-	// }
-
-	// // If no custom files provided and not resetting, use existing files from tmp dir
-	// if opts.EnvFile == "" && !opts.Reset {
-	// 	opts.EnvFile = filepath.Join(tmpDir, ".env")
-	// }
-	// if opts.ManifestDir == "" && !opts.Reset {
-	// 	opts.ManifestDir = tmpDir
-	// }
-
-	// // Cleanup function to restore from tmp if needed
-	// restoreFromTmp := func() error {
-	// 	display.Step("Restoring environment from backup")
-	// 	if err := common.RemoveEnvDir(kube.Directory); err != nil {
-	// 		display.Error("Failed to remove corrupted directory: %v", err)
-	// 	}
-	// 	if err := common.RestoreTmpDir(tmpDir, kube.Directory); err != nil {
-	// 		return fmt.Errorf("failed to restore from backup: %w", err)
-	// 	}
-	// 	// if err := deployManifests(kube.Directory, opts.Name, true, kube.Context, kube.TlsEnabled); err != nil {
-	// 	// 	return fmt.Errorf("failed to deploy restored environment: %w", err)
-	// 	// }
-	// 	return nil
-	// }
 
 	display.Step("Updating stack")
 
-	// // If force is set delete the original env
-	// if opts.Force {
-	// 	if err := deleteNamespace(opts.Name, kube.Context); err != nil {
-	// 		if restoreErr := restoreFromTmp(); restoreErr != nil {
-	// 			display.Error("Restore failed: %v", restoreErr)
-	// 		}
-	// 		if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
-	// 			display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
-	// 		}
-	// 		return nil, fmt.Errorf("K8s namespace deletion failed: %w", err)
-	// 	}
-	// 	display.Done("Stopped environment: %s", opts.Name)
-	// }
+	// if force do uninstall + install again
+	if opts.Force {
+		if err := Delete(DeleteOpts{
+			Name:    []string{opts.OldEnvName},
+			Context: opts.Context,
+		}); err != nil {
+			return nil, fmt.Errorf("failed to delete environment: %w", err)
+		}
+		env, err := Deploy(DeployOpts{
+			Context: opts.Context,
+			Config:  opts.NewConfig,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to deploy new environment: %w", err)
+		}
 
-	display.Step("Removing old environment directory")
+		return env, nil
+	}
 
-	// // Remove the contents of the env dir and create the updated env file and manifests
-	// if err := common.RemoveEnvDir(kube.Directory); err != nil {
-	// 	if restoreErr := restoreFromTmp(); restoreErr != nil {
-	// 		display.Error("Restore failed: %v", restoreErr)
-	// 	}
-	// 	if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
-	// 		display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
-	// 	}
-	// 	return nil, fmt.Errorf("failed to remove directory %s: %w", kube.Directory, err)
-	// }
+	chart, err := config.GetChart()
+	if err != nil {
+		return nil, fmt.Errorf("TODO: %w", err)
+	}
 
-	display.Step("Creating new environment directory")
+	values, err := opts.NewConfig.AsValues()
+	if err != nil {
+		return nil, fmt.Errorf("TODO: %w", err)
+	}
 
-	// create the directory in the parent
-	// path := filepath.Dir(kube.Directory)
-	// dir, err := NewEnvDir(opts.EnvFile, opts.ManifestDir, path, opts.Name, kube.Context, kube.Protocol, opts.CustomHost)
-	// if err != nil {
-	// 	if restoreErr := restoreFromTmp(); restoreErr != nil {
-	// 		display.Error("Restore failed: %v", restoreErr)
-	// 	}
-	// 	if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
-	// 		display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
-	// 	}
-	// 	return nil, fmt.Errorf("failed to prepare environment directory: %w", err)
-	// }
+	settings := cli.New()
+	settings.KubeContext = opts.Context
+	settings.SetNamespace(opts.NewConfig.Name)
 
-	// display.Done("Updated environment created in directory: %s", dir)
-	//
-	// // Deploy the updated manifests
-	// if err := deployManifests(dir, opts.Name, opts.Force, kube.Context, kube.TlsEnabled); err != nil {
-	// 	display.Error("Deploy failed: %v", err)
-	// 	if restoreErr := restoreFromTmp(); restoreErr != nil {
-	// 		display.Error("Restore failed: %v", restoreErr)
-	// 	}
-	// 	if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
-	// 		display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
-	// 	}
-	// 	return nil, err
-	// }
+	actionConfig := &action.Configuration{}
+	if err := actionConfig.Init(
+		settings.RESTClientGetter(),
+		opts.NewConfig.Name,
+		"secret",
+		func(format string, v ...any) { display.Info(format, v...) },
+	); err != nil {
+		return nil, fmt.Errorf("failed to init helm action config: %w", err)
+	}
 
-	// // only repopulate the ontologies if the database has been cleaned
-	// if opts.Force {
-	// 	if err := common.PopulateOntologies(kube.ApiUrl); err != nil {
-	// 		display.Error("error initializing the ontologies in the environment: %v", err)
-	// 		if restoreErr := restoreFromTmp(); restoreErr != nil {
-	// 			display.Error("Restore failed: %v", restoreErr)
-	// 		}
-	// 		if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
-	// 			display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
-	// 		}
-	// 		return nil, fmt.Errorf("error initializing the ontologies in the environment: %w", err)
-	// 	}
-	// 	if err := db.DeleteIngestedFilesByEnvironment("k8s", opts.Name); err != nil {
-	// 		if restoreErr := restoreFromTmp(); restoreErr != nil {
-	// 			display.Error("Restore failed: %v", restoreErr)
-	// 		}
-	// 		if cleanupErr := common.RemoveTmpDir(tmpDir); cleanupErr != nil {
-	// 			display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
-	// 		}
-	// 		return nil, fmt.Errorf("failed to clear ingested files tracking: %w", err)
-	// 	}
-	// }
+	client := action.NewUpgrade(actionConfig)
+	client.Namespace = opts.NewConfig.Name
+	client.Wait = true
+	client.WaitForJobs = true
+	client.Atomic = true
+	client.Timeout = 300 * time.Second
 
-	// // If everything goes right, delete the tmp dir and finish
-	// if err := common.RemoveTmpDir(tmpDir); err != nil {
-	// 	display.Warn("Failed to cleanup tmp dir: %v", err)
-	// 	// Don't return error as the main operation succeeded
-	// }
+	rel, err := client.Run(opts.NewConfig.Name, chart, values.AsMap())
+	if err != nil {
+		return nil, fmt.Errorf("failed to install helm chart: %w", err)
+	}
 
-	return nil, nil
+	// TODO: populate ontologies
+
+	newEnv, err := ReleaseToEnv(rel, opts.Context)
+	if err != nil {
+		return nil, fmt.Errorf("TODO: %w", err)
+	}
+
+	return newEnv, nil
 }
 
 func (u *UpdateOpts) Validate() error {
-	// if err := validate.EnvironmentExistsK8s(u.Name); err != nil {
-	// 	return fmt.Errorf("no environment with name '%s' exists: %w", u.Name, err)
-	// }
-	//
-	// if err := validate.CustomHost(u.CustomHost); err != nil {
-	// 	return fmt.Errorf("custom host '%s' is invalid: %w ", u.CustomHost, err)
-	// }
-	//
-	// if err := validate.IsFile(u.EnvFile); err != nil {
-	// 	return fmt.Errorf("the path to .env '%s' is not a file: %w", u.EnvFile, err)
-	// }
-	//
-	// if err := validate.PathExists(u.ManifestDir); err != nil {
-	// 	return fmt.Errorf("the manifest directory path '%s' is not a valid path: %w", u.ManifestDir, err)
-	// }
-	//
-	// if u.Reset && (u.EnvFile != "" || u.ManifestDir != "") {
-	// 	return fmt.Errorf("cannot specify custom files when Reset is true; Reset uses embedded defaults")
-	// }
+	if u.OldEnvName == "" {
+		return fmt.Errorf("old environment name is required")
+	}
+
+	if err := validate.Name(u.OldEnvName); err != nil {
+		return fmt.Errorf("'%s' is an invalid name for an environment: %w", u.OldEnvName, err)
+	}
+
+	if err := validate.EnvironmentExistsK8s(u.OldEnvName); err != nil {
+		return fmt.Errorf("an environment with the name '%s' already exists: %w", u.OldEnvName, err)
+	}
+
+	if u.NewConfig != nil {
+		if u.Reset {
+			return fmt.Errorf("reset and new config are mutually exclusive")
+		}
+
+		if err := u.NewConfig.Validate(); err != nil {
+			return fmt.Errorf("invalid config: %w", err)
+		}
+
+		if !u.Force && u.NewConfig.Name != "" && u.NewConfig.Name != u.OldEnvName {
+			// TODO: better error
+			return fmt.Errorf("the name in the config is different from the name of the environment to update, this is not supported")
+		}
+
+	}
+
+	// TODO: do we really need this?
+	contexts, err := common.GetKubeContexts()
+	if err != nil {
+		return fmt.Errorf("failed to list kubectl contexts: %w", err)
+	}
+	contextFound := slices.Contains(contexts, u.Context)
+	if !contextFound {
+		return fmt.Errorf("K8s context %q is not an available context", u.Context)
+	}
 
 	return nil
 }

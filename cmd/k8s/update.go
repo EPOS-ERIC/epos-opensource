@@ -46,18 +46,26 @@ var UpdateCmd = &cobra.Command{
 			Reset:      reset,
 			OldEnvName: name,
 			NewConfig:  cfg,
+			Context:    context,
 		})
 		if err != nil {
 			display.Error("%v", err)
 			os.Exit(1)
 		}
 
-		display.URLs(env.GuiUrl, env.ApiUrl, fmt.Sprintf("epos-opensource k8s update %s", name), env.BackofficeUrl)
+		URLs, err := env.BuildEnvURLs()
+		if err != nil {
+			display.Error("Failed to build environment URLs: %v", err)
+			os.Exit(1)
+		}
+
+		display.URLs(URLs.GUIURL, URLs.APIURL, fmt.Sprintf("epos-opensource k8s update %s", name), URLs.BackofficeURL)
 	},
 }
 
 func init() {
 	UpdateCmd.Flags().BoolVarP(&force, "force", "f", false, "Delete and recreate the namespace and all resources before redeploying.")
 	UpdateCmd.Flags().BoolVarP(&reset, "reset", "r", false, "Reset .env and manifests to embedded versions")
-	UpdateCmd.Flags().StringVarP(&configFilePath, "config", "c", "", "Path to YAML configuration file")
+	UpdateCmd.Flags().StringVar(&configFilePath, "config", "", "Path to YAML configuration file")
+	UpdateCmd.Flags().StringVar(&context, "context", "", "kubectl context used for the environment deployment. Uses current if not set")
 }

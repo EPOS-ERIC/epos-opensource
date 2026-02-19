@@ -14,8 +14,6 @@ import (
 )
 
 type DeployOpts struct {
-	// Optional. Path to the local chart source directory.
-	Path string
 	// Optional. Kubernetes context to use; defaults to the current kubectl context when unset.
 	Context string
 	// Required. Environment configuration used to build deployment values.
@@ -86,6 +84,8 @@ func Deploy(opts DeployOpts) (*Env, error) {
 
 	display.Debug("Installed release: %s (status: %s)", rel.Name, rel.Info.Status)
 
+	// TODO: populate the ontologies
+
 	env, err := ReleaseToEnv(rel, opts.Context)
 	if err != nil {
 		return nil, fmt.Errorf("TODO: %w", err)
@@ -109,10 +109,6 @@ func (d *DeployOpts) Validate() error {
 
 	if err := validate.EnvironmentNotExistK8s(d.Config.Name); err != nil {
 		return fmt.Errorf("an environment with the name '%s' already exists: %w", d.Config.Name, err)
-	}
-
-	if err := validate.PathExists(d.Path); err != nil {
-		return fmt.Errorf("the path '%s' is not a valid path: %w", d.Path, err)
 	}
 
 	// TODO: do we really need this?

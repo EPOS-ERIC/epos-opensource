@@ -194,7 +194,7 @@ func (a *App) showDeployProgress(data *deployFormData, isDocker bool) {
 					// Name:        data.name,
 					// EnvFile:     data.envFile,
 					// ManifestDir: data.manifestDir,
-					Path:    data.path,
+					// Path:    data.path,
 					Context: data.context,
 					// Protocol:    data.protocol,
 					// CustomHost:  data.host,
