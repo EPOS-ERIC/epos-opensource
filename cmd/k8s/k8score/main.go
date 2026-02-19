@@ -248,7 +248,7 @@ func applyParallel(dir string, targets []string, withService bool, context strin
 	return g.Wait()
 }
 
-// waitDeployments waits for all deployments to be ready with 1 minute timeout each.
+// waitDeployments waits for all deployments to be ready with 5 minute timeout each.
 func waitDeployments(dir, namespace string, names []string, context string) error {
 	var g errgroup.Group
 
@@ -256,7 +256,7 @@ func waitDeployments(dir, namespace string, names []string, context string) erro
 		g.Go(func() error {
 			return runKubectl(dir, false, context,
 				"rollout", "status", fmt.Sprintf("deployment/%s", n),
-				"--timeout", (2 * time.Minute).String(),
+				"--timeout", (5 * time.Minute).String(),
 				"-n", namespace)
 		})
 	}
@@ -463,7 +463,7 @@ func getIngressControllerIP(context string) (string, error) {
 
 func waitIngresses(kubeContext string, ingressNames []string, namespace string) error {
 	const (
-		maxWait  = 2 * time.Minute
+		maxWait  = 5 * time.Minute
 		interval = 5 * time.Second
 	)
 
@@ -513,7 +513,7 @@ func waitIngresses(kubeContext string, ingressNames []string, namespace string) 
 
 func waitForPVCBound(kubeContext, namespace, pvcName string) error {
 	const (
-		maxWait  = 1 * time.Minute
+		maxWait  = 5 * time.Minute
 		interval = 5 * time.Second
 	)
 
