@@ -7,7 +7,7 @@ import (
 	"helm.sh/helm/v3/pkg/engine"
 )
 
-func (e *EnvConfig) Render() (map[string]string, error) {
+func (e *Config) Render() (map[string]string, error) {
 	chart, err := GetChart()
 	if err != nil {
 		return nil, fmt.Errorf("load chart from embedded filesystem: %w", err)

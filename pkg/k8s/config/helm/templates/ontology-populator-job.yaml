@@ -1,0 +1,70 @@
+{{- $name := "ontology-populator-job" -}}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $name }}
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "-1"
+    "helm.sh/hook-delete-policy": before-hook-creation
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      name: {{ $name }}
+    spec:
+      restartPolicy: Never
+      initContainers:
+      - name: wait-for-ingestor-service
+        image: busybox:latest
+        command:
+        - /bin/sh
+        - -c
+        - |-
+          until nc -z ingestor-service 8080; do
+            sleep 1;
+          done
+      containers:
+      - name: {{ $name }}
+        image: curlimages/curl:8.12.1
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          set -eu
+
+          timestamp() {
+            date "+%Y-%m-%d %H:%M:%S"
+          }
+
+          log() {
+            level="$1"
+            shift
+            echo "[$(timestamp)] [ontology-populator] [$level] $*"
+          }
+
+          register_ontology() {
+            name="$1"
+            type="$2"
+            path="$3"
+            url="http://ingestor-service:8080/api/ingestor-service/v1/ontology?path=$path&name=$name&type=$type"
+
+            log INFO "Registering ontology: name=$name type=$type"
+            if curl -fsS -X POST --header "accept: */*" "$url"; then
+              log INFO "Registered ontology successfully: name=$name type=$type"
+            else
+              log ERROR "Failed to register ontology: name=$name type=$type path=$path"
+              return 1
+            fi
+          }
+
+          log INFO "Registering ontologies..."
+          register_ontology "EPOS-DCAT-AP-V1" "BASE" "https://raw.githubusercontent.com/epos-eu/EPOS-DCAT-AP/EPOS-DCAT-AP-shapes/epos-dcat-ap_shapes.ttl"
+          register_ontology "EPOS-DCAT-AP-V3" "BASE" "https://raw.githubusercontent.com/epos-eu/EPOS-DCAT-AP/EPOS-DCAT-AP-v3.0/docs/epos-dcat-ap_v3.0.0_shacl.ttl"
+          register_ontology "EDM-TO-DCAT-AP" "MAPPING" "https://raw.githubusercontent.com/epos-eu/EPOS_Data_Model_Mapping/main/edm-schema-shapes.ttl"
+          log INFO "Ontology registration completed successfully"

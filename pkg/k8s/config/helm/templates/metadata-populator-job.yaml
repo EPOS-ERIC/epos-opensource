@@ -57,19 +57,6 @@ spec:
           sleep 2
         done
 
-        log "Registering ontologies..."
-        curl -fsS -X POST --header "accept: */*" \
-          'http://ingestor-service:8080/api/ingestor-service/v1/ontology?path=https://raw.githubusercontent.com/epos-eu/EPOS-DCAT-AP/EPOS-DCAT-AP-shapes/epos-dcat-ap_shapes.ttl&name=EPOS-DCAT-AP-V1&type=BASE'
-
-        curl -fsS -X POST --header "accept: */*" \
-          'http://ingestor-service:8080/api/ingestor-service/v1/ontology?path=https://raw.githubusercontent.com/epos-eu/EPOS-DCAT-AP/EPOS-DCAT-AP-v3.0/docs/epos-dcat-ap_v3.0.0_shacl.ttl&name=EPOS-DCAT-AP-V3&type=BASE'
-
-        curl -fsS -X POST --header "accept: */*" \
-          'http://ingestor-service:8080/api/ingestor-service/v1/ontology?path=https://raw.githubusercontent.com/epos-eu/EPOS_Data_Model_Mapping/main/edm-schema-shapes.ttl&name=EDM-TO-DCAT-AP&type=MAPPING'
-
-        log "✓ Ontologies registered"
-
-        sleep 10
         SECONDS=0
 
         log "Downloading metadata index..."
@@ -150,4 +137,3 @@ spec:
     {{- include "epos.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: {{ $name }}
 {{- end -}}
-

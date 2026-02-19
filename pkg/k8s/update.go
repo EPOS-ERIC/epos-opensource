@@ -25,7 +25,7 @@ type UpdateOpts struct {
 	// Optional. reset the environment config to the embedded defaults maybe we should rename the flag?
 	Reset bool
 	// New configuration to apply. If nil, preserves existing config
-	NewConfig *config.EnvConfig
+	NewConfig *config.Config
 }
 
 // Update TODO: add docs
@@ -34,8 +34,17 @@ func Update(opts UpdateOpts) (*Env, error) {
 		return nil, fmt.Errorf("invalid parameters for update command: %w", err)
 	}
 
-	if opts.NewConfig.Name == "" {
+	if opts.NewConfig != nil && opts.NewConfig.Name == "" {
 		opts.NewConfig.Name = opts.OldEnvName
+	}
+
+	if opts.NewConfig == nil {
+		oldEnv, err := GetEnv(opts.OldEnvName, opts.Context)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get environment: %w", err)
+		}
+
+		opts.NewConfig = &oldEnv.Config
 	}
 
 	display.Step("Updating environment: %s", opts.OldEnvName)

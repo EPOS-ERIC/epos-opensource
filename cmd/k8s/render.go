@@ -22,7 +22,7 @@ the environment directory with .env and k8s-compose.yaml files.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		var cfg *config.EnvConfig
+		var cfg *config.Config
 		var err error
 		if configFilePath != "" {
 			cfg, err = config.LoadConfig(configFilePath)

@@ -2,7 +2,7 @@ package config
 
 import "github.com/EPOS-ERIC/epos-opensource/common"
 
-type EnvConfig struct {
+type Config struct {
 	Name               string           `yaml:"name"`
 	Domain             string           `yaml:"domain"`
 	Protocol           string           `yaml:"protocol"`

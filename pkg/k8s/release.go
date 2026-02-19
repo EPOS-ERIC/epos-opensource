@@ -8,7 +8,7 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 )
 
-func ReleaseToConfig(rel *release.Release) (*config.EnvConfig, error) {
+func ReleaseToConfig(rel *release.Release) (*config.Config, error) {
 	// TODO: rename this function with a better name
 	if rel == nil {
 		return nil, fmt.Errorf("release is nil")
@@ -19,7 +19,7 @@ func ReleaseToConfig(rel *release.Release) (*config.EnvConfig, error) {
 		return nil, fmt.Errorf("failed to marshal config to yaml: %w", err)
 	}
 
-	var envConfig config.EnvConfig
+	var envConfig config.Config
 	if err := yaml.Unmarshal(yamlBytes, &envConfig); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
@@ -39,7 +39,7 @@ func ReleaseToEnv(rel *release.Release, context string) (*Env, error) {
 	}
 
 	return &Env{
-		EnvConfig: *config,
+		Config: *config,
 		Name:      config.Name,
 		Context:   context,
 	}, nil

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/EPOS-ERIC/epos-opensource/pkg/docker"
-	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 )
 
 // showCleanConfirm displays a confirmation dialog for cleaning an environment.
@@ -56,13 +55,15 @@ func (a *App) showCleanProgress(envName string, isDocker bool) {
 				}
 				return fmt.Sprintf("Environment cleaned successfully! GUI: %s", env.GuiUrl), nil
 			} else {
-				env, err := k8s.Clean(k8s.CleanOpts{
-					Name: envName,
-				})
-				if err != nil {
-					return "", err
-				}
-				return fmt.Sprintf("Environment cleaned successfully! GUI: %s", env.GuiUrl), nil
+				// env, err := k8s.Clean(k8s.CleanOpts{
+				// 	Name: envName,
+				// })
+				// if err != nil {
+				// 	return "", err
+				// }
+				// return fmt.Sprintf("Environment cleaned successfully! GUI: %s", env.GuiUrl), nil
+				// TODO
+				return "", nil
 			}
 		},
 	})

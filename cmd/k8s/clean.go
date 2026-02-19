@@ -1,12 +1,10 @@
 package k8s
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/display"
-	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 
 	"github.com/spf13/cobra"
 )
@@ -35,15 +33,15 @@ This action is irreversible.`,
 			}
 		}
 
-		env, err := k8s.Clean(k8s.CleanOpts{
-			Name: name,
-		})
-		if err != nil {
-			display.Error("%v", err)
-			os.Exit(1)
-		}
+		// env, err := k8s.Clean(k8s.CleanOpts{
+		// 	Name: name,
+		// })
+		// if err != nil {
+		// 	display.Error("%v", err)
+		// 	os.Exit(1)
+		// }
 
-		display.URLs(env.GuiUrl, env.ApiUrl, fmt.Sprintf("epos-opensource k8s clean %s", name), env.BackofficeUrl)
+		// display.URLs(env.GuiUrl, env.ApiUrl, fmt.Sprintf("epos-opensource k8s clean %s", name), env.BackofficeUrl)
 	},
 }
 

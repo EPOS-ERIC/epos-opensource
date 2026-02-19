@@ -20,8 +20,8 @@ import (
 var chartFS embed.FS
 
 // GetDefaultConfig returns the default DockerEnvConfig
-func GetDefaultConfig() *EnvConfig {
-	var config EnvConfig
+func GetDefaultConfig() *Config {
+	var config Config
 
 	err := yaml.Unmarshal(GetDefaultConfigBytes(), &config)
 	if err != nil {
@@ -38,13 +38,13 @@ func GetDefaultConfigBytes() []byte {
 	return out
 }
 
-func LoadConfig(path string) (*EnvConfig, error) {
+func LoadConfig(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file %s: %w", path, err)
 	}
 
-	var config EnvConfig
+	var config Config
 	err = yaml.Unmarshal(data, &config)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshalling config yaml: %w", err)
@@ -53,7 +53,7 @@ func LoadConfig(path string) (*EnvConfig, error) {
 	return &config, nil
 }
 
-func (e *EnvConfig) Save(path string) error {
+func (e *Config) Save(path string) error {
 	bytes, err := yaml.Marshal(e)
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
@@ -67,7 +67,7 @@ func (e *EnvConfig) Save(path string) error {
 }
 
 // BuildEnvURLs TODO
-func (e *EnvConfig) BuildEnvURLs() (*common.URLs, error) {
+func (e *Config) BuildEnvURLs() (*common.URLs, error) {
 	buildURL := func(paths ...string) (string, error) {
 		base := &url.URL{
 			Scheme: e.Protocol,
@@ -114,7 +114,7 @@ func (e *EnvConfig) BuildEnvURLs() (*common.URLs, error) {
 }
 
 // Validate TODO
-func (e *EnvConfig) Validate() error {
+func (e *Config) Validate() error {
 	// Basic required fields
 	if e.Domain == "" {
 		return fmt.Errorf("domain is required")
@@ -303,7 +303,7 @@ func (e *EnvConfig) Validate() error {
 	return nil
 }
 
-func (e *EnvConfig) AsValues() (*chartutil.Values, error) {
+func (e *Config) AsValues() (*chartutil.Values, error) {
 	configYAML, err := yaml.Marshal(e)
 	if err != nil {
 		return nil, fmt.Errorf("marshal env config to YAML: %w", err)

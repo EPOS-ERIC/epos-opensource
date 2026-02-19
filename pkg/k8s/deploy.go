@@ -17,7 +17,7 @@ type DeployOpts struct {
 	// Optional. Kubernetes context to use; defaults to the current kubectl context when unset.
 	Context string
 	// Required. Environment configuration used to build deployment values.
-	Config *config.EnvConfig
+	Config *config.Config
 }
 
 func Deploy(opts DeployOpts) (*Env, error) {

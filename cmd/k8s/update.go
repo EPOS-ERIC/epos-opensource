@@ -31,7 +31,7 @@ var UpdateCmd = &cobra.Command{
 		display.Debug("force: %v", force)
 
 		// TODO: this is reused in many cli commands, abstract it?
-		var cfg *config.EnvConfig
+		var cfg *config.Config
 		var err error
 		if configFilePath != "" {
 			cfg, err = config.LoadConfig(configFilePath)

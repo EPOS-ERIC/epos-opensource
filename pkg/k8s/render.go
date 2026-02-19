@@ -14,7 +14,7 @@ type RenderOpts struct {
 	// Optional. name to give to the environment. If not set it will use the name set in the passed config. If set and also set in the config, this has precedence
 	Name string
 	// Optional. custom config for the environment.
-	Config *config.EnvConfig
+	Config *config.Config
 	// Optional. path to export the embedded k8s-compose.yaml and .env files
 	OutputPath string
 }

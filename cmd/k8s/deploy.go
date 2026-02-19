@@ -24,7 +24,7 @@ NOTE: to execute the deploy it will try to use port-forwarding to the cluster. I
 		display.Debug("configFilePath: %s", configFilePath)
 		display.Debug("context: %s", context)
 
-		var cfg *config.EnvConfig
+		var cfg *config.Config
 		var err error
 		if configFilePath == "" {
 			cfg = config.GetDefaultConfig()
