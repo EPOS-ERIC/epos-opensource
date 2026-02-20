@@ -3,37 +3,45 @@ package k8s
 import (
 	"fmt"
 	"os/exec"
+	"strings"
 
 	"github.com/EPOS-ERIC/epos-opensource/command"
-
-	"golang.org/x/sync/errgroup"
 )
 
 func runKubectl(dir string, suppressOut bool, context string, args ...string) error {
+	cmd := newKubectlCommand(dir, context, args...)
+	_, err := command.RunCommand(cmd, suppressOut)
+	return err
+}
+
+func runKubectlWithInput(dir string, suppressOut bool, context, input string, args ...string) error {
+	cmd := newKubectlCommand(dir, context, args...)
+	cmd.Stdin = strings.NewReader(input)
+	_, err := command.RunCommand(cmd, suppressOut)
+	return err
+}
+
+func runKubectlCapture(dir, context string, args ...string) string {
+	cmd := newKubectlCommand(dir, context, args...)
+	out, err := command.RunCommand(cmd, true)
+	if err != nil {
+		trimmed := strings.TrimSpace(out)
+		if trimmed != "" {
+			return trimmed
+		}
+		return ""
+	}
+
+	return strings.TrimSpace(out)
+}
+
+func newKubectlCommand(dir, context string, args ...string) *exec.Cmd {
 	if context != "" {
 		args = append(args, "--context", context)
 	}
 	cmd := exec.Command("kubectl", args...)
 	cmd.Dir = dir
-	_, err := command.RunCommand(cmd, suppressOut)
-	return err
-}
-
-// applyParallel runs kubectl apply for all targets concurrently.
-// If withService is true, applies both deployment-X.yaml and service-X.yaml files.
-func applyParallel(dir string, targets []string, withService bool, context string) error {
-	var g errgroup.Group
-
-	for _, t := range targets {
-		g.Go(func() error {
-			if withService {
-				return runKubectl(dir, false, context,
-					"apply", "-f", fmt.Sprintf("deployment-%s.yaml", t), "-f", fmt.Sprintf("service-%s.yaml", t))
-			}
-			return runKubectl(dir, false, context, "apply", "-f", t)
-		})
-	}
-	return g.Wait()
+	return cmd
 }
 
 // deleteNamespace removes the specified namespace and all its resources.

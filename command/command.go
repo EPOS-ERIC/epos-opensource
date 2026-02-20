@@ -30,7 +30,9 @@ func RunCommand(cmd *exec.Cmd, interceptOut bool) (string, error) {
 	} else {
 		cmd.Stdout = Stdout
 	}
-	cmd.Stdin = os.Stdin
+	if cmd.Stdin == nil {
+		cmd.Stdin = os.Stdin
+	}
 
 	if cmd.Env == nil {
 		cmd.Env = os.Environ()
