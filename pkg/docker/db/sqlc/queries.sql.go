@@ -26,17 +26,11 @@ const deleteIngestedFilesByEnvironment = `-- name: DeleteIngestedFilesByEnvironm
 DELETE FROM
     ingested_files
 WHERE
-    environment_type = ?
-    AND environment_name = ?
+    environment_name = ?
 `
 
-type DeleteIngestedFilesByEnvironmentParams struct {
-	EnvironmentType string
-	EnvironmentName string
-}
-
-func (q *Queries) DeleteIngestedFilesByEnvironment(ctx context.Context, arg DeleteIngestedFilesByEnvironmentParams) error {
-	_, err := q.db.ExecContext(ctx, deleteIngestedFilesByEnvironment, arg.EnvironmentType, arg.EnvironmentName)
+func (q *Queries) DeleteIngestedFilesByEnvironment(ctx context.Context, environmentName string) error {
+	_, err := q.db.ExecContext(ctx, deleteIngestedFilesByEnvironment, environmentName)
 	return err
 }
 
@@ -164,24 +158,18 @@ SELECT
 FROM
     ingested_files
 WHERE
-    environment_type = ?
-    AND environment_name = ?
+    environment_name = ?
 ORDER BY
     ingested_at DESC
 `
-
-type GetIngestedFilesByEnvironmentParams struct {
-	EnvironmentType string
-	EnvironmentName string
-}
 
 type GetIngestedFilesByEnvironmentRow struct {
 	FilePath   string
 	IngestedAt *time.Time
 }
 
-func (q *Queries) GetIngestedFilesByEnvironment(ctx context.Context, arg GetIngestedFilesByEnvironmentParams) ([]GetIngestedFilesByEnvironmentRow, error) {
-	rows, err := q.db.QueryContext(ctx, getIngestedFilesByEnvironment, arg.EnvironmentType, arg.EnvironmentName)
+func (q *Queries) GetIngestedFilesByEnvironment(ctx context.Context, environmentName string) ([]GetIngestedFilesByEnvironmentRow, error) {
+	rows, err := q.db.QueryContext(ctx, getIngestedFilesByEnvironment, environmentName)
 	if err != nil {
 		return nil, err
 	}
@@ -247,26 +235,24 @@ func (q *Queries) GetLatestReleaseCache(ctx context.Context) (LatestReleaseCache
 const insertIngestedFile = `-- name: InsertIngestedFile :exec
 INSERT INTO
     ingested_files (
-        environment_type,
         environment_name,
         file_path,
         ingested_at
     )
 VALUES
-    (?, ?, ?, CURRENT_TIMESTAMP) ON CONFLICT (environment_type, environment_name, file_path) DO
+    (?, ?, CURRENT_TIMESTAMP) ON CONFLICT (environment_name, file_path) DO
 UPDATE
 SET
     ingested_at = CURRENT_TIMESTAMP
 `
 
 type InsertIngestedFileParams struct {
-	EnvironmentType string
 	EnvironmentName string
 	FilePath        string
 }
 
 func (q *Queries) InsertIngestedFile(ctx context.Context, arg InsertIngestedFileParams) error {
-	_, err := q.db.ExecContext(ctx, insertIngestedFile, arg.EnvironmentType, arg.EnvironmentName, arg.FilePath)
+	_, err := q.db.ExecContext(ctx, insertIngestedFile, arg.EnvironmentName, arg.FilePath)
 	return err
 }
 

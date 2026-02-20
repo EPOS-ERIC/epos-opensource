@@ -192,7 +192,7 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 			return handleFailure("error initializing the ontologies in the environment: %w", err)
 		}
 
-		if err := db.DeleteIngestedFilesByEnvironment("docker", opts.NewConfig.Name); err != nil {
+		if err := db.DeleteIngestedFilesByEnvironment(opts.NewConfig.Name); err != nil {
 			return handleFailure("failed to clear ingested files tracking: %w", err)
 		}
 	}

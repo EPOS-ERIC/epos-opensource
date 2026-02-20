@@ -75,7 +75,7 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 	for _, filePath := range allSuccessfulFiles {
 		display.Debug("recording ingested file: %s", filePath)
 
-		if err := db.InsertIngestedFile("docker", opts.Name, filePath); err != nil {
+		if err := db.InsertIngestedFile(opts.Name, filePath); err != nil {
 			return nil, fmt.Errorf("error inserting ingested file record: %w", err)
 		}
 	}

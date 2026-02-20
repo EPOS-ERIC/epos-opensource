@@ -192,7 +192,7 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 			dp.currentDetailsRows = rows
 			dp.createDetailsRows(rows)
 		}
-	case "k8s":
+	case string(K8sKey):
 		if k, err := db.GetK8sByName(name); err != nil {
 			dp.detailsGrid.Clear()
 			dp.detailsButtons = nil
@@ -275,8 +275,20 @@ func (dp *DetailsPanel) RefreshFiles() {
 func (dp *DetailsPanel) populateIngestedFilesList() {
 	dp.detailsList.Clear()
 	dp.detailsListFlex.Clear()
+	dp.detailsList.SetSelectedFunc(nil)
+	dp.detailsList.SetTitle(" [::b]Ingested Files ")
+	dp.detailsListEmpty.SetTitle(" [::b]Ingested Files ")
 
-	if ingestedFiles, err := db.GetIngestedFilesByEnvironment(dp.currentDetailsType, dp.currentDetailsName); err != nil {
+	if dp.currentDetailsType == string(K8sKey) {
+		dp.detailsListEmpty.SetText("\n" + DefaultTheme.MutedTag("i") + "Tracking is available only for Docker environments")
+		dp.detailsListFlex.AddItem(dp.detailsListEmpty, 0, 1, true)
+
+		return
+	}
+
+	dp.detailsListEmpty.SetText("\n" + DefaultTheme.MutedTag("i") + "No ingested files yet")
+
+	if ingestedFiles, err := db.GetIngestedFilesByEnvironment(dp.currentDetailsName); err != nil {
 		dp.detailsListEmpty.SetText("\n" + DefaultTheme.DestructiveTag("i") + fmt.Sprintf("Error loading files: %v", err))
 		dp.detailsListFlex.AddItem(dp.detailsListEmpty, 0, 1, true)
 	} else {

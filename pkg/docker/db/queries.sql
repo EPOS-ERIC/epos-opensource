@@ -66,13 +66,12 @@ SET
 -- name: InsertIngestedFile :exec
 INSERT INTO
     ingested_files (
-        environment_type,
         environment_name,
         file_path,
         ingested_at
     )
 VALUES
-    (?, ?, ?, CURRENT_TIMESTAMP) ON CONFLICT (environment_type, environment_name, file_path) DO
+    (?, ?, CURRENT_TIMESTAMP) ON CONFLICT (environment_name, file_path) DO
 UPDATE
 SET
     ingested_at = CURRENT_TIMESTAMP;
@@ -81,8 +80,7 @@ SET
 DELETE FROM
     ingested_files
 WHERE
-    environment_type = ?
-    AND environment_name = ?;
+    environment_name = ?;
 
 -- name: GetIngestedFilesByEnvironment :many
 SELECT
@@ -91,7 +89,6 @@ SELECT
 FROM
     ingested_files
 WHERE
-    environment_type = ?
-    AND environment_name = ?
+    environment_name = ?
 ORDER BY
     ingested_at DESC;

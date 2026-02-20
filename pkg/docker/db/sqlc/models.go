@@ -20,7 +20,6 @@ type Docker struct {
 }
 
 type IngestedFile struct {
-	EnvironmentType string
 	EnvironmentName string
 	FilePath        string
 	IngestedAt      *time.Time

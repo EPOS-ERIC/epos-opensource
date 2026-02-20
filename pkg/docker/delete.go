@@ -50,7 +50,7 @@ func Delete(opts DeleteOpts) error {
 
 			display.Debug("deleting ingested file records for: %s", envName)
 
-			if err := db.DeleteIngestedFilesByEnvironment("docker", envName); err != nil {
+			if err := db.DeleteIngestedFilesByEnvironment(envName); err != nil {
 				return fmt.Errorf("failed to delete ingested files for '%s': %w", envName, err)
 			}
 

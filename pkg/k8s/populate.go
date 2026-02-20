@@ -7,7 +7,6 @@ import (
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/display"
-	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db"
 )
 
 // PopulateOpts defines inputs for Populate.
@@ -60,19 +59,15 @@ func Populate(opts PopulateOpts) (*Env, error) {
 
 		url := fmt.Sprintf("http://%s:%d/api/ingestor-service/v1/", host, port)
 
-		var allSuccessfulFiles []string
-
 		if opts.PopulateExamples {
 			display.Debug("populating bundled examples through port-forward")
 
 			successfulExamples, err := common.PopulateExample(url, opts.Parallel)
-			allSuccessfulFiles = append(allSuccessfulFiles, successfulExamples...)
 			if err != nil {
 				display.Warn("error populating environment with examples through port-forward: %v. Trying with direct URL: %s", err, URLs.APIURL)
 				display.Debug("retrying example population with direct URL")
 
 				successfulExamples, err = common.PopulateExample(URLs.APIURL, opts.Parallel)
-				allSuccessfulFiles = append(allSuccessfulFiles, successfulExamples...)
 				if err != nil {
 					return fmt.Errorf("error populating environment with examples with direct URL: %w", err)
 				}
@@ -92,13 +87,11 @@ func Populate(opts PopulateOpts) (*Env, error) {
 			display.Debug("populating metadata from absolute path: %s", absPath)
 
 			successfulFiles, err := common.PopulateEnv(absPath, url, opts.Parallel)
-			allSuccessfulFiles = append(allSuccessfulFiles, successfulFiles...)
 			if err != nil {
 				display.Warn("error populating environment through port-forward: %v. Trying with direct URL: %s", err, URLs.APIURL)
 				display.Debug("retrying metadata population with direct URL")
 
 				successfulFiles, err = common.PopulateEnv(absPath, URLs.APIURL, opts.Parallel)
-				allSuccessfulFiles = append(allSuccessfulFiles, successfulFiles...)
 				if err != nil {
 					return fmt.Errorf("error populating environment with direct URL: %w", err)
 				}
@@ -106,17 +99,6 @@ func Populate(opts PopulateOpts) (*Env, error) {
 
 			display.Debug("populated metadata files from path %s: %d", absPath, len(successfulFiles))
 		}
-
-		// Insert ingested files into database
-		for _, filePath := range allSuccessfulFiles {
-			display.Debug("recording ingested file: %s", filePath)
-
-			if err := db.InsertIngestedFile("k8s", opts.Name, filePath); err != nil {
-				return fmt.Errorf("error inserting ingested file record: %w", err)
-			}
-		}
-
-		display.Debug("recorded ingested files: %d", len(allSuccessfulFiles))
 
 		return nil
 	})

@@ -167,14 +167,13 @@ func UpsertLatestReleaseCache(tagName string, fetchedAt time.Time) error {
 	return nil
 }
 
-// InsertIngestedFile inserts or updates an ingested file record.
-func InsertIngestedFile(envType, envName, filePath string) error {
+// InsertIngestedFile inserts or updates an ingested file record for a docker environment.
+func InsertIngestedFile(envName, filePath string) error {
 	q, err := Get()
 	if err != nil {
 		return fmt.Errorf("error getting db connection: %w", err)
 	}
 	err = q.InsertIngestedFile(context.Background(), sqlc.InsertIngestedFileParams{
-		EnvironmentType: envType,
 		EnvironmentName: envName,
 		FilePath:        filePath,
 	})
@@ -185,15 +184,12 @@ func InsertIngestedFile(envType, envName, filePath string) error {
 }
 
 // DeleteIngestedFilesByEnvironment deletes all ingested file records for an environment.
-func DeleteIngestedFilesByEnvironment(envType, envName string) error {
+func DeleteIngestedFilesByEnvironment(envName string) error {
 	q, err := Get()
 	if err != nil {
 		return fmt.Errorf("error getting db connection: %w", err)
 	}
-	err = q.DeleteIngestedFilesByEnvironment(context.Background(), sqlc.DeleteIngestedFilesByEnvironmentParams{
-		EnvironmentType: envType,
-		EnvironmentName: envName,
-	})
+	err = q.DeleteIngestedFilesByEnvironment(context.Background(), envName)
 	if err != nil {
 		return fmt.Errorf("error deleting ingested files: %w", err)
 	}
@@ -201,15 +197,12 @@ func DeleteIngestedFilesByEnvironment(envType, envName string) error {
 }
 
 // GetIngestedFilesByEnvironment retrieves all ingested file records for an environment.
-func GetIngestedFilesByEnvironment(envType, envName string) ([]sqlc.GetIngestedFilesByEnvironmentRow, error) {
+func GetIngestedFilesByEnvironment(envName string) ([]sqlc.GetIngestedFilesByEnvironmentRow, error) {
 	q, err := Get()
 	if err != nil {
 		return nil, fmt.Errorf("error getting db connection: %w", err)
 	}
-	files, err := q.GetIngestedFilesByEnvironment(context.Background(), sqlc.GetIngestedFilesByEnvironmentParams{
-		EnvironmentType: envType,
-		EnvironmentName: envName,
-	})
+	files, err := q.GetIngestedFilesByEnvironment(context.Background(), envName)
 	if err != nil {
 		return nil, fmt.Errorf("error getting ingested files: %w", err)
 	}
