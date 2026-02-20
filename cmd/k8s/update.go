@@ -25,11 +25,6 @@ var UpdateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		display.Debug("name: %v", name)
-		display.Debug("args: %v", args)
-		display.Debug("reset: %v", reset)
-		display.Debug("force: %v", force)
-
 		// TODO: this is reused in many cli commands, abstract it?
 		var cfg *config.Config
 		var err error
@@ -67,5 +62,5 @@ func init() {
 	UpdateCmd.Flags().BoolVarP(&force, "force", "f", false, "Delete and recreate the namespace and all resources before redeploying.")
 	UpdateCmd.Flags().BoolVarP(&reset, "reset", "r", false, "Reset .env and manifests to embedded versions")
 	UpdateCmd.Flags().StringVar(&configFilePath, "config", "", "Path to YAML configuration file")
-	UpdateCmd.Flags().StringVar(&context, "context", "", "kubectl context used for the environment deployment. Uses current if not set")
+	UpdateCmd.Flags().StringVar(&context, "context", "", "Kubectl context to use. Uses current context if not set")
 }

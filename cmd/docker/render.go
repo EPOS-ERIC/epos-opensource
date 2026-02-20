@@ -46,10 +46,12 @@ the environment directory with .env and docker-compose.yaml files.`,
 		}
 
 		display.Done("Environment rendered successfully at:")
+
 		for _, path := range outputPaths {
 			display.Done("\t%s", path)
 		}
-		display.Info("You can now use 'docker deploy --env %s --docker-compose %s' to deploy the environment", outputPaths[0], outputPaths[1])
+
+		display.Info("You can now deploy this environment with 'epos-opensource docker deploy [env-name] --config <path-to-config.yaml>'")
 	},
 }
 

@@ -59,7 +59,6 @@ func Delete(opts DeleteOpts) error {
 			}
 
 			display.Done("Uninstalled Helm release: %s", envName)
-
 			display.Step("Deleting namespace: %s", envName)
 			display.Debug("running kubectl delete namespace for env: %s", envName)
 
@@ -69,9 +68,6 @@ func Delete(opts DeleteOpts) error {
 			}
 
 			display.Done("Deleted namespace: %s", envName)
-
-			// TODO clean up ingested files
-
 			display.Done("Deleted environment: %s", envName)
 
 			return nil

@@ -1,6 +1,8 @@
 package docker
 
 import (
+	"os"
+
 	"github.com/EPOS-ERIC/epos-opensource/display"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db"
 
@@ -13,7 +15,8 @@ var ListCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		dockerEnvs, err := db.GetAllDocker()
 		if err != nil {
-			return
+			display.Error("Failed to list Docker environments: %v", err)
+			os.Exit(1)
 		}
 
 		display.DockerList(dockerEnvs, "Installed Docker environments")

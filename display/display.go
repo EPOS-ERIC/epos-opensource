@@ -74,6 +74,7 @@ func printStdout(bold bool, color, label, format string, a ...any) {
 	if bold {
 		modifiers += boldSeq
 	}
+	log.Printf(format, a...)
 	_, _ = fmt.Fprintf(Stdout, "%s[%s]%s  %s\n", modifiers, label, resetSeq, message)
 }
 

@@ -60,5 +60,5 @@ NOTE: To execute the population it will try to use port-forwarding to the cluste
 func init() {
 	PopulateCmd.Flags().IntVarP(&parallel, "parallel", "p", 1, "Number of parallel uploads to perform when ingesting TTL files")
 	PopulateCmd.Flags().BoolVar(&populateExamples, "example", false, "Populate the environment with example data")
-	PopulateCmd.Flags().StringVar(&context, "context", "", "kubectl context used for the environment deployment. Uses current if not set")
+	PopulateCmd.Flags().StringVar(&context, "context", "", "Kubectl context to use. Uses current context if not set")
 }

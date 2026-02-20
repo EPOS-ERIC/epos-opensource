@@ -11,7 +11,6 @@ import (
 )
 
 var ListCmd = &cobra.Command{
-	// TODO: clarify help on what it really does
 	Use:   "list",
 	Short: "List installed K8s environments.",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -60,5 +59,5 @@ var ListCmd = &cobra.Command{
 }
 
 func init() {
-	ListCmd.Flags().StringVar(&context, "context", "", "kubectl context used for the environment deployment. Uses current if not set")
+	ListCmd.Flags().StringVar(&context, "context", "", "Kubectl context to use. Uses current context if not set")
 }

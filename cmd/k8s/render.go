@@ -49,7 +49,7 @@ the environment directory with .env and k8s-compose.yaml files.`,
 		for _, path := range outputPaths {
 			display.Done("\t%s", path)
 		}
-		display.Info("You can now use 'k8s deploy --env %s --k8s-compose %s' to deploy the environment", outputPaths[0], outputPaths[1])
+		display.Info("You can now deploy this environment with 'epos-opensource k8s deploy [env-name] --config <path-to-config.yaml>'")
 	},
 }
 

@@ -24,11 +24,6 @@ var UpdateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		display.Debug("name: %v", name)
-		display.Debug("force: %v", force)
-		display.Debug("configFilePath: %s", configFilePath)
-		display.Debug("pullImages: %v", pullImages)
-
 		var cfg *config.EnvConfig
 		var err error
 		if configFilePath != "" {

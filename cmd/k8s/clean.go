@@ -56,5 +56,5 @@ This action is irreversible.`,
 
 func init() {
 	CleanCmd.Flags().BoolVarP(&cleanForce, "force", "f", false, "Force clean without confirmation prompt")
-	CleanCmd.Flags().StringVar(&context, "context", "", "kubectl context used for the environment deployment. Uses current if not set")
+	CleanCmd.Flags().StringVar(&context, "context", "", "Kubectl context to use. Uses current context if not set")
 }

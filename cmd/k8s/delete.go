@@ -20,9 +20,6 @@ var DeleteCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0:]
 
-		display.Debug("name: %v", name)
-		display.Debug("context: %s", context)
-
 		if !deleteForce {
 			envList := strings.Join(name, ", ")
 			display.Warn("This will permanently delete the following environment(s): %s", envList)
@@ -51,5 +48,5 @@ var DeleteCmd = &cobra.Command{
 
 func init() {
 	DeleteCmd.Flags().BoolVarP(&deleteForce, "force", "f", false, "Force delete without confirmation prompt")
-	DeleteCmd.Flags().StringVar(&context, "context", "", "kubectl context used for the environment deployment. Uses current if not set")
+	DeleteCmd.Flags().StringVar(&context, "context", "", "Kubectl context to use. Uses current context if not set")
 }
