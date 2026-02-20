@@ -7,7 +7,7 @@ import (
 
 // showDeleteConfirm displays a confirmation dialog for deleting a Docker or K8s environment.
 func (a *App) showDeleteConfirm() {
-	envName, isDocker := a.envList.GetSelected()
+	envName, isDocker, k8sContext := a.envList.GetSelected()
 
 	if envName == "" {
 		return
@@ -15,7 +15,11 @@ func (a *App) showDeleteConfirm() {
 
 	message := "This will permanently remove all containers, volumes, and associated resources.\n\n"
 	if !isDocker {
-		message = "This will permanently remove the namespace and all associated K8s resources.\n\n"
+		message = "This will permanently remove the namespace and all associated K8s resources"
+		if k8sContext != "" {
+			message += " in context '" + k8sContext + "'"
+		}
+		message += ".\n\n"
 	}
 	message += DefaultTheme.DestructiveTag("b") + "This action cannot be undone." + "[-]"
 
@@ -30,7 +34,7 @@ func (a *App) showDeleteConfirm() {
 		Destructive:        true,
 		ConfirmDestructive: true,
 		OnConfirm: func() {
-			a.showDeleteProgress(envName, isDocker)
+			a.showDeleteProgress(envName, isDocker, k8sContext)
 		},
 		OnCancel: func() {
 			a.ResetToHome(ResetOptions{
@@ -42,7 +46,7 @@ func (a *App) showDeleteConfirm() {
 }
 
 // showDeleteProgress displays the deletion progress with live output.
-func (a *App) showDeleteProgress(envName string, isDocker bool) {
+func (a *App) showDeleteProgress(envName string, isDocker bool, context string) {
 	a.RunBackgroundTask(TaskOptions{
 		Operation: "Delete",
 		EnvName:   envName,
@@ -54,7 +58,8 @@ func (a *App) showDeleteProgress(envName string, isDocker bool) {
 				})
 			}
 			return "", k8s.Delete(k8s.DeleteOpts{
-				Name: []string{envName},
+				Name:    []string{envName},
+				Context: context,
 			})
 		},
 	})

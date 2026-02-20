@@ -31,6 +31,7 @@ type App struct {
 
 	refreshTicker *time.Ticker
 	refreshMutex  sync.Mutex
+	refreshing    bool
 
 	currentFooterSection string
 	currentFooterKeys    []string
@@ -43,11 +44,12 @@ type App struct {
 
 // ResetOptions configures the return to home screen.
 type ResetOptions struct {
-	PageNames     []string // Pages to remove
-	ClearDetails  bool     // Clear details panel (e.g., after delete)
-	RefreshFiles  bool     // Refresh files list (e.g., after populate)
-	RestoreFocus  bool     // Restore focus from stack
-	ForceEnvFocus bool     // Explicitly focus environment list
+	PageNames      []string // Pages to remove
+	ClearDetails   bool     // Clear details panel (e.g., after delete)
+	RefreshFiles   bool     // Refresh files list (e.g., after populate)
+	RestoreFocus   bool     // Restore focus from stack
+	ForceEnvFocus  bool     // Explicitly focus environment list
+	SyncEnvRefresh bool     // Refresh env list synchronously before focus restore
 }
 
 // ConfirmationOptions defines settings for the standardized confirmation modal.
@@ -94,13 +96,14 @@ type FormButton struct {
 
 // ModalFormOptions defines settings for modal forms.
 type ModalFormOptions struct {
-	PageName string
-	Title    string
-	Fields   []FormField
-	Buttons  []FormButton
-	Width    int
-	Height   int
-	OnCancel func()
+	PageName     string
+	Title        string
+	Fields       []FormField
+	Buttons      []FormButton
+	BottomButton *FormButton // Optional button rendered between form fields and action buttons
+	Width        int
+	Height       int
+	OnCancel     func()
 }
 
 // Run starts the TUI application.
@@ -174,15 +177,42 @@ func (a *App) run() error {
 	return a.tview.Run()
 }
 
-// startRefreshTicker starts background list refresh every second.
+// startRefreshTicker starts background list refresh every 3 seconds.
 func (a *App) startRefreshTicker() {
-	a.refreshTicker = time.NewTicker(1 * time.Second)
+	a.refreshEnvListSync()
+
+	a.refreshTicker = time.NewTicker(3 * time.Second)
 	go func() {
 		for range a.refreshTicker.C {
-			a.tview.QueueUpdateDraw(func() {
-				a.envList.Refresh()
-			})
+			a.refreshEnvListAsync()
 		}
+	}()
+}
+
+func (a *App) refreshEnvListSync() {
+	data := a.envList.loadData()
+	a.envList.applyData(data)
+}
+
+func (a *App) refreshEnvListAsync() {
+	a.refreshMutex.Lock()
+	if a.refreshing {
+		a.refreshMutex.Unlock()
+		return
+	}
+	a.refreshing = true
+	a.refreshMutex.Unlock()
+
+	go func() {
+		data := a.envList.loadData()
+
+		a.tview.QueueUpdateDraw(func() {
+			a.envList.applyData(data)
+
+			a.refreshMutex.Lock()
+			a.refreshing = false
+			a.refreshMutex.Unlock()
+		})
 	}()
 }
 
@@ -233,15 +263,15 @@ func (a *App) drawFooter(section string, keys []string) {
 
 // FlashMessage shows a temporary message in the footer for the specified duration.
 func (a *App) FlashMessage(message string, duration time.Duration) {
-	a.tview.QueueUpdateDraw(func() {
-		a.footerMutex.Lock()
-		section := a.currentFooterSection
-		a.footerMutex.Unlock()
-
-		a.drawFooter(section, []string{message})
-	})
-
 	go func() {
+		a.tview.QueueUpdateDraw(func() {
+			a.footerMutex.Lock()
+			section := a.currentFooterSection
+			a.footerMutex.Unlock()
+
+			a.drawFooter(section, []string{message})
+		})
+
 		time.Sleep(duration)
 		a.tview.QueueUpdateDraw(func() {
 			a.footerMutex.Lock()
@@ -263,7 +293,11 @@ func (a *App) ResetToHome(opts ResetOptions) {
 
 	a.pages.SwitchToPage(homePageName)
 	a.currentPage = homePageName
-	a.envList.Refresh()
+	if opts.SyncEnvRefresh {
+		a.refreshEnvListSync()
+	} else {
+		a.refreshEnvListAsync()
+	}
 
 	if opts.RefreshFiles {
 		a.detailsPanel.RefreshFiles()
@@ -464,6 +498,9 @@ func (a *App) ShowModalForm(opts ModalFormOptions) {
 	if opts.Height == 0 {
 		opts.Height = 16
 	}
+	if opts.BottomButton != nil {
+		opts.Height += 2
+	}
 
 	form := NewStyledForm()
 	fieldIndex := 0
@@ -490,21 +527,218 @@ func (a *App) ShowModalForm(opts ModalFormOptions) {
 		fieldIndex++
 	}
 
+	actionButtons := make([]*tview.Button, 0, len(opts.Buttons))
 	for _, btn := range opts.Buttons {
-		form.AddButton(btn.Label, btn.SelectedFunc)
+		actionButtons = append(actionButtons, NewStyledButton(btn.Label, btn.SelectedFunc))
 	}
-	form.SetButtonsAlign(tview.AlignCenter)
+
+	var bottomButton *tview.Button
+	if opts.BottomButton != nil {
+		bottomButton = NewStyledInactiveButton(opts.BottomButton.Label, opts.BottomButton.SelectedFunc)
+	}
+
+	formItemCount := form.GetFormItemCount()
+
+	focusFirstFormItem := func() bool {
+		if formItemCount == 0 {
+			return false
+		}
+
+		a.tview.SetFocus(form)
+		form.SetFocus(0)
+
+		return true
+	}
+
+	focusLastFormItem := func() bool {
+		if formItemCount == 0 {
+			return false
+		}
+
+		a.tview.SetFocus(form)
+		form.SetFocus(formItemCount - 1)
+
+		return true
+	}
+
+	focusFirstActionButton := func() bool {
+		if len(actionButtons) == 0 {
+			return false
+		}
+
+		a.tview.SetFocus(actionButtons[0])
+
+		return true
+	}
+
+	focusLastActionButton := func() bool {
+		if len(actionButtons) == 0 {
+			return false
+		}
+
+		a.tview.SetFocus(actionButtons[len(actionButtons)-1])
+
+		return true
+	}
 
 	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEsc && opts.OnCancel != nil {
-			opts.OnCancel()
-			return nil
+		switch event.Key() {
+		case tcell.KeyEsc:
+			if opts.OnCancel != nil {
+				opts.OnCancel()
+				return nil
+			}
+		case tcell.KeyTab:
+			if formItemCount == 0 {
+				if bottomButton != nil {
+					a.tview.SetFocus(bottomButton)
+					return nil
+				}
+				if focusFirstActionButton() {
+					return nil
+				}
+				return event
+			}
+
+			formItemIndex, _ := form.GetFocusedItemIndex()
+			if formItemIndex == formItemCount-1 {
+				if bottomButton != nil {
+					a.tview.SetFocus(bottomButton)
+					return nil
+				}
+				if focusFirstActionButton() {
+					return nil
+				}
+			}
+		case tcell.KeyBacktab:
+			if formItemCount == 0 {
+				if focusLastActionButton() {
+					return nil
+				}
+				if bottomButton != nil {
+					a.tview.SetFocus(bottomButton)
+					return nil
+				}
+				return event
+			}
+
+			formItemIndex, _ := form.GetFocusedItemIndex()
+			if formItemIndex == 0 {
+				if focusLastActionButton() {
+					return nil
+				}
+				if bottomButton != nil {
+					a.tview.SetFocus(bottomButton)
+					return nil
+				}
+			}
 		}
+
 		return event
 	})
 
+	if bottomButton != nil {
+		bottomButton.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			switch event.Key() {
+			case tcell.KeyEsc:
+				if opts.OnCancel != nil {
+					opts.OnCancel()
+					return nil
+				}
+			case tcell.KeyTab:
+				if focusFirstActionButton() {
+					return nil
+				}
+				if focusFirstFormItem() {
+					return nil
+				}
+			case tcell.KeyBacktab:
+				if focusLastFormItem() {
+					return nil
+				}
+				if focusLastActionButton() {
+					return nil
+				}
+			}
+
+			return event
+		})
+	}
+
+	for i := range actionButtons {
+		idx := i
+		actionButtons[idx].SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			switch event.Key() {
+			case tcell.KeyEsc:
+				if opts.OnCancel != nil {
+					opts.OnCancel()
+					return nil
+				}
+			case tcell.KeyTab:
+				if idx < len(actionButtons)-1 {
+					a.tview.SetFocus(actionButtons[idx+1])
+					return nil
+				}
+				if focusFirstFormItem() {
+					return nil
+				}
+				if bottomButton != nil {
+					a.tview.SetFocus(bottomButton)
+					return nil
+				}
+				if focusFirstActionButton() {
+					return nil
+				}
+			case tcell.KeyBacktab:
+				if idx > 0 {
+					a.tview.SetFocus(actionButtons[idx-1])
+					return nil
+				}
+				if bottomButton != nil {
+					a.tview.SetFocus(bottomButton)
+					return nil
+				}
+				if focusLastFormItem() {
+					return nil
+				}
+				if focusLastActionButton() {
+					return nil
+				}
+			}
+
+			return event
+		})
+	}
+
 	content := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(form, 0, 1, true)
+
+	if bottomButton != nil {
+		bottomRow := tview.NewFlex().SetDirection(tview.FlexColumn).
+			AddItem(tview.NewBox(), 0, 1, false).
+			AddItem(bottomButton, len(opts.BottomButton.Label)+4, 0, false).
+			AddItem(tview.NewBox(), 0, 1, false)
+
+		content.AddItem(tview.NewBox(), 1, 0, false)
+		content.AddItem(bottomRow, 1, 0, false)
+	}
+
+	if len(actionButtons) > 0 {
+		actionsRow := tview.NewFlex().SetDirection(tview.FlexColumn).
+			AddItem(tview.NewBox(), 0, 1, false)
+
+		for i, btn := range actionButtons {
+			actionsRow.AddItem(btn, len(btn.GetLabel())+4, 0, false)
+			if i < len(actionButtons)-1 {
+				actionsRow.AddItem(tview.NewBox(), 2, 0, false)
+			}
+		}
+
+		actionsRow.AddItem(tview.NewBox(), 0, 1, false)
+
+		content.AddItem(tview.NewBox(), 1, 0, false)
+		content.AddItem(actionsRow, 1, 0, false)
+	}
 
 	content.SetBorder(true).
 		SetBorderColor(DefaultTheme.Primary).
@@ -513,7 +747,13 @@ func (a *App) ShowModalForm(opts ModalFormOptions) {
 
 	a.pages.AddPage(opts.PageName, CenterPrimitiveFixed(content, opts.Width, opts.Height), true, true)
 	a.currentPage = opts.PageName
-	a.tview.SetFocus(form)
+	if !focusFirstFormItem() {
+		if bottomButton != nil {
+			a.tview.SetFocus(bottomButton)
+		} else if !focusFirstActionButton() {
+			a.tview.SetFocus(form)
+		}
+	}
 }
 
 // CenterPrimitive wraps a primitive in a flex layout that centers it.

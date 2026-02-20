@@ -31,7 +31,7 @@ type populateState struct {
 // showPopulateForm displays the dynamic populate form.
 func (a *App) showPopulateForm() {
 	a.PushFocus()
-	envName, isDocker := a.envList.GetSelected()
+	envName, isDocker, k8sContext := a.envList.GetSelected()
 
 	if envName == "" {
 		return
@@ -191,7 +191,7 @@ func (a *App) showPopulateForm() {
 			SetBorderPadding(0, 0, 1, 1)
 
 		populateBtn := NewStyledButton("Populate", func() {
-			a.handlePopulate(envName, state, isDocker)
+			a.handlePopulate(envName, k8sContext, state, isDocker)
 		})
 
 		cancelBtn := NewStyledButton("Cancel", func() {
@@ -306,7 +306,7 @@ func (a *App) showPopulateForm() {
 }
 
 // handlePopulate validates the form and starts population.
-func (a *App) handlePopulate(envName string, state *populateState, isDocker bool) {
+func (a *App) handlePopulate(envName, context string, state *populateState, isDocker bool) {
 	var validPaths []string
 	for _, p := range state.paths {
 		if trimmed := strings.TrimSpace(p); trimmed != "" {
@@ -314,11 +314,11 @@ func (a *App) handlePopulate(envName string, state *populateState, isDocker bool
 		}
 	}
 
-	a.showPopulateProgress(envName, validPaths, state.examples, isDocker)
+	a.showPopulateProgress(envName, context, validPaths, state.examples, isDocker)
 }
 
 // showPopulateProgress displays the populate progress with live output.
-func (a *App) showPopulateProgress(envName string, paths []string, examples, isDocker bool) {
+func (a *App) showPopulateProgress(envName, context string, paths []string, examples, isDocker bool) {
 	a.RunBackgroundTask(TaskOptions{
 		Operation: "Populate",
 		EnvName:   envName,
@@ -335,6 +335,7 @@ func (a *App) showPopulateProgress(envName string, paths []string, examples, isD
 			} else {
 				_, err = k8s.Populate(k8s.PopulateOpts{
 					Name:             envName,
+					Context:          context,
 					TTLDirs:          paths,
 					PopulateExamples: examples,
 					Parallel:         1,

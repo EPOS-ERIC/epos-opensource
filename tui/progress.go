@@ -38,9 +38,10 @@ type OperationProgress struct {
 	logsView *tview.TextView
 	overlay  tview.Primitive
 
-	wasInDetails     bool
-	savedDetailsName string
-	savedDetailsType string
+	wasInDetails        bool
+	savedDetailsName    string
+	savedDetailsType    string
+	savedDetailsContext string
 
 	ticker *time.Ticker
 	done   chan bool
@@ -60,6 +61,7 @@ func NewOperationProgress(app *App, operation, envName string) *OperationProgres
 	op.wasInDetails = app.detailsPanel.IsShown()
 	op.savedDetailsName = app.detailsPanel.GetCurrentDetailsName()
 	op.savedDetailsType = app.detailsPanel.GetCurrentDetailsType()
+	op.savedDetailsContext = app.detailsPanel.GetCurrentDetailsContext()
 	op.rebuildUI()
 	return op
 }
@@ -296,17 +298,18 @@ func (op *OperationProgress) returnToHome() {
 	pageName := fmt.Sprintf("%s-progress", op.operation)
 
 	op.app.ResetToHome(ResetOptions{
-		PageNames:     []string{pageName, "completion-overlay"},
-		ClearDetails:  op.operation == "Delete" && op.state == StateSuccess,
-		RefreshFiles:  (op.operation == "Populate" || op.operation == "Clean" || op.operation == "Update") && op.state == StateSuccess,
-		RestoreFocus:  op.operation != "Deploy" || op.state != StateSuccess,
-		ForceEnvFocus: op.operation == "Deploy" && op.state == StateSuccess,
+		PageNames:      []string{pageName, "completion-overlay"},
+		ClearDetails:   op.operation == "Delete" && op.state == StateSuccess,
+		RefreshFiles:   (op.operation == "Populate" || op.operation == "Clean" || op.operation == "Update") && op.state == StateSuccess,
+		RestoreFocus:   op.operation != "Deploy" || op.state != StateSuccess,
+		ForceEnvFocus:  op.operation == "Deploy" && op.state == StateSuccess,
+		SyncEnvRefresh: (op.operation == "Delete" || op.operation == "Deploy") && op.state == StateSuccess,
 	})
 
 	// If we were in details and it wasn't a delete, we might need a full update
 	// to show changed information (like new GUIs or updated config).
 	if op.wasInDetails && op.operation != "Delete" && op.state == StateSuccess {
-		op.app.detailsPanel.Update(op.savedDetailsName, op.savedDetailsType, true)
+		op.app.detailsPanel.Update(op.savedDetailsName, op.savedDetailsType, op.savedDetailsContext, true)
 	}
 }
 
