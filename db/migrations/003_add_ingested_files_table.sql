@@ -9,4 +9,3 @@ CREATE TABLE ingested_files (
 
 -- +goose Down
 DROP TABLE ingested_files;
-

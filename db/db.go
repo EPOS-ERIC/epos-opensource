@@ -13,12 +13,12 @@ import (
 	"strings"
 
 	"github.com/EPOS-ERIC/epos-opensource/config"
-	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db/sqlc"
+	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
 	"github.com/pressly/goose/v3"
 	_ "modernc.org/sqlite"
 )
 
-//go:generate go tool sqlc generate -f ../../../sqlc.yaml
+//go:generate go tool sqlc generate -f ../sqlc.yaml
 
 //go:embed migrations/*.sql
 var embedMigrations embed.FS

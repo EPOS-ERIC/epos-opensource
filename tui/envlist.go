@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
-	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db"
+	"github.com/EPOS-ERIC/epos-opensource/db"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"

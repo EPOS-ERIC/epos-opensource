@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/EPOS-ERIC/epos-opensource/db"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/docker"
 	dockerconfig "github.com/EPOS-ERIC/epos-opensource/pkg/docker/config"
-	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 	k8sconfig "github.com/EPOS-ERIC/epos-opensource/pkg/k8s/config"
 )

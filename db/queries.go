@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db/sqlc"
+	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
 )
 
 // UpsertDocker adds a new docker entry to the database.

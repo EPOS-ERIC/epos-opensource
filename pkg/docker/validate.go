@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db"
+	"github.com/EPOS-ERIC/epos-opensource/db"
 )
 
 // EnsureEnvironmentDoesNotExist checks that the Docker environment does not exist.

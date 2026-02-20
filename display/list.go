@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db/sqlc"
+	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 )
