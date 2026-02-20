@@ -25,17 +25,6 @@ type IngestedFile struct {
 	IngestedAt      *time.Time
 }
 
-type K8s struct {
-	Name          string
-	Directory     string
-	Context       string
-	ApiUrl        string
-	GuiUrl        string
-	BackofficeUrl *string
-	Protocol      string
-	TlsEnabled    bool
-}
-
 type LatestReleaseCache struct {
 	ID        int64
 	TagName   string
