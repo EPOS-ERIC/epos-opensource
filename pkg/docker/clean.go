@@ -7,10 +7,9 @@ import (
 
 	"github.com/EPOS-ERIC/epos-opensource/command"
 	"github.com/EPOS-ERIC/epos-opensource/common"
-	"github.com/EPOS-ERIC/epos-opensource/db"
-	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
 	"github.com/EPOS-ERIC/epos-opensource/display"
-	"github.com/EPOS-ERIC/epos-opensource/validate"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db/sqlc"
 )
 
 type CleanOpts struct {
@@ -107,7 +106,7 @@ func Clean(opts CleanOpts) (*sqlc.Docker, error) {
 }
 
 func (c *CleanOpts) Validate() error {
-	if err := validate.EnvironmentExistsDocker(c.Name); err != nil {
+	if err := EnsureEnvironmentExists(c.Name); err != nil {
 		return fmt.Errorf("no environment with the name '%s' exists: %w", c.Name, err)
 	}
 

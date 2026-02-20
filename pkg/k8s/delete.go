@@ -2,12 +2,10 @@ package k8s
 
 import (
 	"fmt"
-	"slices"
 	"time"
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/display"
-	"github.com/EPOS-ERIC/epos-opensource/validate"
 	"golang.org/x/sync/errgroup"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
@@ -80,19 +78,21 @@ func Delete(opts DeleteOpts) error {
 }
 
 func (d *DeleteOpts) Validate() error {
-	for _, envName := range d.Name {
-		if err := validate.EnvironmentExistsK8s(envName); err != nil {
-			return fmt.Errorf("no environment with the name '%s' exists: %w", envName, err)
+	if d.Context == "" {
+		context, err := common.GetCurrentKubeContext()
+		if err != nil {
+			return fmt.Errorf("failed to get current kubectl context: %w", err)
 		}
+
+		d.Context = context
+	} else if err := EnsureContextExists(d.Context); err != nil {
+		return fmt.Errorf("K8s context %q is not an available context: %w", d.Context, err)
 	}
 
-	contexts, err := common.GetKubeContexts()
-	if err != nil {
-		return fmt.Errorf("failed to list kubectl contexts: %w", err)
-	}
-	contextFound := slices.Contains(contexts, d.Context)
-	if !contextFound {
-		return fmt.Errorf("K8s context %q is not an available context", d.Context)
+	for _, envName := range d.Name {
+		if err := EnsureEnvironmentExists(envName, d.Context); err != nil {
+			return fmt.Errorf("no environment with the name '%s' exists: %w", envName, err)
+		}
 	}
 
 	return nil

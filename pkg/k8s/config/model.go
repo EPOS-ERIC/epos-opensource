@@ -172,3 +172,25 @@ type ImagePullSecrets struct {
 	RegistryPassword string `yaml:"registry_password"`
 	RegistryEmail    string `yaml:"registry_email"`
 }
+
+func (c *Config) String() string {
+	if c == nil {
+		return ""
+	}
+
+	out := "name=" + c.Name + ", domain=" + c.Domain + ", protocol=" + c.Protocol
+
+	if c.TLSEnabled {
+		out += ", tls_enabled=true"
+	} else {
+		out += ", tls_enabled=false"
+	}
+
+	if c.URLPrefixNamespace {
+		out += ", url_prefix_namespace=true"
+	} else {
+		out += ", url_prefix_namespace=false"
+	}
+
+	return out
+}

@@ -6,6 +6,10 @@ import (
 	"path/filepath"
 )
 
+// Export writes content to a file in the given directory, creating the
+// directory if it does not already exist.
+//
+// It returns the absolute path to the exported file.
 func Export(path, filename string, content []byte) (string, error) {
 	path, err := filepath.Abs(path)
 	if err != nil {

@@ -73,22 +73,6 @@ func Clean(opts CleanOpts) (*Env, error) {
 	return env, nil
 }
 
-func (c *CleanOpts) Validate() error {
-	if c.Name == "" {
-		return fmt.Errorf("environment name is required")
-	}
-
-	if err := validate.Name(c.Name); err != nil {
-		return fmt.Errorf("'%s' is an invalid name for an environment: %w", c.Name, err)
-	}
-
-	if err := validate.EnvironmentExistsK8s(c.Name); err != nil {
-		return fmt.Errorf("no environment with the name '%s' exists: %w", c.Name, err)
-	}
-
-	return nil
-}
-
 func getRenderedTemplateBySuffix(files map[string]string, suffix string) (string, error) {
 	for name, content := range files {
 		if !strings.HasSuffix(name, suffix) {
@@ -149,6 +133,33 @@ func runOneOffJobFromManifest(context, namespace, jobName, manifest string, time
 	}
 
 	display.Done("Completed clean job: %s", jobName)
+
+	return nil
+}
+
+func (c *CleanOpts) Validate() error {
+	if c.Name == "" {
+		return fmt.Errorf("environment name is required")
+	}
+
+	if err := validate.Name(c.Name); err != nil {
+		return fmt.Errorf("'%s' is an invalid name for an environment: %w", c.Name, err)
+	}
+
+	if c.Context == "" {
+		context, err := common.GetCurrentKubeContext()
+		if err != nil {
+			return fmt.Errorf("failed to get current kubectl context: %w", err)
+		}
+
+		c.Context = context
+	} else if err := EnsureContextExists(c.Context); err != nil {
+		return fmt.Errorf("K8s context %q is not an available context: %w", c.Context, err)
+	}
+
+	if err := EnsureEnvironmentExists(c.Name, c.Context); err != nil {
+		return fmt.Errorf("no environment with the name '%s' exists: %w", c.Name, err)
+	}
 
 	return nil
 }

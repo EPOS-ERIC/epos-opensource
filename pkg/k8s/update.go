@@ -4,7 +4,6 @@ package k8s
 import (
 	_ "embed"
 	"fmt"
-	"slices"
 	"time"
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
@@ -129,8 +128,19 @@ func (u *UpdateOpts) Validate() error {
 		return fmt.Errorf("'%s' is an invalid name for an environment: %w", u.OldEnvName, err)
 	}
 
-	if err := validate.EnvironmentExistsK8s(u.OldEnvName); err != nil {
-		return fmt.Errorf("an environment with the name '%s' already exists: %w", u.OldEnvName, err)
+	if u.Context == "" {
+		context, err := common.GetCurrentKubeContext()
+		if err != nil {
+			return fmt.Errorf("failed to get current kubectl context: %w", err)
+		}
+
+		u.Context = context
+	} else if err := EnsureContextExists(u.Context); err != nil {
+		return fmt.Errorf("K8s context %q is not an available context: %w", u.Context, err)
+	}
+
+	if err := EnsureEnvironmentExists(u.OldEnvName, u.Context); err != nil {
+		return fmt.Errorf("no environment with the name '%s' exists: %w", u.OldEnvName, err)
 	}
 
 	if u.NewConfig != nil {
@@ -143,20 +153,9 @@ func (u *UpdateOpts) Validate() error {
 		}
 
 		if !u.Force && u.NewConfig.Name != "" && u.NewConfig.Name != u.OldEnvName {
-			// TODO: better error
-			return fmt.Errorf("the name in the config is different from the name of the environment to update, this is not supported")
+			return fmt.Errorf("config name %q must match environment name %q", u.NewConfig.Name, u.OldEnvName)
 		}
 
-	}
-
-	// TODO: do we really need this?
-	contexts, err := common.GetKubeContexts()
-	if err != nil {
-		return fmt.Errorf("failed to list kubectl contexts: %w", err)
-	}
-	contextFound := slices.Contains(contexts, u.Context)
-	if !contextFound {
-		return fmt.Errorf("K8s context %q is not an available context", u.Context)
 	}
 
 	return nil

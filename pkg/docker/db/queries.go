@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db/sqlc"
 )
 
 // InsertK8s adds a new k8s entry to the database.

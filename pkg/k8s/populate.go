@@ -6,9 +6,8 @@ import (
 	"path/filepath"
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
-	"github.com/EPOS-ERIC/epos-opensource/db"
 	"github.com/EPOS-ERIC/epos-opensource/display"
-	"github.com/EPOS-ERIC/epos-opensource/validate"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db"
 )
 
 type PopulateOpts struct {
@@ -108,7 +107,18 @@ func (p *PopulateOpts) Validate() error {
 		return fmt.Errorf("parallel uploads must be between 1 and 20")
 	}
 
-	if err := validate.EnvironmentExistsK8s(p.Name); err != nil {
+	if p.Context == "" {
+		context, err := common.GetCurrentKubeContext()
+		if err != nil {
+			return fmt.Errorf("failed to get current kubectl context: %w", err)
+		}
+
+		p.Context = context
+	} else if err := EnsureContextExists(p.Context); err != nil {
+		return fmt.Errorf("K8s context %q is not an available context: %w", p.Context, err)
+	}
+
+	if err := EnsureEnvironmentExists(p.Name, p.Context); err != nil {
 		return fmt.Errorf("error validating environment name, no environment with '%s' exists: %w", p.Name, err)
 	}
 

@@ -82,10 +82,21 @@ func stopProcess(p *os.Process) {
 	if p == nil {
 		return
 	}
+
 	if runtime.GOOS != "windows" {
-		_ = p.Signal(os.Interrupt)
+		err := p.Signal(os.Interrupt)
+		if err != nil {
+			display.Warn("failed to send SIGINT to kubectl: %v", err)
+		}
 	} else {
-		_ = p.Kill()
+		err := p.Kill()
+		if err != nil {
+			display.Warn("failed to kill kubectl: %v", err)
+		}
 	}
-	_, _ = p.Wait()
+
+	_, err := p.Wait()
+	if err != nil {
+		display.Warn("failed to wait for kubectl to exit: %v", err)
+	}
 }

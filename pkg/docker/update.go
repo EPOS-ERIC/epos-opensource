@@ -8,11 +8,10 @@ import (
 	"path/filepath"
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
-	"github.com/EPOS-ERIC/epos-opensource/db"
-	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
 	"github.com/EPOS-ERIC/epos-opensource/display"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/config"
-	"github.com/EPOS-ERIC/epos-opensource/validate"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db/sqlc"
 )
 
 type UpdateOpts struct {
@@ -200,7 +199,7 @@ func (u *UpdateOpts) Validate() error {
 		return fmt.Errorf("name is required")
 	}
 
-	if err := validate.EnvironmentExistsDocker(u.OldEnvName); err != nil {
+	if err := EnsureEnvironmentExists(u.OldEnvName); err != nil {
 		return fmt.Errorf("no environment with name '%s' exists: %w", u.OldEnvName, err)
 	}
 

@@ -13,14 +13,17 @@ var renderOutputPath string
 
 var RenderCmd = &cobra.Command{
 	Use:   "render [env-name]",
-	Short: "Render k8s environment configuration files",
-	Long: `TODO: Render the helm chart files from YAML configuration.
+	Short: "Render Kubernetes environment configuration files",
+	Long: `Render Kubernetes environment configuration files from defaults or a YAML config.
 
-The command loads a YAML configuration file, renders the templates, and creates
+The command renders Helm chart files from YAML configuration and creates
 the environment directory with .env and k8s-compose.yaml files.`,
-	Args: cobra.MinimumNArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		name := args[0]
+		name := ""
+		if len(args) > 0 && args[0] != "" {
+			name = args[0]
+		}
 
 		var cfg *config.Config
 		var err error
@@ -31,6 +34,7 @@ the environment directory with .env and k8s-compose.yaml files.`,
 				os.Exit(1)
 			}
 		}
+
 		outputPaths, err := k8s.Render(k8s.RenderOpts{
 			Name:       name,
 			Config:     cfg,

@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/EPOS-ERIC/epos-opensource/config"
-	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db/sqlc"
 	"github.com/pressly/goose/v3"
 	_ "modernc.org/sqlite"
 )

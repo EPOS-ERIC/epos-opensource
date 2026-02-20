@@ -34,6 +34,7 @@ the environment directory with .env and docker-compose.yaml files.`,
 				os.Exit(1)
 			}
 		}
+
 		outputPaths, err := docker.Render(docker.RenderOpts{
 			Name:       name,
 			Config:     cfg,

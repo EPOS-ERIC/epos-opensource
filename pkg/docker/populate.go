@@ -6,10 +6,9 @@ import (
 	"path/filepath"
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
-	"github.com/EPOS-ERIC/epos-opensource/db"
-	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
 	"github.com/EPOS-ERIC/epos-opensource/display"
-	"github.com/EPOS-ERIC/epos-opensource/validate"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db/sqlc"
 )
 
 type PopulateOpts struct {
@@ -74,8 +73,8 @@ func (p *PopulateOpts) Validate() error {
 		return fmt.Errorf("parallel uploads must be between 1 and 20")
 	}
 
-	if validate.EnvironmentExistsDocker(p.Name) != nil {
-		return fmt.Errorf("no environment with name'%s' exists", p.Name)
+	if err := EnsureEnvironmentExists(p.Name); err != nil {
+		return fmt.Errorf("no environment with name '%s' exists: %w", p.Name, err)
 	}
 
 	for _, item := range p.TTLDirs {

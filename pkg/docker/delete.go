@@ -6,9 +6,8 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
-	"github.com/EPOS-ERIC/epos-opensource/db"
 	"github.com/EPOS-ERIC/epos-opensource/display"
-	"github.com/EPOS-ERIC/epos-opensource/validate"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db"
 )
 
 type DeleteOpts struct {
@@ -63,7 +62,7 @@ func Delete(opts DeleteOpts) error {
 
 func (d *DeleteOpts) Validate() error {
 	for _, env := range d.Name {
-		if err := validate.EnvironmentExistsDocker(env); err != nil {
+		if err := EnsureEnvironmentExists(env); err != nil {
 			return fmt.Errorf("no environment with the name '%s' exists: %w", env, err)
 		}
 	}

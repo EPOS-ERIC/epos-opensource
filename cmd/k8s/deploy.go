@@ -21,9 +21,6 @@ NOTE: to execute the deploy it will try to use port-forwarding to the cluster. I
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		display.Debug("configFilePath: %s", configFilePath)
-		display.Debug("context: %s", context)
-
 		var cfg *config.Config
 		var err error
 		if configFilePath == "" {

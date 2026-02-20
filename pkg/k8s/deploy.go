@@ -2,7 +2,6 @@ package k8s
 
 import (
 	"fmt"
-	"slices"
 	"time"
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
@@ -21,15 +20,6 @@ type DeployOpts struct {
 }
 
 func Deploy(opts DeployOpts) (*Env, error) {
-	// TODO: do we really need this context fallback?
-	if opts.Context == "" {
-		context, err := common.GetCurrentKubeContext()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get current kubectl context: %w", err)
-		}
-		opts.Context = context
-	}
-
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid deploy parameters: %w", err)
 	}
@@ -95,6 +85,9 @@ func Deploy(opts DeployOpts) (*Env, error) {
 }
 
 func (d *DeployOpts) Validate() error {
+	display.Debug("context: %s", d.Context)
+	display.Debug("config: %+v", d.Config)
+
 	if d.Config == nil {
 		return fmt.Errorf("config is required")
 	}
@@ -107,18 +100,19 @@ func (d *DeployOpts) Validate() error {
 		return fmt.Errorf("'%s' is an invalid name for an environment: %w", d.Config.Name, err)
 	}
 
-	if err := validate.EnvironmentNotExistK8s(d.Config.Name); err != nil {
-		return fmt.Errorf("an environment with the name '%s' already exists: %w", d.Config.Name, err)
+	if d.Context == "" {
+		context, err := common.GetCurrentKubeContext()
+		if err != nil {
+			return fmt.Errorf("failed to get current kubectl context: %w", err)
+		}
+
+		d.Context = context
+	} else if err := EnsureContextExists(d.Context); err != nil {
+		return fmt.Errorf("K8s context %q is not an available context: %w", d.Context, err)
 	}
 
-	// TODO: do we really need this?
-	contexts, err := common.GetKubeContexts()
-	if err != nil {
-		return fmt.Errorf("failed to list kubectl contexts: %w", err)
-	}
-	contextFound := slices.Contains(contexts, d.Context)
-	if !contextFound {
-		return fmt.Errorf("K8s context %q is not an available context", d.Context)
+	if err := EnsureEnvironmentDoesNotExist(d.Config.Name, d.Context); err != nil {
+		return fmt.Errorf("an environment with the name '%s' already exists: %w", d.Config.Name, err)
 	}
 
 	return nil

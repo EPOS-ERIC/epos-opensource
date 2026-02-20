@@ -7,6 +7,7 @@ import (
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/config"
+	"github.com/EPOS-ERIC/epos-opensource/validate"
 )
 
 type RenderOpts struct {
@@ -19,18 +20,11 @@ type RenderOpts struct {
 }
 
 func Render(opts RenderOpts) ([]string, error) {
-	cfg := opts.Config
-	if opts.Config == nil {
-		cfg = config.GetDefaultConfig()
+	if err := opts.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid render parameters: %w", err)
 	}
 
-	if opts.Name != "" {
-		cfg.Name = opts.Name
-	} else if cfg.Name == "" {
-		return nil, fmt.Errorf("environment name is required. Provide it as an argument or in the config file")
-	}
-
-	files, err := cfg.Render()
+	files, err := opts.Config.Render()
 	if err != nil {
 		return nil, fmt.Errorf("failed to render templates: %w", err)
 	}
@@ -71,4 +65,26 @@ func Render(opts RenderOpts) ([]string, error) {
 		envFilePath,
 		composeFilePath,
 	}, nil
+}
+
+func (r *RenderOpts) Validate() error {
+	if r.Config == nil {
+		r.Config = config.GetDefaultConfig()
+	}
+
+	if r.Name == "" {
+		r.Name = r.Config.Name
+	}
+
+	if r.Name == "" {
+		return fmt.Errorf("environment name is required")
+	}
+
+	if err := validate.Name(r.Name); err != nil {
+		return fmt.Errorf("invalid name for environment: %w", err)
+	}
+
+	r.Config.Name = r.Name
+
+	return nil
 }

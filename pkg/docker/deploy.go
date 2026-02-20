@@ -6,10 +6,10 @@ import (
 	"log"
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
-	"github.com/EPOS-ERIC/epos-opensource/db"
-	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
 	"github.com/EPOS-ERIC/epos-opensource/display"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/config"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db/sqlc"
 	"github.com/EPOS-ERIC/epos-opensource/validate"
 )
 
@@ -124,7 +124,7 @@ func (d *DeployOpts) Validate() error {
 		return fmt.Errorf("invalid name for environment: %w", err)
 	}
 
-	if err := validate.EnvironmentNotExistDocker(d.Config.Name); err != nil {
+	if err := EnsureEnvironmentDoesNotExist(d.Config.Name); err != nil {
 		return fmt.Errorf("an environment with the name '%s' already exists: %w", d.Config.Name, err)
 	}
 
