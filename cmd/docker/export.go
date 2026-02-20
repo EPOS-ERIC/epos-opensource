@@ -11,8 +11,8 @@ import (
 
 var ExportCmd = &cobra.Command{
 	Use:   "export [path]",
-	Short: "Export the default environment files to a directory.",
-	Long:  "Export the default environment files: .env and docker-compose.yaml.",
+	Short: "Export the default Docker config to a directory.",
+	Long:  "Export the default Docker configuration file (docker-config.yaml) to the specified directory.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		path := args[0]

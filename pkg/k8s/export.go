@@ -9,7 +9,7 @@ import (
 )
 
 type ExportOpts struct {
-	// Required. Path to export the embedded manifests and .env file. If the path does not exist it will be created
+	// Required. Path to export the default K8s config file. If the path does not exist it will be created
 	Path string
 }
 
