@@ -13,28 +13,16 @@ type Docker struct {
 	Directory      string
 	ApiUrl         string
 	GuiUrl         string
-	BackofficeUrl  string
+	BackofficeUrl  *string
 	ApiPort        int64
 	GuiPort        int64
-	BackofficePort int64
+	BackofficePort *int64
 }
 
 type IngestedFile struct {
-	EnvironmentType string
 	EnvironmentName string
 	FilePath        string
 	IngestedAt      *time.Time
-}
-
-type K8s struct {
-	Name          string
-	Directory     string
-	Context       string
-	ApiUrl        string
-	GuiUrl        string
-	BackofficeUrl string
-	Protocol      string
-	TlsEnabled    bool
 }
 
 type LatestReleaseCache struct {

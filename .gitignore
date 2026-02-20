@@ -4,3 +4,4 @@ epos-opensource
 .DS_Store
 _epos-opensource
 *.log
+tmp/

@@ -18,6 +18,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var debug bool
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "epos-opensource",
@@ -26,6 +28,8 @@ var rootCmd = &cobra.Command{
 using Docker Compose or K8s. Use the "docker" and "k8s" command
 groups to deploy, populate, update, or delete an environment.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		display.EnableDebug = debug
+
 		if cmd.Name() == "update" || cmd.Name() == "completion" {
 			return
 		}
@@ -81,6 +85,10 @@ groups to deploy, populate, update, or delete an environment.`,
 		}
 	},
 	Version: common.GetVersion(),
+}
+
+func init() {
+	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable debug logging")
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

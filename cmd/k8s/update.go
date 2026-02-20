@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score"
 	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s/config"
 
 	"github.com/spf13/cobra"
 )
@@ -24,27 +25,42 @@ var UpdateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		k, err := k8score.Update(k8score.UpdateOpts{
-			EnvFile:     envFile,
-			ManifestDir: manifestsDir,
-			Name:        name,
-			Force:       force,
-			CustomHost:  host,
-			Reset:       reset,
+		// TODO: this is reused in many cli commands, abstract it?
+		var cfg *config.Config
+		var err error
+		if configFilePath != "" {
+			cfg, err = config.LoadConfig(configFilePath)
+			if err != nil {
+				display.Error("Failed to load config: %v", err)
+				os.Exit(1)
+			}
+		}
+
+		env, err := k8s.Update(k8s.UpdateOpts{
+			Force:      force,
+			Reset:      reset,
+			OldEnvName: name,
+			NewConfig:  cfg,
+			Context:    context,
 		})
 		if err != nil {
 			display.Error("%v", err)
 			os.Exit(1)
 		}
 
-		display.Urls(k.GuiUrl, k.ApiUrl, k.BackofficeUrl, fmt.Sprintf("epos-opensource k8s update %s", name))
+		URLs, err := env.BuildEnvURLs()
+		if err != nil {
+			display.Error("Failed to build environment URLs: %v", err)
+			os.Exit(1)
+		}
+
+		display.URLs(URLs.GUIURL, URLs.APIURL, fmt.Sprintf("epos-opensource k8s update %s", name), URLs.BackofficeURL)
 	},
 }
 
 func init() {
 	UpdateCmd.Flags().BoolVarP(&force, "force", "f", false, "Delete and recreate the namespace and all resources before redeploying.")
-	UpdateCmd.Flags().StringVarP(&envFile, "env-file", "e", "", "Path to the environment variables file (.env)")
-	UpdateCmd.Flags().StringVarP(&manifestsDir, "manifests-dir", "m", "", "Path to the directory containing the manifests files")
-	UpdateCmd.Flags().StringVar(&host, "host", "", "Host (either IP or hostname) to use for exposing the environment. If not set the nginx ingress controller IP is used by default")
 	UpdateCmd.Flags().BoolVarP(&reset, "reset", "r", false, "Reset .env and manifests to embedded versions")
+	UpdateCmd.Flags().StringVar(&configFilePath, "config", "", "Path to YAML configuration file")
+	UpdateCmd.Flags().StringVar(&context, "context", "", "Kubectl context to use. Uses current context if not set")
 }

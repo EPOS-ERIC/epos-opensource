@@ -1,0 +1,130 @@
+# TODO: add descriptions to all fields
+domain: "localhost"
+protocol: "https"
+tls_enabled: false # TODO
+
+url_prefix_namespace: true
+
+components:
+  platform_gui:
+    base_url: "/" # needs to end with a /
+  gateway:
+    aai:
+      enabled: false
+      service_endpoint: ""
+      security_key: ""
+    base_url: "/api/v1/" # it needs to end with /api/v1
+    swagger_page:
+      tile: "EPOS API Gateway"
+      version: "2.0.0"
+      contact_email: ""
+  backoffice:
+    enabled: false
+    gui:
+      base_url: "/backoffice/" # needs to end with a /
+    service:
+      auth:
+        enabled: false
+        only_admin: false
+  converter:
+    enabled: false
+    auth:
+      enabled: false
+      only_admin: false
+  resources_service:
+    auth:
+      enabled: false
+      only_admin: false
+    cache_ttl: 50000
+  ingestor_service:
+    auth:
+      enabled: false
+      only_admin: false
+    hash: "FA9BEB99E4029AD5A6615399E7BBAE21356086B3"
+  external_access_service:
+    auth:
+      enabled: false
+      only_admin: false
+  sharing_service:
+    enabled: false
+    auth:
+      enabled: false
+      only_admin: false
+  rabbitmq:
+    host: "rabbitmq" # is this needed at all? yes if we want to allow an external rabbit, no otherwise
+    username: "rabbitmq-user"
+    password: "changeme"
+    vhost: "changeme"
+  metadata_database:
+    user: "metadatauser"
+    password: "changeme"
+    host: "metadata-database" # is this needed at all? yes if we want to allow an external db, no otherwise
+    port: 5432
+    db_name: "cerif"
+    connection_pool_init_size: 5
+    connection_pool_min_size: 5
+    connection_pool_max_size: 15
+  email_sender_service:
+    enabled: false
+    environment_type: "development"
+    sender: "data-portal"
+    sender_name: "EPOS Platform Opensource"
+    mail_type: "API"
+    sender_domain: "your.domain.com"
+    mail_host: "mail.domain.com"
+    mail_user: "user@email.com"
+    mail_password: "changeme"
+    dev_emails: "foo.bar@somewhere.com;change.me@somewhere.com"
+    mail_api_url: "https://api.example.email/"
+    mail_api_key: "changeme"
+
+# TODO: this whole thing
+jobs:
+  enabled: false
+  init_db:
+    enabled: true
+    image: "ghcr.io/epos-eric/metadata-database/restorejob:latest"
+    backoff_limit: 3
+    active_deadline_seconds: 1800
+  plugin_populator:
+    enabled: true
+    image: "epos/epos-plugin-populator"
+    tag: "v0.1.0"
+    hook_weight: "2"
+    backoff_limit: 3
+    active_deadline_seconds: 3600
+  metadata_populator:
+    enabled: true
+    image: "your-metadatapopulator-image:latest"
+    backoff_limit: 3
+    active_deadline_seconds: 3600
+    max_parallel: 10
+
+monitoring:
+  enabled: false
+  url: ""
+  user: ""
+  password: ""
+
+# TODO: check this
+image_pull_secrets:
+  enabled: false
+  registry_server: ""
+  registry_username: ""
+  registry_password: ""
+  registry_email: ""
+
+images:
+  rabbitmq_image: "rabbitmq:3.13.7-management"
+  dataportal_image: "epos/data-portal:latest"
+  gateway_image: "ghcr.io/epos-eric/epos-api-gateway:latest"
+  metadata_database_image: "ghcr.io/epos-eric/metadata-database/deploy:latest"
+  resources_service_image: "ghcr.io/epos-eric/resources-service:latest"
+  ingestor_service_image: "ghcr.io/epos-eric/ingestor-service:latest"
+  external_access_image: "ghcr.io/epos-eric/external-access-service:latest"
+  converter_service_image: "ghcr.io/epos-eric/converter-service-go:latest"
+  converter_routine_image: "ghcr.io/epos-eric/converter-routine-go:latest"
+  backoffice_service_image: "ghcr.io/epos-eric/backoffice-service:latest"
+  backoffice_ui_image: "epos/backoffice-ui:latest"
+  email_sender_service_image: "ghcr.io/epos-eric/email-sender-service:latest"
+  sharing_service_image: "ghcr.io/epos-eric/sharing-service:latest"

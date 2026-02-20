@@ -24,13 +24,13 @@ func init() {
 }
 
 // CreateFileWithContent creates a file with given content
-func CreateFileWithContent(filePath, content string) error {
+func CreateFileWithContent(filePath, content string, doNotEdit bool) error {
 	file, err := os.Create(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to create file %s: %w", filePath, err)
 	}
 	defer file.Close()
-	if _, err := file.WriteString(content); err != nil {
+	if _, err := file.WriteString(GenerateExportHeader(doNotEdit) + content); err != nil {
 		return fmt.Errorf("failed to write content to file %s: %w", filePath, err)
 	}
 	return nil
@@ -48,7 +48,7 @@ func GetContentFromPathOrDefault(filePath, defaultContent string) (string, error
 	return string(content), nil
 }
 
-func DeleteEnvDir(path string) error {
+func deleteEnvDir(path string) error {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return fmt.Errorf("directory %s does not exist", path)
 	}
@@ -73,10 +73,10 @@ func BuildEnvPath(customPath, name, prefix string) (string, error) {
 	return path.Join(basePath, name), nil
 }
 
-// RemoveEnvDir deletes the environment directory with logs
+// RemoveEnvDir deletes the environment directory
 func RemoveEnvDir(dir string) error {
 	display.Step("Deleting environment directory: %s", dir)
-	if err := DeleteEnvDir(dir); err != nil {
+	if err := deleteEnvDir(dir); err != nil {
 		return err
 	}
 	display.Done("Deleted environment directory: %s", dir)

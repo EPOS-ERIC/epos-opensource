@@ -1,41 +1,3 @@
--- K8s queries
--- name: GetAllK8s :many
-SELECT
-    *
-FROM
-    k8s;
-
--- name: InsertK8s :one
-INSERT INTO
-    k8s (
-        name,
-        directory,
-        context,
-        api_url,
-        gui_url,
-        backoffice_url,
-        protocol,
-        tls_enabled
-    )
-VALUES
-    (?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING
-    *;
-
--- name: DeleteK8s :exec
-DELETE FROM
-    k8s
-WHERE
-    name = ?;
-
--- name: GetK8sByName :one
-SELECT
-    *
-FROM
-    k8s
-WHERE
-    name = ?;
-
 -- Docker queries
 -- name: GetAllDocker :many
 SELECT
@@ -43,7 +5,7 @@ SELECT
 FROM
     docker;
 
--- name: InsertDocker :one
+-- name: UpsertDocker :one
 INSERT INTO
     docker (
         name,
@@ -56,7 +18,16 @@ INSERT INTO
         backoffice_port
     )
 VALUES
-    (?, ?, ?, ?, ?, ?, ?, ?)
+    (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (name) DO
+UPDATE
+SET
+    directory = excluded.directory,
+    api_url = excluded.api_url,
+    gui_url = excluded.gui_url,
+    backoffice_url = excluded.backoffice_url,
+    gui_port = excluded.gui_port,
+    api_port = excluded.api_port,
+    backoffice_port = excluded.backoffice_port
 RETURNING
     *;
 
@@ -95,13 +66,12 @@ SET
 -- name: InsertIngestedFile :exec
 INSERT INTO
     ingested_files (
-        environment_type,
         environment_name,
         file_path,
         ingested_at
     )
 VALUES
-    (?, ?, ?, CURRENT_TIMESTAMP) ON CONFLICT (environment_type, environment_name, file_path) DO
+    (?, ?, CURRENT_TIMESTAMP) ON CONFLICT (environment_name, file_path) DO
 UPDATE
 SET
     ingested_at = CURRENT_TIMESTAMP;
@@ -110,8 +80,7 @@ SET
 DELETE FROM
     ingested_files
 WHERE
-    environment_type = ?
-    AND environment_name = ?;
+    environment_name = ?;
 
 -- name: GetIngestedFilesByEnvironment :many
 SELECT
@@ -120,7 +89,6 @@ SELECT
 FROM
     ingested_files
 WHERE
-    environment_type = ?
-    AND environment_name = ?
+    environment_name = ?
 ORDER BY
     ingested_at DESC;

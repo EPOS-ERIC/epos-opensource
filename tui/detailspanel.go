@@ -8,6 +8,7 @@ import (
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/db"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -21,26 +22,27 @@ type DetailRow struct {
 
 // DetailsPanel manages the right-side information and action panel.
 type DetailsPanel struct {
-	app                *App
-	details            *tview.Flex
-	detailsGrid        *tview.Grid
-	detailsButtons     []*tview.Button
-	nameDirGrid        *tview.Grid
-	nameDirButtons     []*tview.Button
-	buttonsFlex        *tview.Flex
-	deleteButton       *tview.Button
-	cleanButton        *tview.Button
-	updateButton       *tview.Button
-	populateButton     *tview.Button
-	detailsList        *tview.List
-	detailsListEmpty   *tview.TextView
-	detailsListFlex    *tview.Flex
-	detailsEmpty       *tview.TextView
-	currentDetailsName string
-	currentDetailsType string
-	currentDetailsRows []DetailRow
-	currentDirectory   string
-	detailsShown       bool
+	app                   *App
+	details               *tview.Flex
+	detailsGrid           *tview.Grid
+	detailsButtons        []*tview.Button
+	nameDirGrid           *tview.Grid
+	nameDirButtons        []*tview.Button
+	buttonsFlex           *tview.Flex
+	deleteButton          *tview.Button
+	cleanButton           *tview.Button
+	updateButton          *tview.Button
+	populateButton        *tview.Button
+	detailsList           *tview.List
+	detailsListEmpty      *tview.TextView
+	detailsListFlex       *tview.Flex
+	detailsEmpty          *tview.TextView
+	currentDetailsName    string
+	currentDetailsType    string
+	currentDetailsContext string
+	currentDetailsRows    []DetailRow
+	currentDirectory      string
+	detailsShown          bool
 }
 
 // NewDetailsPanel creates a new DetailsPanel component.
@@ -68,6 +70,11 @@ func (dp *DetailsPanel) GetCurrentDetailsName() string {
 // GetCurrentDetailsType returns the current details environment type.
 func (dp *DetailsPanel) GetCurrentDetailsType() string {
 	return dp.currentDetailsType
+}
+
+// GetCurrentDetailsContext returns the current details environment context.
+func (dp *DetailsPanel) GetCurrentDetailsContext() string {
+	return dp.currentDetailsContext
 }
 
 // buildUI constructs the component layout.
@@ -137,15 +144,17 @@ func (dp *DetailsPanel) buildUI() {
 }
 
 // Update fetches and displays environment details in the panel.
-func (dp *DetailsPanel) Update(name, envType string, focus bool) {
+func (dp *DetailsPanel) Update(name, envType, context string, focus bool) {
 	dp.currentDetailsName = name
 	dp.currentDetailsType = envType
+	dp.currentDetailsContext = context
 
 	nameDirGridCount := 2
 	detailsGridCount := 2
 
 	switch envType {
 	case "docker":
+		dp.currentDetailsContext = ""
 		if d, err := db.GetDockerByName(name); err != nil {
 			dp.detailsGrid.Clear()
 			dp.detailsButtons = nil
@@ -159,10 +168,14 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 				dp.app.ShowError(fmt.Sprintf("Error joining Docker API URL: %v", err))
 				return
 			}
-			backofficeURL, err := url.JoinPath(d.BackofficeUrl, "home")
-			if err != nil {
-				dp.app.ShowError(fmt.Sprintf("Error joining Docker backoffice URL: %v", err))
-				return
+			var backofficeURL string
+			if d.BackofficeUrl != nil {
+				u, err := url.JoinPath(*d.BackofficeUrl, "home")
+				if err != nil {
+					dp.app.ShowError(fmt.Sprintf("Error joining Docker backoffice URL: %v", err))
+					return
+				}
+				backofficeURL = u
 			}
 			nameDirRows := []DetailRow{
 				{Label: "Name", Value: d.Name, IncludeOpen: false},
@@ -179,15 +192,18 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 
 			rows := []DetailRow{
 				{Label: "GUI", Value: d.GuiUrl, IncludeOpen: true},
-				{Label: "Backoffice", Value: backofficeURL, IncludeOpen: true},
-				{Label: "API", Value: apiURL, IncludeOpen: true},
 			}
+			if backofficeURL != "" {
+				rows = append(rows, DetailRow{Label: "Backoffice", Value: backofficeURL, IncludeOpen: true})
+			}
+			rows = append(rows, DetailRow{Label: "API", Value: apiURL, IncludeOpen: true})
 			detailsGridCount = len(rows)
 			dp.currentDetailsRows = rows
 			dp.createDetailsRows(rows)
 		}
-	case "k8s":
-		if k, err := db.GetK8sByName(name); err != nil {
+	case string(K8sKey):
+		env, err := k8s.GetEnv(name, context)
+		if err != nil {
 			dp.detailsGrid.Clear()
 			dp.detailsButtons = nil
 			dp.detailsGrid.SetRows(1)
@@ -195,25 +211,34 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 			errorTV := tview.NewTextView().SetText(fmt.Sprintf("Error fetching details for %s: %v", name, err)).SetTextColor(DefaultTheme.Destructive)
 			dp.detailsGrid.AddItem(errorTV, 0, 0, 1, 1, 0, 0, false)
 		} else {
+			urls, err := env.BuildEnvURLs()
+			if err != nil {
+				dp.detailsGrid.Clear()
+				dp.detailsButtons = nil
+				dp.detailsGrid.SetRows(1)
+				dp.detailsGrid.SetColumns(1)
+				errorTV := tview.NewTextView().SetText(fmt.Sprintf("Error building URLs for %s: %v", name, err)).SetTextColor(DefaultTheme.Destructive)
+				dp.detailsGrid.AddItem(errorTV, 0, 0, 1, 1, 0, 0, false)
+				break
+			}
+
+			dp.currentDetailsContext = env.Context
+			dp.currentDirectory = ""
+
 			nameDirRows := []DetailRow{
-				{Label: "Name", Value: k.Name, IncludeOpen: false},
-				{Label: "Context", Value: k.Context, IncludeOpen: false},
-				{Label: "Directory", Value: k.Directory, IncludeOpen: true},
+				{Label: "Name", Value: env.Name, IncludeOpen: false},
+				{Label: "Context", Value: env.Context, IncludeOpen: false},
 			}
 			nameDirGridCount = len(nameDirRows)
 			dp.createGridRows(dp.nameDirGrid, nameDirRows, &dp.nameDirButtons, "Basic Information")
-			for _, row := range nameDirRows {
-				if row.Label == "Directory" {
-					dp.currentDirectory = row.Value
-					break
-				}
-			}
 
 			rows := []DetailRow{
-				{Label: "GUI", Value: k.GuiUrl, IncludeOpen: true},
-				{Label: "Backoffice", Value: k.BackofficeUrl, IncludeOpen: true},
-				{Label: "API", Value: k.ApiUrl, IncludeOpen: true},
+				{Label: "GUI", Value: urls.GUIURL, IncludeOpen: true},
 			}
+			if urls.BackofficeURL != nil {
+				rows = append(rows, DetailRow{Label: "Backoffice", Value: *urls.BackofficeURL, IncludeOpen: true})
+			}
+			rows = append(rows, DetailRow{Label: "API", Value: urls.APIURL, IncludeOpen: true})
 			detailsGridCount = len(rows)
 			dp.currentDetailsRows = rows
 			dp.createDetailsRows(rows)
@@ -252,6 +277,7 @@ func (dp *DetailsPanel) Clear() {
 		dp.nameDirButtons = nil
 		dp.currentDetailsName = ""
 		dp.currentDetailsType = ""
+		dp.currentDetailsContext = ""
 		dp.currentDirectory = ""
 	}
 }
@@ -267,8 +293,21 @@ func (dp *DetailsPanel) RefreshFiles() {
 func (dp *DetailsPanel) populateIngestedFilesList() {
 	dp.detailsList.Clear()
 	dp.detailsListFlex.Clear()
+	dp.detailsList.SetSelectedFunc(nil)
+	dp.detailsList.SetTitle(" [::b]Ingested Files ")
+	dp.detailsListEmpty.SetTitle(" [::b]Ingested Files ")
 
-	if ingestedFiles, err := db.GetIngestedFilesByEnvironment(dp.currentDetailsType, dp.currentDetailsName); err != nil {
+	if dp.currentDetailsType == string(K8sKey) {
+		dp.detailsListEmpty.SetText("\n" + DefaultTheme.MutedTag("i") + "Tracking is available only for Docker environments")
+		dp.detailsListFlex.AddItem(dp.detailsListEmpty, 0, 1, true)
+		dp.syncIngestedFilesFocus()
+
+		return
+	}
+
+	dp.detailsListEmpty.SetText("\n" + DefaultTheme.MutedTag("i") + "No ingested files yet")
+
+	if ingestedFiles, err := db.GetIngestedFilesByEnvironment(dp.currentDetailsName); err != nil {
 		dp.detailsListEmpty.SetText("\n" + DefaultTheme.DestructiveTag("i") + fmt.Sprintf("Error loading files: %v", err))
 		dp.detailsListFlex.AddItem(dp.detailsListEmpty, 0, 1, true)
 	} else {
@@ -291,6 +330,46 @@ func (dp *DetailsPanel) populateIngestedFilesList() {
 			dp.detailsListFlex.AddItem(dp.detailsListEmpty, 0, 1, true)
 		}
 	}
+
+	dp.syncIngestedFilesFocus()
+}
+
+func (dp *DetailsPanel) focusIngestedFiles() {
+	if dp.detailsListFlex.GetItemCount() > 0 {
+		target := dp.detailsListFlex.GetItem(0)
+		if target != nil {
+			dp.app.tview.SetFocus(target)
+
+			return
+		}
+	}
+
+	dp.app.tview.SetFocus(dp.detailsListFlex)
+}
+
+func (dp *DetailsPanel) syncIngestedFilesFocus() {
+	focus := dp.app.tview.GetFocus()
+	if focus == dp.detailsList || focus == dp.detailsListEmpty || focus == dp.detailsListFlex {
+		dp.focusIngestedFiles()
+	}
+}
+
+func (dp *DetailsPanel) focusActiveEnvList() {
+	if dp.app.envList.IsDockerActive() {
+		if dp.app.envList.docker.GetItemCount() > 0 {
+			dp.app.tview.SetFocus(dp.app.envList.docker)
+		} else {
+			dp.app.tview.SetFocus(dp.app.envList.dockerEmpty)
+		}
+
+		return
+	}
+
+	if dp.app.envList.k8s.GetItemCount() > 0 {
+		dp.app.tview.SetFocus(dp.app.envList.k8s)
+	} else {
+		dp.app.tview.SetFocus(dp.app.envList.k8sEmpty)
+	}
 }
 
 // CycleFocus cycles focus between buttons, grid, and list in the details view.
@@ -304,7 +383,7 @@ func (dp *DetailsPanel) CycleFocus() {
 		case len(dp.detailsButtons) > 0:
 			dp.app.tview.SetFocus(dp.detailsButtons[0])
 		default:
-			dp.app.tview.SetFocus(dp.detailsList)
+			dp.focusIngestedFiles()
 		}
 	case dp.cleanButton:
 		dp.app.tview.SetFocus(dp.deleteButton)
@@ -312,7 +391,7 @@ func (dp *DetailsPanel) CycleFocus() {
 		dp.app.tview.SetFocus(dp.cleanButton)
 	case dp.populateButton:
 		dp.app.tview.SetFocus(dp.updateButton)
-	case dp.detailsListFlex:
+	case dp.detailsListFlex, dp.detailsList, dp.detailsListEmpty:
 		dp.app.tview.SetFocus(dp.populateButton)
 	default:
 		// Check if it's a details button
@@ -321,7 +400,7 @@ func (dp *DetailsPanel) CycleFocus() {
 				if i+1 < len(dp.detailsButtons) {
 					dp.app.tview.SetFocus(dp.detailsButtons[i+1])
 				} else {
-					dp.app.tview.SetFocus(dp.detailsListFlex)
+					dp.focusIngestedFiles()
 				}
 				return
 			}
@@ -335,7 +414,7 @@ func (dp *DetailsPanel) CycleFocus() {
 					if len(dp.detailsButtons) > 0 {
 						dp.app.tview.SetFocus(dp.detailsButtons[0])
 					} else {
-						dp.app.tview.SetFocus(dp.detailsList)
+						dp.focusIngestedFiles()
 					}
 				}
 				return
@@ -350,7 +429,7 @@ func (dp *DetailsPanel) CycleFocus() {
 func (dp *DetailsPanel) CycleFocusBackward() {
 	focus := dp.app.tview.GetFocus()
 	switch focus {
-	case dp.detailsList:
+	case dp.detailsList, dp.detailsListEmpty, dp.detailsListFlex:
 		switch {
 		case len(dp.detailsButtons) > 0:
 			dp.app.tview.SetFocus(dp.detailsButtons[len(dp.detailsButtons)-1])
@@ -366,7 +445,7 @@ func (dp *DetailsPanel) CycleFocusBackward() {
 	case dp.updateButton:
 		dp.app.tview.SetFocus(dp.populateButton)
 	case dp.populateButton:
-		dp.app.tview.SetFocus(dp.detailsListFlex)
+		dp.focusIngestedFiles()
 	default:
 		// Check if it's a details button
 		for i, btn := range dp.detailsButtons {
@@ -395,7 +474,7 @@ func (dp *DetailsPanel) CycleFocusBackward() {
 			}
 		}
 		// If not, start at the end
-		dp.app.tview.SetFocus(dp.detailsList)
+		dp.focusIngestedFiles()
 	}
 }
 
@@ -405,19 +484,7 @@ func (dp *DetailsPanel) SetupInput() {
 		switch {
 		case event.Key() == tcell.KeyEsc:
 			dp.Clear()
-			if dp.app.envList.IsDockerActive() {
-				if dp.app.envList.docker.GetItemCount() > 0 {
-					dp.app.tview.SetFocus(dp.app.envList.docker)
-				} else {
-					dp.app.tview.SetFocus(dp.app.envList.dockerEmpty)
-				}
-			} else {
-				if dp.app.envList.k8s.GetItemCount() > 0 {
-					dp.app.tview.SetFocus(dp.app.envList.k8s)
-				} else {
-					dp.app.tview.SetFocus(dp.app.envList.k8sEmpty)
-				}
-			}
+			dp.focusActiveEnvList()
 			return nil
 		case event.Key() == tcell.KeyTab:
 			dp.CycleFocus()
@@ -431,10 +498,8 @@ func (dp *DetailsPanel) SetupInput() {
 			dp.app.showDeleteConfirm()
 			return nil
 		case event.Rune() == 'c':
-			if dp.app.envList.IsDockerActive() {
-				dp.app.showCleanConfirm()
-				return nil
-			}
+			dp.app.showCleanConfirm()
+			return nil
 		case event.Rune() == 'u':
 			dp.app.showUpdateForm()
 			return nil
@@ -495,6 +560,9 @@ func (dp *DetailsPanel) SetupInput() {
 		return event
 	}
 	dp.details.SetInputCapture(handler)
+	dp.detailsList.SetInputCapture(handler)
+	dp.detailsListEmpty.SetInputCapture(handler)
+	dp.detailsListFlex.SetInputCapture(handler)
 }
 
 // setupFocusHandlers configures visual feedback when components gain/lose focus.
