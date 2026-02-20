@@ -2,17 +2,10 @@ package common
 
 import (
 	"fmt"
-	"io"
 	"log"
-	"os"
 	"os/exec"
-	"os/signal"
 	"runtime"
 	"strings"
-	"syscall"
-
-	"github.com/creack/pty"
-	"golang.org/x/term"
 )
 
 const (
@@ -144,41 +137,4 @@ func OpenWithCommand(command, target string) error {
 		return err
 	}
 	return nil
-}
-
-// runInPty executes a command in a pseudo-terminal (PTY) to handle nested TUIs.
-func runInPty(c *exec.Cmd) error {
-	// Start the command in a PTY.
-	ptmx, err := pty.Start(c)
-	if err != nil {
-		return fmt.Errorf("failed to start in pty: %w", err)
-	}
-	// Make sure to close the PTY at the end.
-	defer func() { _ = ptmx.Close() }()
-
-	// Handle window size changes.
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, syscall.SIGWINCH)
-	go func() {
-		for range ch {
-			if err := pty.InheritSize(os.Stdin, ptmx); err != nil {
-				log.Printf("error resizing pty: %s", err)
-			}
-		}
-	}()
-	ch <- syscall.SIGWINCH // Initial resize.
-
-	// Set stdin in raw mode.
-	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
-	if err != nil {
-		return fmt.Errorf("failed to set raw mode: %w", err)
-	}
-	defer func() { _ = term.Restore(int(os.Stdin.Fd()), oldState) }()
-
-	// Copy stdin to the PTY and the PTY to stdout.
-	go func() { _, _ = io.Copy(ptmx, os.Stdin) }()
-	_, _ = io.Copy(os.Stdout, ptmx)
-
-	// Wait for the command to exit.
-	return c.Wait()
 }

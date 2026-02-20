@@ -15,6 +15,14 @@ const (
 	StateError   = "error"
 )
 
+const (
+	opDelete   = "Delete"
+	opDeploy   = "Deploy"
+	opPopulate = "Populate"
+	opClean    = "Clean"
+	opUpdate   = "Update"
+)
+
 var ansiRegex = regexp.MustCompile(`\x1b\[[0-9;]*[A-Za-z]`)
 
 // stripANSI removes ANSI escape codes from a string.
@@ -299,16 +307,16 @@ func (op *OperationProgress) returnToHome() {
 
 	op.app.ResetToHome(ResetOptions{
 		PageNames:      []string{pageName, "completion-overlay"},
-		ClearDetails:   op.operation == "Delete" && op.state == StateSuccess,
-		RefreshFiles:   (op.operation == "Populate" || op.operation == "Clean" || op.operation == "Update") && op.state == StateSuccess,
-		RestoreFocus:   op.operation != "Deploy" || op.state != StateSuccess,
-		ForceEnvFocus:  op.operation == "Deploy" && op.state == StateSuccess,
-		SyncEnvRefresh: (op.operation == "Delete" || op.operation == "Deploy") && op.state == StateSuccess,
+		ClearDetails:   op.operation == opDelete && op.state == StateSuccess,
+		RefreshFiles:   (op.operation == opPopulate || op.operation == opClean || op.operation == opUpdate) && op.state == StateSuccess,
+		RestoreFocus:   op.operation != opDeploy || op.state != StateSuccess,
+		ForceEnvFocus:  op.operation == opDeploy && op.state == StateSuccess,
+		SyncEnvRefresh: (op.operation == opDelete || op.operation == opDeploy) && op.state == StateSuccess,
 	})
 
 	// If we were in details and it wasn't a delete, we might need a full update
 	// to show changed information (like new GUIs or updated config).
-	if op.wasInDetails && op.operation != "Delete" && op.state == StateSuccess {
+	if op.wasInDetails && op.operation != opDelete && op.state == StateSuccess {
 		op.app.detailsPanel.Update(op.savedDetailsName, op.savedDetailsType, op.savedDetailsContext, true)
 	}
 }
