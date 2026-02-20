@@ -22,91 +22,91 @@ spec:
       name: {{ $name }}
     spec:
       restartPolicy: Never
-    initContainers:
-	# TODO: we should probably put the init containers in some helper and reuse them in the templates instead of duplicating them
-    - name: wait-for-ingestor-service
-      image: busybox:latest
-      command:
-      - /bin/sh
-      - -c
-      - |-
-        until nc -z ingestor-service 8080; do
-          sleep 1;
-        done
-    containers:
-    - name: {{ $name }}
-      image: {{ .Values.jobs.metadata_populator.image }}
-      imagePullPolicy: Always
-      command: ["/bin/sh", "-c"]
-      args:
-      - |
-        set -eu
-        
-        log() {
-          echo "[$(date '+%Y-%m-%d %H:%M:%S')] [metadata-populator] $1"
-        }
-        
-        log "Starting metadata population..."
+      initContainers:
+      # TODO: we should probably put the init containers in some helper and reuse them in the templates instead of duplicating them
+      - name: wait-for-ingestor-service
+        image: busybox:latest
+        command:
+        - /bin/sh
+        - -c
+        - |-
+          until nc -z ingestor-service 8080; do
+            sleep 1;
+          done
+      containers:
+      - name: {{ $name }}
+        image: {{ .Values.jobs.metadata_populator.image }}
+        imagePullPolicy: Always
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          set -eu
+          
+          log() {
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] [metadata-populator] $1"
+          }
+          
+          log "Starting metadata population..."
 
-        # Start nginx
-        nginx
-        log "✓ Nginx started"
+          # Start nginx
+          nginx
+          log "✓ Nginx started"
 
-        log "Waiting for ingestor-service health check..."
-        until curl -fsS "http://ingestor-service:8080/api/ingestor-service/v1/actuator/health" >/dev/null 2>&1; do
-          sleep 2
-        done
+          log "Waiting for ingestor-service health check..."
+          until curl -fsS "http://ingestor-service:8080/api/ingestor-service/v1/actuator/health" >/dev/null 2>&1; do
+            sleep 2
+          done
 
-        SECONDS=0
+          SECONDS=0
 
-        log "Downloading metadata index..."
-        files="$(curl -fsS 'http://metadata-populator/index.txt' | tr -d '\r' | sed '/^[[:space:]]*$/d')"
+          log "Downloading metadata index..."
+          files="$(curl -fsS 'http://metadata-populator/index.txt' | tr -d '\r' | sed '/^[[:space:]]*$/d')"
 
-        get_group_name() {
-          case "$1" in
-            *tcs-geomag*) echo 'Geomagnetic%20Observations' ;;
-            *tcs-gnss*)   echo 'GNSS%20Data%20and%20Products' ;;
-            *tcs-vo*)     echo 'Volcano%20Observations' ;;
-            *tcs-gim*)    echo 'Geological%20Information%20and%20Modeling' ;;
-            *tcs-seismo*) echo 'Seismology' ;;
-            *tcs-msl*)    echo 'Multi-scale%20Laboratories' ;;
-            *tcs-tsu*)    echo 'Tsunami' ;;
-            *tcs-satd*)   echo 'Satellite%20Data' ;;
-            *tcs-nfo*)    echo 'Near%20Fault%20Observatories' ;;
-            *tcs-ah*)     echo 'Anthropogenic%20Hazards' ;;
-            *)            echo 'ALL' >&2; echo 'ALL' ;;
-          esac
-        }
+          get_group_name() {
+            case "$1" in
+              *tcs-geomag*) echo 'Geomagnetic%20Observations' ;;
+              *tcs-gnss*)   echo 'GNSS%20Data%20and%20Products' ;;
+              *tcs-vo*)     echo 'Volcano%20Observations' ;;
+              *tcs-gim*)    echo 'Geological%20Information%20and%20Modeling' ;;
+              *tcs-seismo*) echo 'Seismology' ;;
+              *tcs-msl*)    echo 'Multi-scale%20Laboratories' ;;
+              *tcs-tsu*)    echo 'Tsunami' ;;
+              *tcs-satd*)   echo 'Satellite%20Data' ;;
+              *tcs-nfo*)    echo 'Near%20Fault%20Observatories' ;;
+              *tcs-ah*)     echo 'Anthropogenic%20Hazards' ;;
+              *)            echo 'ALL' >&2; echo 'ALL' ;;
+            esac
+          }
 
-        max="{{ .Values.jobs.metadata_populator.max_parallel }}"
-        count=0
-        log "Starting parallel metadata ingestion (MAX_PARALLEL=$max)"
+          max="{{ .Values.jobs.metadata_populator.max_parallel }}"
+          count=0
+          log "Starting parallel metadata ingestion (MAX_PARALLEL=$max)"
 
-        for i in ${files}; do
-          filename="${i##*/}"
-          groupname="$(get_group_name "$i")"
-          log "Processing $i (group=$groupname)"
-          (
-            curl -fsS -X POST --header "accept: */*" \
-              "http://ingestor-service:8080/api/ingestor-service/v1/populate?path=http://metadata-populator/$filename&model=EPOS-DCAT-AP-V1&mapping=EDM-TO-DCAT-AP&type=single&metadataGroup=$groupname"
-            log "✓ Completed $i"
-          ) &
-          count=$((count + 1))
-          if [ $((count % max)) -eq 0 ]; then
-            wait
-          fi
-        done
+          for i in ${files}; do
+            filename="${i##*/}"
+            groupname="$(get_group_name "$i")"
+            log "Processing $i (group=$groupname)"
+            (
+              curl -fsS -X POST --header "accept: */*" \
+                "http://ingestor-service:8080/api/ingestor-service/v1/populate?path=http://metadata-populator/$filename&model=EPOS-DCAT-AP-V1&mapping=EDM-TO-DCAT-AP&type=single&metadataGroup=$groupname"
+              log "✓ Completed $i"
+            ) &
+            count=$((count + 1))
+            if [ $((count % max)) -eq 0 ]; then
+              wait
+            fi
+          done
 
-        wait
-        duration=$SECONDS
-        log "✓ Total ingestion time: $((duration/60))m $((duration%60))s"
+          wait
+          duration=$SECONDS
+          log "✓ Total ingestion time: $((duration/60))m $((duration%60))s"
 
-        curl -fsS -X POST --header "accept: application/json" "http://resources-service:8080/api/resources-service/v1/invalidate"
+          curl -fsS -X POST --header "accept: application/json" "http://resources-service:8080/api/resources-service/v1/invalidate"
 
-        log "Metadata population completed successfully!"
-      envFrom:
-      - configMapRef:
-          name: {{ $name }}
+          log "Metadata population completed successfully!"
+        envFrom:
+        - configMapRef:
+            name: {{ $name }}
 ---
 apiVersion: v1
 kind: ConfigMap

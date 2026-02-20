@@ -83,7 +83,7 @@ jobs:
   enabled: false
   init_db:
     enabled: true
-    image: "your-pgha-job-image:latest"
+    image: "ghcr.io/epos-eric/metadata-database/restorejob:latest"
     backoff_limit: 3
     active_deadline_seconds: 1800
   plugin_populator:

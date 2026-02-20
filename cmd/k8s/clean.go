@@ -1,10 +1,12 @@
 package k8s
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 
 	"github.com/spf13/cobra"
 )
@@ -33,18 +35,26 @@ This action is irreversible.`,
 			}
 		}
 
-		// env, err := k8s.Clean(k8s.CleanOpts{
-		// 	Name: name,
-		// })
-		// if err != nil {
-		// 	display.Error("%v", err)
-		// 	os.Exit(1)
-		// }
+		env, err := k8s.Clean(k8s.CleanOpts{
+			Name:    name,
+			Context: context,
+		})
+		if err != nil {
+			display.Error("%v", err)
+			os.Exit(1)
+		}
 
-		// display.URLs(env.GuiUrl, env.ApiUrl, fmt.Sprintf("epos-opensource k8s clean %s", name), env.BackofficeUrl)
+		URLs, err := env.BuildEnvURLs()
+		if err != nil {
+			display.Error("Failed to build environment URLs: %v", err)
+			os.Exit(1)
+		}
+
+		display.URLs(URLs.GUIURL, URLs.APIURL, fmt.Sprintf("epos-opensource k8s clean %s", name), URLs.BackofficeURL)
 	},
 }
 
 func init() {
 	CleanCmd.Flags().BoolVarP(&cleanForce, "force", "f", false, "Force clean without confirmation prompt")
+	CleanCmd.Flags().StringVar(&context, "context", "", "kubectl context used for the environment deployment. Uses current if not set")
 }
