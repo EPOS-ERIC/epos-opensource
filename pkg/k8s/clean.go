@@ -10,6 +10,7 @@ import (
 	"github.com/EPOS-ERIC/epos-opensource/validate"
 )
 
+// CleanOpts defines inputs for Clean.
 type CleanOpts struct {
 	// Required. name of the environment
 	Name string
@@ -17,6 +18,7 @@ type CleanOpts struct {
 	Context string
 }
 
+// Clean runs one-off cleanup jobs in an existing K8s environment and returns refreshed metadata.
 func Clean(opts CleanOpts) (*Env, error) {
 	if opts.Context == "" {
 		context, err := common.GetCurrentKubeContext()
@@ -149,6 +151,7 @@ func runOneOffJobFromManifest(context, namespace, jobName, manifest string, time
 	return nil
 }
 
+// Validate checks CleanOpts and ensures the target environment is valid and reachable.
 func (c *CleanOpts) Validate() error {
 	display.Debug("name: %s", c.Name)
 	display.Debug("context: %s", c.Context)

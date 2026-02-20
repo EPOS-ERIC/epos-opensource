@@ -19,7 +19,7 @@ import (
 //go:embed all:helm/**
 var chartFS embed.FS
 
-// GetDefaultConfig returns the default DockerEnvConfig
+// GetDefaultConfig returns a parsed copy of the embedded default K8s values configuration.
 func GetDefaultConfig() *Config {
 	var config Config
 
@@ -30,6 +30,7 @@ func GetDefaultConfig() *Config {
 	return &config
 }
 
+// GetDefaultConfigBytes returns the raw embedded Helm values.yaml bytes.
 func GetDefaultConfigBytes() []byte {
 	out, err := chartFS.ReadFile("helm/values.yaml")
 	if err != nil {
@@ -38,6 +39,7 @@ func GetDefaultConfigBytes() []byte {
 	return out
 }
 
+// LoadConfig loads a K8s configuration from a YAML file.
 func LoadConfig(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -53,6 +55,7 @@ func LoadConfig(path string) (*Config, error) {
 	return &config, nil
 }
 
+// Save writes the current configuration as YAML to path.
 func (e *Config) Save(path string) error {
 	bytes, err := yaml.Marshal(e)
 	if err != nil {
@@ -66,7 +69,7 @@ func (e *Config) Save(path string) error {
 	return nil
 }
 
-// BuildEnvURLs TODO
+// BuildEnvURLs builds GUI, API, and optional backoffice URLs from the configuration.
 func (e *Config) BuildEnvURLs() (*common.URLs, error) {
 	buildURL := func(paths ...string) (string, error) {
 		base := &url.URL{
@@ -113,7 +116,7 @@ func (e *Config) BuildEnvURLs() (*common.URLs, error) {
 	return urls, nil
 }
 
-// Validate TODO
+// Validate checks whether the configuration contains all required values.
 func (e *Config) Validate() error {
 	// Basic required fields
 	if e.Domain == "" {
@@ -303,6 +306,7 @@ func (e *Config) Validate() error {
 	return nil
 }
 
+// AsValues converts Config into Helm chart values.
 func (e *Config) AsValues() (*chartutil.Values, error) {
 	configYAML, err := yaml.Marshal(e)
 	if err != nil {
@@ -317,6 +321,7 @@ func (e *Config) AsValues() (*chartutil.Values, error) {
 	return &values, nil
 }
 
+// GetChart loads the embedded EPOS Helm chart from the binary filesystem.
 func GetChart() (*chart.Chart, error) {
 	var files []*loader.BufferedFile
 

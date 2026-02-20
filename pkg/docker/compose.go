@@ -55,6 +55,7 @@ func downStack(dir string, removeVolumes bool) error {
 	return err
 }
 
+// DeploymentPorts groups externally exposed service ports for a Docker environment.
 type DeploymentPorts struct {
 	GUI        int
 	API        int

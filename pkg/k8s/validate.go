@@ -35,6 +35,7 @@ func EnsureEnvironmentExists(name, context string) error {
 	return nil
 }
 
+// EnsureContextExists checks that the provided kubectl context exists on the local machine.
 func EnsureContextExists(context string) error {
 	contexts, err := common.GetKubeContexts()
 	if err != nil {

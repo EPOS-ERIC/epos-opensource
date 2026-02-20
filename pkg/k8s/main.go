@@ -11,6 +11,7 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 )
 
+// Env represents a deployed K8s environment and its effective configuration.
 type Env struct {
 	config.Config
 
@@ -62,6 +63,7 @@ func deleteNamespace(name, context string) error {
 	return nil
 }
 
+// ReleaseToConfig converts a Helm release values map into a typed K8s Config.
 func ReleaseToConfig(rel *release.Release) (*config.Config, error) {
 	// TODO: rename this function with a better name
 	if rel == nil {
@@ -81,6 +83,7 @@ func ReleaseToConfig(rel *release.Release) (*config.Config, error) {
 	return &envConfig, nil
 }
 
+// ReleaseToEnv converts a Helm release to an Env bound to the provided kube context.
 func ReleaseToEnv(rel *release.Release, context string) (*Env, error) {
 	// TODO: rename this function with a better name
 	if rel == nil {

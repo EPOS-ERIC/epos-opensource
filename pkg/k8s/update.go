@@ -14,6 +14,7 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 )
 
+// UpdateOpts defines inputs for Update.
 type UpdateOpts struct {
 	// Required. name of the environment
 	OldEnvName string
@@ -27,7 +28,7 @@ type UpdateOpts struct {
 	NewConfig *config.Config
 }
 
-// Update TODO: add docs
+// Update updates an existing K8s environment in place or by full reinstall when Force is enabled.
 func Update(opts UpdateOpts) (*Env, error) {
 	display.Debug("oldEnvName: %s", opts.OldEnvName)
 	display.Debug("context: %s", opts.Context)
@@ -146,6 +147,7 @@ func Update(opts UpdateOpts) (*Env, error) {
 	return newEnv, nil
 }
 
+// Validate checks UpdateOpts and validates update semantics against existing environment state.
 func (u *UpdateOpts) Validate() error {
 	display.Debug("oldEnvName: %s", u.OldEnvName)
 	display.Debug("context: %s", u.Context)

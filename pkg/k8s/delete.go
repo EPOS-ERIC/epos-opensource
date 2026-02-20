@@ -11,7 +11,7 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 )
 
-// DeleteOpts TODO: add wait flag instead of by default? have it in the cli config?
+// DeleteOpts defines inputs for Delete.
 type DeleteOpts struct {
 	// Required. name of the environments to delete
 	Name []string
@@ -19,6 +19,7 @@ type DeleteOpts struct {
 	Context string
 }
 
+// Delete uninstalls one or more K8s environments and removes their namespaces.
 func Delete(opts DeleteOpts) error {
 	if err := opts.Validate(); err != nil {
 		return fmt.Errorf("invalid parameters for delete command: %w", err)
@@ -76,6 +77,7 @@ func Delete(opts DeleteOpts) error {
 	return eg.Wait()
 }
 
+// Validate checks DeleteOpts and ensures every requested environment exists.
 func (d *DeleteOpts) Validate() error {
 	display.Debug("names: %+v", d.Name)
 	display.Debug("context: %s", d.Context)

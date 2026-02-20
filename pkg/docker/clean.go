@@ -12,11 +12,13 @@ import (
 	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db/sqlc"
 )
 
+// CleanOpts defines inputs for Clean.
 type CleanOpts struct {
 	// Required. name of the environment
 	Name string
 }
 
+// Clean removes runtime data from an existing Docker environment and restarts required services.
 func Clean(opts CleanOpts) (*sqlc.Docker, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid clean parameters: %w", err)
@@ -123,6 +125,7 @@ func Clean(opts CleanOpts) (*sqlc.Docker, error) {
 	return docker, nil
 }
 
+// Validate checks CleanOpts and ensures the target environment exists.
 func (c *CleanOpts) Validate() error {
 	display.Debug("name: %s", c.Name)
 

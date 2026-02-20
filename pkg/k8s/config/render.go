@@ -7,6 +7,7 @@ import (
 	"helm.sh/helm/v3/pkg/engine"
 )
 
+// Render renders Helm templates using the current configuration values.
 func (e *Config) Render() (map[string]string, error) {
 	chart, err := GetChart()
 	if err != nil {

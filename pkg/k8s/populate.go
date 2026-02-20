@@ -10,6 +10,7 @@ import (
 	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db"
 )
 
+// PopulateOpts defines inputs for Populate.
 type PopulateOpts struct {
 	// Required. name of the environment
 	Name string
@@ -23,6 +24,7 @@ type PopulateOpts struct {
 	PopulateExamples bool
 }
 
+// Populate ingests example or user-provided TTL data into an existing K8s environment.
 func Populate(opts PopulateOpts) (*Env, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid parameters for populate command: %w", err)
@@ -127,6 +129,7 @@ func Populate(opts PopulateOpts) (*Env, error) {
 	return env, nil
 }
 
+// Validate checks PopulateOpts and verifies paths, context, and environment state.
 func (p *PopulateOpts) Validate() error {
 	display.Debug("name: %s", p.Name)
 	display.Debug("context: %s", p.Context)

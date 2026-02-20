@@ -13,6 +13,7 @@ import (
 	"github.com/EPOS-ERIC/epos-opensource/validate"
 )
 
+// DeployOpts defines inputs for Deploy.
 type DeployOpts struct {
 	// Custom directory path for .env and docker-compose.yaml files
 	Path string
@@ -22,6 +23,7 @@ type DeployOpts struct {
 	Config *config.EnvConfig
 }
 
+// Deploy creates and starts a Docker-based EPOS environment and persists it in the local store.
 func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid deploy parameters: %w", err)
@@ -123,6 +125,7 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 	return docker, err
 }
 
+// Validate checks DeployOpts and resolves any required preconditions before deployment.
 func (d *DeployOpts) Validate() error {
 	display.Debug("path: %s", d.Path)
 	display.Debug("pullImages: %v", d.PullImages)

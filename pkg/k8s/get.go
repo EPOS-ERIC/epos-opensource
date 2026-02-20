@@ -8,6 +8,7 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 )
 
+// GetEnv fetches a deployed K8s environment by release name and context.
 func GetEnv(name, context string) (*Env, error) {
 	// TODO: add a new cli command to get the chart/release?
 	settings := cli.New()

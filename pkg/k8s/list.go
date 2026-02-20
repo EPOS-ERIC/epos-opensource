@@ -8,6 +8,7 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 )
 
+// List returns all EPOS-managed K8s environments visible in the given context.
 func List(context string) ([]Env, error) {
 	settings := cli.New()
 	settings.KubeContext = context

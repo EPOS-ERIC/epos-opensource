@@ -14,6 +14,7 @@ import (
 	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db/sqlc"
 )
 
+// UpdateOpts defines inputs for Update.
 type UpdateOpts struct {
 	// Pull images before deploying the updated environment
 	PullImages bool
@@ -234,6 +235,7 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 	return newDocker, nil
 }
 
+// Validate checks UpdateOpts for consistency and verifies that the target environment exists.
 func (u *UpdateOpts) Validate() error {
 	display.Debug("oldEnvName: %s", u.OldEnvName)
 	display.Debug("pullImages: %v", u.PullImages)

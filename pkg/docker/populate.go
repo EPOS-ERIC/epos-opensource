@@ -11,6 +11,7 @@ import (
 	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db/sqlc"
 )
 
+// PopulateOpts defines inputs for Populate.
 type PopulateOpts struct {
 	// Required. paths to ttl files or directories containing ttl files to populate the environment
 	TTLDirs []string
@@ -22,6 +23,7 @@ type PopulateOpts struct {
 	PopulateExamples bool
 }
 
+// Populate ingests example or user-provided TTL data into an existing Docker environment.
 func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid populate parameters: %w", err)
@@ -84,6 +86,7 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 	return docker, nil
 }
 
+// Validate checks PopulateOpts and verifies that input paths and environment state are valid.
 func (p *PopulateOpts) Validate() error {
 	display.Debug("name: %s", p.Name)
 	display.Debug("ttlDirs: %+v", p.TTLDirs)

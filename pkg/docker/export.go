@@ -8,11 +8,13 @@ import (
 	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/config"
 )
 
+// ExportOpts defines inputs for Export.
 type ExportOpts struct {
 	// Required. Path to export the default environment config
 	Path string
 }
 
+// Export writes the default Docker configuration file to the requested path.
 func Export(opts ExportOpts) error {
 	if err := opts.Validate(); err != nil {
 		return fmt.Errorf("invalid export parameters: %w", err)
@@ -34,6 +36,7 @@ func Export(opts ExportOpts) error {
 	return nil
 }
 
+// Validate checks ExportOpts for required values.
 func (d *ExportOpts) Validate() error {
 	display.Debug("path: %s", d.Path)
 

@@ -17,7 +17,7 @@ import (
 //go:embed default.yaml
 var defaultConfig []byte
 
-// GetDefaultConfig returns the default DockerEnvConfig
+// GetDefaultConfig returns a parsed copy of the embedded default Docker configuration.
 func GetDefaultConfig() *EnvConfig {
 	var config EnvConfig
 	err := yaml.Unmarshal(defaultConfig, &config)
@@ -27,10 +27,12 @@ func GetDefaultConfig() *EnvConfig {
 	return &config
 }
 
+// GetDefaultConfigBytes returns the raw embedded default Docker configuration bytes.
 func GetDefaultConfigBytes() []byte {
 	return defaultConfig
 }
 
+// LoadConfig loads a Docker configuration from a YAML file.
 func LoadConfig(path string) (*EnvConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -49,6 +51,7 @@ func LoadConfig(path string) (*EnvConfig, error) {
 	return &config, nil
 }
 
+// Save writes the current configuration as YAML to path.
 func (e *EnvConfig) Save(path string) error {
 	bytes, err := yaml.Marshal(e)
 	if err != nil {
@@ -62,6 +65,7 @@ func (e *EnvConfig) Save(path string) error {
 	return nil
 }
 
+// BuildEnvURLs builds GUI, API, and optional backoffice URLs from the configuration.
 func (e *EnvConfig) BuildEnvURLs() (*common.URLs, error) {
 	buildURL := func(port int, basePath string) (string, error) {
 		base := &url.URL{
@@ -97,6 +101,7 @@ func (e *EnvConfig) BuildEnvURLs() (*common.URLs, error) {
 	return urls, nil
 }
 
+// CheckForUpdates checks configured container images for newer tags.
 func (e *EnvConfig) CheckForUpdates() ([]display.ImageUpdateInfo, error) {
 	imgs := map[string]string{
 		"Rabbitmq":                e.Images.RabbitmqImage,
@@ -134,6 +139,7 @@ func (e *EnvConfig) CheckForUpdates() ([]display.ImageUpdateInfo, error) {
 	return updates, nil
 }
 
+// EnsurePortsFree verifies default service ports are available and auto-selects free ones when needed.
 func (e *EnvConfig) EnsurePortsFree() error {
 	if !e.UsingDefaultPorts() {
 		return nil // User specified custom ports, use them as-is
@@ -178,6 +184,7 @@ func (e *EnvConfig) EnsurePortsFree() error {
 	return nil
 }
 
+// Validate checks whether the configuration contains all required values.
 func (e *EnvConfig) Validate() error {
 	// Basic required fields
 	if e.Name == "" {

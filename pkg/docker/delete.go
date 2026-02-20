@@ -10,10 +10,12 @@ import (
 	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/db"
 )
 
+// DeleteOpts defines inputs for Delete.
 type DeleteOpts struct {
 	Name []string // names of environments
 }
 
+// Delete stops and removes one or more Docker environments and their tracked metadata.
 func Delete(opts DeleteOpts) error {
 	if err := opts.Validate(); err != nil {
 		return fmt.Errorf("invalid delete parameters: %w", err)
@@ -70,6 +72,7 @@ func Delete(opts DeleteOpts) error {
 	return nil
 }
 
+// Validate checks DeleteOpts and ensures every requested environment exists.
 func (d *DeleteOpts) Validate() error {
 	display.Debug("names: %+v", d.Name)
 

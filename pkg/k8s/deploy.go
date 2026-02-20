@@ -12,6 +12,7 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 )
 
+// DeployOpts defines inputs for Deploy.
 type DeployOpts struct {
 	// Optional. Kubernetes context to use; defaults to the current kubectl context when unset.
 	Context string
@@ -19,6 +20,7 @@ type DeployOpts struct {
 	Config *config.Config
 }
 
+// Deploy installs the EPOS Helm chart and returns the deployed environment metadata.
 func Deploy(opts DeployOpts) (*Env, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid deploy parameters: %w", err)
@@ -94,6 +96,7 @@ func Deploy(opts DeployOpts) (*Env, error) {
 	return env, nil
 }
 
+// Validate checks DeployOpts and resolves required deployment preconditions.
 func (d *DeployOpts) Validate() error {
 	display.Debug("context: %s", d.Context)
 	display.Debug("config: %+v", d.Config)

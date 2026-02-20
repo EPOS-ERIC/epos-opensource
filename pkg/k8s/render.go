@@ -12,6 +12,7 @@ import (
 	"github.com/EPOS-ERIC/epos-opensource/validate"
 )
 
+// RenderOpts defines inputs for Render.
 type RenderOpts struct {
 	// Optional. Name to give to the environment. If not set it will use the name set in the passed config. If set and also set in the config, this has precedence
 	Name string
@@ -21,6 +22,7 @@ type RenderOpts struct {
 	OutputPath string
 }
 
+// Render materializes rendered K8s manifests from configuration and returns created file paths.
 func Render(opts RenderOpts) ([]string, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid render parameters: %w", err)
@@ -90,6 +92,7 @@ func Render(opts RenderOpts) ([]string, error) {
 	return outputPaths, nil
 }
 
+// Validate checks RenderOpts and applies defaults needed before rendering.
 func (r *RenderOpts) Validate() error {
 	display.Debug("name: %s", r.Name)
 	display.Debug("outputPath: %s", r.OutputPath)
