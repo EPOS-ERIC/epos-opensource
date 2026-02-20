@@ -24,7 +24,9 @@ func Deploy(opts DeployOpts) (*Env, error) {
 		return nil, fmt.Errorf("invalid deploy parameters: %w", err)
 	}
 
-	// TODO: add info/logs
+	display.Step("Deploying environment: %s", opts.Config.Name)
+
+	display.Debug("building urls")
 
 	urls, err := opts.Config.BuildEnvURLs()
 	if err != nil {
@@ -32,17 +34,23 @@ func Deploy(opts DeployOpts) (*Env, error) {
 		return nil, err
 	}
 
-	display.Debug("urls: %+v", urls)
+	display.Debug("built urls: %+v", urls)
+	display.Debug("building chart")
 
 	chart, err := config.GetChart()
 	if err != nil {
 		return nil, fmt.Errorf("TODO: %w", err)
 	}
 
+	display.Debug("built chart: %+v", chart)
+	display.Debug("building values")
+
 	values, err := opts.Config.AsValues()
 	if err != nil {
 		return nil, fmt.Errorf("TODO: %w", err)
 	}
+
+	display.Debug("built values: %+v", values)
 
 	settings := cli.New()
 	settings.KubeContext = opts.Context
@@ -67,19 +75,21 @@ func Deploy(opts DeployOpts) (*Env, error) {
 	client.Atomic = true
 	client.Timeout = 300 * time.Second
 
+	display.Debug("running helm install")
+
 	rel, err := client.Run(chart, values.AsMap())
 	if err != nil {
 		return nil, fmt.Errorf("failed to install helm chart: %w", err)
 	}
 
-	display.Debug("Installed release: %s (status: %s)", rel.Name, rel.Info.Status)
-
-	// TODO: populate the ontologies
+	display.Debug("installed release: %s (status: %s)", rel.Name, rel.Info.Status)
 
 	env, err := ReleaseToEnv(rel, opts.Context)
 	if err != nil {
 		return nil, fmt.Errorf("TODO: %w", err)
 	}
+
+	display.Done("Deployed environment: %s", opts.Config.Name)
 
 	return env, nil
 }

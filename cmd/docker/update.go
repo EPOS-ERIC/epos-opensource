@@ -59,5 +59,5 @@ func init() {
 	UpdateCmd.Flags().BoolVarP(&force, "force", "f", false, "Remove the current containers before redeploying")
 	UpdateCmd.Flags().BoolVarP(&pullImages, "update-images", "u", false, "Download Docker images before starting")
 	UpdateCmd.Flags().BoolVar(&reset, "reset", false, "Reset the environment config to the embedded defaults")
-	UpdateCmd.Flags().StringVarP(&configFilePath, "config", "c", "", "Path to YAML configuration file")
+	UpdateCmd.Flags().StringVar(&configFilePath, "config", "", "Path to YAML configuration file")
 }

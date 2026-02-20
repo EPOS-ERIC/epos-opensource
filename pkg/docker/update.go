@@ -47,10 +47,15 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 		return nil, fmt.Errorf("invalid parameters for update command: %w", err)
 	}
 
+	display.Debug("loading docker environment from db: %s", opts.OldEnvName)
+
 	docker, err := db.GetDockerByName(opts.OldEnvName)
 	if err != nil {
 		return nil, fmt.Errorf("error getting docker environment from db called '%s': %w", opts.OldEnvName, err)
 	}
+
+	display.Debug("loaded docker environment directory: %s", docker.Directory)
+	display.Debug("loading current config from: %s", filepath.Join(docker.Directory, "config.yaml"))
 
 	oldConfig, err := config.LoadConfig(filepath.Join(docker.Directory, "config.yaml"))
 	if err != nil {
@@ -58,15 +63,21 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 	}
 
 	if opts.Reset {
+		display.Info("Reset flag enabled: using default config")
+
 		opts.NewConfig = config.GetDefaultConfig()
 	}
 
 	if opts.NewConfig == nil {
+		display.Debug("new config not provided, using existing environment config")
+
 		opts.NewConfig = oldConfig
 	}
 
 	if opts.NewConfig.Name == "" {
 		opts.NewConfig.Name = oldConfig.Name
+
+		display.Debug("new config name not set, using old name: %s", opts.NewConfig.Name)
 	}
 
 	display.Step("Updating environment: %s", opts.OldEnvName)
@@ -84,12 +95,17 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 		return nil, fmt.Errorf("failed to create backup copy: %w", err)
 	}
 
+	display.Debug("created backup directory: %s", bkpedir)
+
 	handleFailure := func(msg string, mainErr error) (*sqlc.Docker, error) {
 		display.Error("Failed to update environment: %v", mainErr)
 		display.Step("Restoring environment from backup")
+		display.Warn("update failed, rolling back from backup")
+
 		if err := common.RemoveEnvDir(docker.Directory); err != nil {
 			display.Error("Failed to remove corrupted directory: %v", err)
 		}
+
 		if err := common.RestoreTmpDir(bkpedir, docker.Directory); err != nil {
 			display.Error("Failed to restore from backup: %v", err)
 		} else {
@@ -97,9 +113,11 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 				display.Error("Failed to deploy restored environment: %v", err)
 			}
 		}
+
 		if cleanupErr := common.RemoveTmpDir(bkpedir); cleanupErr != nil {
 			display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
 		}
+
 		return nil, fmt.Errorf(msg, mainErr)
 	}
 
@@ -107,10 +125,13 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 
 	// If force is set do a docker compose down on the original env
 	if opts.Force {
+		display.Info("Force flag enabled: stopping old environment with volumes")
 		display.Step("Stopping old environment")
+
 		if err := downStack(docker.Directory, true); err != nil {
 			return handleFailure("docker compose down failed: %w", err)
 		}
+
 		display.Done("Stopped environment: %s", oldConfig.Name)
 	}
 
@@ -121,6 +142,7 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 		return handleFailure("failed to remove directory: %w", fmt.Errorf("%s: %w", docker.Directory, err))
 	}
 
+	display.Debug("removed old environment directory: %s", docker.Directory)
 	display.Step("Creating new environment directory")
 
 	// create the directory in the parent
@@ -129,10 +151,13 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 		return handleFailure("failed to prepare environment directory: %w", err)
 	}
 
+	display.Debug("created updated environment directory: %s", dir)
 	display.Done("Updated environment created in directory: %s", dir)
 
 	// If pullImages is set before deploying pull the images for the updated env
 	if opts.PullImages {
+		display.Debug("pulling images before stack deployment")
+
 		if err := pullEnvImages(dir, opts.NewConfig.Name); err != nil {
 			display.Error("Pulling images failed: %v", err)
 			return handleFailure("pulling images failed: %w", err)
@@ -140,10 +165,14 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 	}
 
 	// Deploy the updated compose
+	display.Debug("deploying updated stack")
+
 	if err = deployStack(true, dir); err != nil {
 		display.Error("Deploy failed: %v", err)
 		return handleFailure("deploy failed: %w", err)
 	}
+
+	display.Debug("building environment URLs")
 
 	urls, err := opts.NewConfig.BuildEnvURLs()
 	if err != nil {
@@ -151,12 +180,17 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 		return handleFailure("error building urls: %w", err)
 	}
 
+	display.Debug("built urls: %+v", urls)
+
 	// only repopulate the ontologies if the database has been cleaned
 	if opts.Force {
+		display.Debug("force update: repopulating base ontologies and clearing ingested tracking")
+
 		if err := common.PopulateOntologies(urls.APIURL); err != nil {
 			display.Error("error initializing the ontologies in the environment: %v", err)
 			return handleFailure("error initializing the ontologies in the environment: %w", err)
 		}
+
 		if err := db.DeleteIngestedFilesByEnvironment("docker", opts.NewConfig.Name); err != nil {
 			return handleFailure("failed to clear ingested files tracking: %w", err)
 		}
@@ -165,7 +199,11 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 	// If everything goes right, delete the tmp dir and finish
 	if cleanupErr := common.RemoveTmpDir(bkpedir); cleanupErr != nil {
 		display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
+	} else {
+		display.Debug("cleaned backup directory: %s", bkpedir)
 	}
+
+	display.Debug("deleting old docker record: %s", opts.OldEnvName)
 
 	err = db.DeleteDocker(opts.OldEnvName)
 	if err != nil {
@@ -191,10 +229,18 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 		return handleFailure("failed to insert docker in db: %w", fmt.Errorf("%s (dir: %s): %w", opts.NewConfig.Name, dir, err))
 	}
 
+	display.Done("Updated environment: %s", opts.NewConfig.Name)
+
 	return newDocker, nil
 }
 
 func (u *UpdateOpts) Validate() error {
+	display.Debug("oldEnvName: %s", u.OldEnvName)
+	display.Debug("pullImages: %v", u.PullImages)
+	display.Debug("force: %v", u.Force)
+	display.Debug("reset: %v", u.Reset)
+	display.Debug("newConfig: %+v", u.NewConfig)
+
 	if u.OldEnvName == "" {
 		return fmt.Errorf("name is required")
 	}

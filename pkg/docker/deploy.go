@@ -27,6 +27,8 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 		return nil, fmt.Errorf("invalid deploy parameters: %w", err)
 	}
 
+	display.Debug("ensuring ports are free")
+
 	if err := opts.Config.EnsurePortsFree(); err != nil {
 		return nil, fmt.Errorf("failed to ensure ports are free: %w", err)
 	}
@@ -38,6 +40,7 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 		return nil, fmt.Errorf("failed to prepare environment directory: %w", err)
 	}
 
+	display.Debug("created environment directory: %s", dir)
 	display.Done("Environment created in directory: %s", dir)
 
 	if !opts.PullImages {
@@ -63,6 +66,8 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 	}
 
 	if opts.PullImages {
+		display.Debug("pulling images before stack deployment")
+
 		if err := pullEnvImages(dir, opts.Config.Name); err != nil {
 			display.Error("Pulling images failed: %v", err)
 			return handleFailure("pulling images failed: %w", err)
@@ -77,6 +82,8 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 		return handleFailure("deploy failed: %w", err)
 	}
 
+	display.Debug("stack deployed in directory: %s", dir)
+
 	urls, err := opts.Config.BuildEnvURLs()
 	if err != nil {
 		display.Error("error building urls: %v", err)
@@ -90,10 +97,13 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 		return handleFailure("error initializing the ontologies: %w", err)
 	}
 
+	display.Debug("initialized base ontologies using: %s", urls.APIURL)
+
 	var backofficePort int64
 	if opts.Config.Components.Backoffice.Enabled {
 		backofficePort = int64(opts.Config.Components.Backoffice.GUI.Port)
 	}
+
 	docker, err := db.UpsertDocker(sqlc.Docker{
 		Name:           opts.Config.Name,
 		Directory:      dir,
@@ -108,10 +118,16 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 		return handleFailure("failed to insert docker in db: %w", fmt.Errorf("%s (dir: %s): %w", opts.Config.Name, dir, err))
 	}
 
+	display.Done("Created environment: %s", opts.Config.Name)
+
 	return docker, err
 }
 
 func (d *DeployOpts) Validate() error {
+	display.Debug("path: %s", d.Path)
+	display.Debug("pullImages: %v", d.PullImages)
+	display.Debug("config: %+v", d.Config)
+
 	if d.Config == nil {
 		return fmt.Errorf("config is required")
 	}

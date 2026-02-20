@@ -30,6 +30,7 @@ func Delete(opts DeleteOpts) error {
 	for _, envName := range opts.Name {
 		eg.Go(func() error {
 			display.Step("Deleting environment: %s", envName)
+			display.Debug("building helm settings for env: %s", envName)
 
 			settings := cli.New()
 			settings.KubeContext = opts.Context
@@ -46,6 +47,7 @@ func Delete(opts DeleteOpts) error {
 			}
 
 			display.Step("Uninstalling Helm release: %s", envName)
+			display.Debug("running helm uninstall for env: %s", envName)
 
 			uninstall := action.NewUninstall(actionConfig)
 			uninstall.Wait = true
@@ -59,6 +61,7 @@ func Delete(opts DeleteOpts) error {
 			display.Done("Uninstalled Helm release: %s", envName)
 
 			display.Step("Deleting namespace: %s", envName)
+			display.Debug("running kubectl delete namespace for env: %s", envName)
 
 			// helm does not delete the namespace, only its resources so we have to do it ourselves
 			if err := deleteNamespace(envName, opts.Context); err != nil {
@@ -78,6 +81,9 @@ func Delete(opts DeleteOpts) error {
 }
 
 func (d *DeleteOpts) Validate() error {
+	display.Debug("names: %+v", d.Name)
+	display.Debug("context: %s", d.Context)
+
 	if d.Context == "" {
 		context, err := common.GetCurrentKubeContext()
 		if err != nil {
@@ -85,6 +91,8 @@ func (d *DeleteOpts) Validate() error {
 		}
 
 		d.Context = context
+
+		display.Debug("using current kubectl context: %s", d.Context)
 	} else if err := EnsureContextExists(d.Context); err != nil {
 		return fmt.Errorf("K8s context %q is not an available context: %w", d.Context, err)
 	}

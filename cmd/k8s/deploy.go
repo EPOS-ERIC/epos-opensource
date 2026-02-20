@@ -17,7 +17,7 @@ var DeployCmd = &cobra.Command{
 	Short: "Create and deploy a new K8s environment in a dedicated namespace.",
 	Long: `Sets up a new K8s environment in a fresh namespace, applying all required manifests and configuration. Fails if the namespace already exists.
 NOTE: to execute the deploy it will try to use port-forwarding to the cluster. If that fails it will retry using the external api.`,
-	Args: cobra.MinimumNArgs(1),
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
@@ -33,12 +33,7 @@ NOTE: to execute the deploy it will try to use port-forwarding to the cluster. I
 			}
 		}
 
-		if len(args) > 0 && args[0] != "" {
-			cfg.Name = args[0]
-			if configFilePath != "" {
-				display.Warn("Using environment name from command line: %s", cfg.Name)
-			}
-		}
+		cfg.Name = name
 
 		env, err := k8s.Deploy(k8s.DeployOpts{
 			Context: context,
@@ -61,5 +56,5 @@ NOTE: to execute the deploy it will try to use port-forwarding to the cluster. I
 
 func init() {
 	DeployCmd.Flags().StringVar(&context, "context", "", "kubectl context used for the environment deployment. Uses current if not set")
-	DeployCmd.Flags().StringVarP(&configFilePath, "config", "c", "", "Path to YAML configuration file")
+	DeployCmd.Flags().StringVar(&configFilePath, "config", "", "Path to YAML configuration file")
 }

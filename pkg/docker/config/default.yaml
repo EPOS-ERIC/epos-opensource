@@ -1,6 +1,3 @@
-# Environment name. Can be any identifier (e.g., production, staging, test-deploy)
-name: ""
-
 # Shared hostname/IP where all services are accessible (e.g., epos.example.com)
 domain: "localhost"
 

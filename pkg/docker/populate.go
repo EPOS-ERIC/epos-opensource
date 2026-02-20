@@ -34,41 +34,62 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 		return nil, fmt.Errorf("error getting docker environment from db called '%s': %w", opts.Name, err)
 	}
 
+	display.Debug("loaded docker environment: %s (api: %s)", docker.Name, docker.ApiUrl)
+
 	var allSuccessfulFiles []string
 
 	if opts.PopulateExamples {
+		display.Debug("populating bundled examples")
+
 		successfulExamples, err := common.PopulateExample(docker.ApiUrl, opts.Parallel)
 		allSuccessfulFiles = append(allSuccessfulFiles, successfulExamples...)
 		if err != nil {
 			return nil, fmt.Errorf("error populating environment with examples: %w", err)
 		}
+
+		display.Debug("populated example files: %d", len(successfulExamples))
 	}
 
 	for _, p := range opts.TTLDirs {
+		display.Debug("processing metadata path: %s", p)
+
 		absPath, err := filepath.Abs(p)
 		if err != nil {
 			return nil, fmt.Errorf("error finding absolute path for given metadata path '%s': %w", p, err)
 		}
+
+		display.Debug("populating metadata from absolute path: %s", absPath)
 
 		successfulFiles, err := common.PopulateEnv(absPath, docker.ApiUrl, opts.Parallel)
 		allSuccessfulFiles = append(allSuccessfulFiles, successfulFiles...)
 		if err != nil {
 			return nil, fmt.Errorf("error populating environment: %w", err)
 		}
+
+		display.Debug("populated metadata files from path %s: %d", absPath, len(successfulFiles))
 	}
 
 	// Insert ingested files into database
 	for _, filePath := range allSuccessfulFiles {
+		display.Debug("recording ingested file: %s", filePath)
+
 		if err := db.InsertIngestedFile("docker", opts.Name, filePath); err != nil {
 			return nil, fmt.Errorf("error inserting ingested file record: %w", err)
 		}
 	}
 
+	display.Debug("recorded ingested files: %d", len(allSuccessfulFiles))
 	display.Done("Finished populating environment with ttl files from %d path(s)", len(opts.TTLDirs))
+
 	return docker, nil
 }
 
 func (p *PopulateOpts) Validate() error {
+	display.Debug("name: %s", p.Name)
+	display.Debug("ttlDirs: %+v", p.TTLDirs)
+	display.Debug("parallel: %d", p.Parallel)
+	display.Debug("populateExamples: %v", p.PopulateExamples)
+
 	if p.Parallel < 1 || p.Parallel > 20 {
 		return fmt.Errorf("parallel uploads must be between 1 and 20")
 	}

@@ -20,19 +20,23 @@ func Export(opts ExportOpts) error {
 
 	cfg := config.GetDefaultConfigBytes()
 
+	display.Debug("loaded default k8s config bytes")
+
 	path, err := common.Export(opts.Path, "k8s-config.yaml", cfg)
 	if err != nil {
 		return fmt.Errorf("failed to export config: %w", err)
 	}
 
+	display.Debug("exported k8s config path: %s", path)
 	display.Done("Exported config: %s", path)
-
 	display.Info("You can now use the config to deploy the environment with 'epos-opensource k8s deploy --config %s'", path)
 
 	return nil
 }
 
 func (d *ExportOpts) Validate() error {
+	display.Debug("path: %s", d.Path)
+
 	if d.Path == "" {
 		return fmt.Errorf("path is required")
 	}

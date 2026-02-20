@@ -17,15 +17,16 @@ type CleanOpts struct {
 	Context string
 }
 
-// TODO: clean up this function, remove weird stuff and reuse old functions instead if possible
-
 func Clean(opts CleanOpts) (*Env, error) {
 	if opts.Context == "" {
 		context, err := common.GetCurrentKubeContext()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get current kubectl context: %w", err)
 		}
+
 		opts.Context = context
+
+		display.Debug("using current kubectl context: %s", opts.Context)
 	}
 
 	if err := opts.Validate(); err != nil {
@@ -39,14 +40,21 @@ func Clean(opts CleanOpts) (*Env, error) {
 		return nil, fmt.Errorf("failed to get environment %s: %w", opts.Name, err)
 	}
 
+	display.Debug("loaded environment: %s", env.Name)
+
 	cfg := env.Config
 	cfg.Jobs.Enabled = true
 	cfg.Jobs.InitDB.Enabled = true
+
+	display.Debug("enabled init-db and job execution for clean")
+	display.Debug("rendering chart templates for clean jobs")
 
 	renderedFiles, err := cfg.Render()
 	if err != nil {
 		return nil, fmt.Errorf("failed to render chart templates: %w", err)
 	}
+
+	display.Debug("rendered templates: %d", len(renderedFiles))
 
 	jobs := []struct {
 		name       string
@@ -58,10 +66,14 @@ func Clean(opts CleanOpts) (*Env, error) {
 	}
 
 	for _, job := range jobs {
+		display.Debug("preparing clean job manifest: %s", job.template)
+
 		manifest, err := getRenderedTemplateBySuffix(renderedFiles, job.template)
 		if err != nil {
 			return nil, fmt.Errorf("failed to prepare %s job manifest: %w", job.errorLabel, err)
 		}
+
+		display.Debug("running clean job: %s", job.name)
 
 		if err := runOneOffJobFromManifest(opts.Context, opts.Name, job.name, manifest, 5*time.Minute); err != nil {
 			return nil, fmt.Errorf("failed to run %s clean job: %w", job.errorLabel, err)
@@ -138,6 +150,9 @@ func runOneOffJobFromManifest(context, namespace, jobName, manifest string, time
 }
 
 func (c *CleanOpts) Validate() error {
+	display.Debug("name: %s", c.Name)
+	display.Debug("context: %s", c.Context)
+
 	if c.Name == "" {
 		return fmt.Errorf("environment name is required")
 	}
@@ -153,6 +168,8 @@ func (c *CleanOpts) Validate() error {
 		}
 
 		c.Context = context
+
+		display.Debug("using current kubectl context: %s", c.Context)
 	} else if err := EnsureContextExists(c.Context); err != nil {
 		return fmt.Errorf("K8s context %q is not an available context: %w", c.Context, err)
 	}

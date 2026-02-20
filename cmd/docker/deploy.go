@@ -15,12 +15,9 @@ var DeployCmd = &cobra.Command{
 	Use:   "deploy [env-name]",
 	Short: "Create a new environment using Docker Compose.",
 	Long:  "Deploy a new Docker Compose environment with the specified name.",
-	Args:  cobra.MaximumNArgs(1),
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		display.Debug("args: %v", args)
-		display.Debug("configFilePath: %s", configFilePath)
-		display.Debug("path: %s", path)
-		display.Debug("pullImages: %v", pullImages)
+		name := args[0]
 
 		var cfg *config.EnvConfig
 		var err error
@@ -34,12 +31,7 @@ var DeployCmd = &cobra.Command{
 			}
 		}
 
-		if len(args) > 0 && args[0] != "" {
-			cfg.Name = args[0]
-			if configFilePath != "" {
-				display.Warn("Using environment name from command line: %s", cfg.Name)
-			}
-		}
+		cfg.Name = name
 
 		env, err := docker.Deploy(docker.DeployOpts{
 			Path:       path,
@@ -58,5 +50,5 @@ var DeployCmd = &cobra.Command{
 func init() {
 	DeployCmd.Flags().StringVarP(&path, "path", "p", "", "Location for the environment files")
 	DeployCmd.Flags().BoolVarP(&pullImages, "update-images", "u", false, "Download Docker images before starting")
-	DeployCmd.Flags().StringVarP(&configFilePath, "config", "c", "", "Path to YAML configuration file")
+	DeployCmd.Flags().StringVar(&configFilePath, "config", "", "Path to YAML configuration file")
 }

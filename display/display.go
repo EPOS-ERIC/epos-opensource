@@ -100,7 +100,9 @@ func Done(format string, a ...any) {
 }
 
 func Debug(format string, a ...any) {
-	printStdout(true, purpleSeq, "DEBUG", format, a...)
+	if EnableDebug {
+		printStdout(true, purpleSeq, "DEBUG", format, a...)
+	}
 }
 
 func Copyright() string {

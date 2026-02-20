@@ -35,29 +35,39 @@ func Populate(opts PopulateOpts) (*Env, error) {
 		return nil, fmt.Errorf("error getting environment: %w", err)
 	}
 
+	display.Debug("loaded environment: %s", env.Name)
+
 	port, err := common.FindFreePort()
 	if err != nil {
 		return nil, fmt.Errorf("error getting free port: %w", err)
 	}
+
+	display.Debug("selected local port for port-forward: %d", port)
 
 	URLs, err := env.BuildEnvURLs()
 	if err != nil {
 		return nil, fmt.Errorf("error building environment URLs: %w", err)
 	}
 
+	display.Debug("environment urls: %+v", URLs)
+
 	// start a port forward locally to the ingestor service and use that to do the populate posts
 	err = ForwardAndRun(opts.Name, "ingestor-service", port, 8080, opts.Context, func(host string, port int) error {
 		display.Step("Starting port-forward to ingestor-service pod")
+		display.Debug("port-forward ready on %s:%d", host, port)
 
 		url := fmt.Sprintf("http://%s:%d/api/ingestor-service/v1/", host, port)
 
 		var allSuccessfulFiles []string
 
 		if opts.PopulateExamples {
+			display.Debug("populating bundled examples through port-forward")
+
 			successfulExamples, err := common.PopulateExample(url, opts.Parallel)
 			allSuccessfulFiles = append(allSuccessfulFiles, successfulExamples...)
 			if err != nil {
 				display.Warn("error populating environment with examples through port-forward: %v. Trying with direct URL: %s", err, URLs.APIURL)
+				display.Debug("retrying example population with direct URL")
 
 				successfulExamples, err = common.PopulateExample(URLs.APIURL, opts.Parallel)
 				allSuccessfulFiles = append(allSuccessfulFiles, successfulExamples...)
@@ -65,32 +75,47 @@ func Populate(opts PopulateOpts) (*Env, error) {
 					return fmt.Errorf("error populating environment with examples with direct URL: %w", err)
 				}
 			}
+
+			display.Debug("populated example files: %d", len(successfulExamples))
 		}
 
 		for _, p := range opts.TTLDirs {
+			display.Debug("processing metadata path: %s", p)
+
 			absPath, err := filepath.Abs(p)
 			if err != nil {
 				return fmt.Errorf("error finding absolute path for given metadata path '%s': %w", p, err)
 			}
 
+			display.Debug("populating metadata from absolute path: %s", absPath)
+
 			successfulFiles, err := common.PopulateEnv(absPath, url, opts.Parallel)
 			allSuccessfulFiles = append(allSuccessfulFiles, successfulFiles...)
 			if err != nil {
 				display.Warn("error populating environment through port-forward: %v. Trying with direct URL: %s", err, URLs.APIURL)
+				display.Debug("retrying metadata population with direct URL")
+
 				successfulFiles, err = common.PopulateEnv(absPath, URLs.APIURL, opts.Parallel)
 				allSuccessfulFiles = append(allSuccessfulFiles, successfulFiles...)
 				if err != nil {
 					return fmt.Errorf("error populating environment with direct URL: %w", err)
 				}
 			}
+
+			display.Debug("populated metadata files from path %s: %d", absPath, len(successfulFiles))
 		}
 
 		// Insert ingested files into database
 		for _, filePath := range allSuccessfulFiles {
+			display.Debug("recording ingested file: %s", filePath)
+
 			if err := db.InsertIngestedFile("k8s", opts.Name, filePath); err != nil {
 				return fmt.Errorf("error inserting ingested file record: %w", err)
 			}
 		}
+
+		display.Debug("recorded ingested files: %d", len(allSuccessfulFiles))
+
 		return nil
 	})
 	if err != nil {
@@ -103,6 +128,12 @@ func Populate(opts PopulateOpts) (*Env, error) {
 }
 
 func (p *PopulateOpts) Validate() error {
+	display.Debug("name: %s", p.Name)
+	display.Debug("context: %s", p.Context)
+	display.Debug("ttlDirs: %+v", p.TTLDirs)
+	display.Debug("parallel: %d", p.Parallel)
+	display.Debug("populateExamples: %v", p.PopulateExamples)
+
 	if p.Parallel < 1 || p.Parallel > 20 {
 		return fmt.Errorf("parallel uploads must be between 1 and 20")
 	}

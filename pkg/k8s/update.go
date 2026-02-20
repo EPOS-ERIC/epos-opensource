@@ -29,19 +29,31 @@ type UpdateOpts struct {
 
 // Update TODO: add docs
 func Update(opts UpdateOpts) (*Env, error) {
+	display.Debug("oldEnvName: %s", opts.OldEnvName)
+	display.Debug("context: %s", opts.Context)
+	display.Debug("force: %v", opts.Force)
+	display.Debug("reset: %v", opts.Reset)
+	display.Debug("newConfig: %+v", opts.NewConfig)
+
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid parameters for update command: %w", err)
 	}
 
 	if opts.NewConfig == nil && opts.Reset {
+		display.Info("Reset flag enabled: using default config")
+
 		opts.NewConfig = config.GetDefaultConfig()
 	}
 
 	if opts.NewConfig != nil && opts.NewConfig.Name == "" {
 		opts.NewConfig.Name = opts.OldEnvName
+
+		display.Debug("new config name not set, using old name: %s", opts.NewConfig.Name)
 	}
 
 	if opts.NewConfig == nil && !opts.Reset {
+		display.Debug("new config not provided, using current environment config")
+
 		oldEnv, err := GetEnv(opts.OldEnvName, opts.Context)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get environment: %w", err)
@@ -56,6 +68,8 @@ func Update(opts UpdateOpts) (*Env, error) {
 
 	// if force do uninstall + install again
 	if opts.Force {
+		display.Info("Force flag enabled: reinstalling environment")
+
 		if err := Delete(DeleteOpts{
 			Name:    []string{opts.OldEnvName},
 			Context: opts.Context,
@@ -70,18 +84,27 @@ func Update(opts UpdateOpts) (*Env, error) {
 			return nil, fmt.Errorf("failed to deploy new environment: %w", err)
 		}
 
+		display.Done("Updated environment: %s", opts.OldEnvName)
+
 		return env, nil
 	}
+
+	display.Debug("building chart")
 
 	chart, err := config.GetChart()
 	if err != nil {
 		return nil, fmt.Errorf("TODO: %w", err)
 	}
 
+	display.Debug("built chart: %+v", chart)
+	display.Debug("building values")
+
 	values, err := opts.NewConfig.AsValues()
 	if err != nil {
 		return nil, fmt.Errorf("TODO: %w", err)
 	}
+
+	display.Debug("built values: %+v", values)
 
 	settings := cli.New()
 	settings.KubeContext = opts.Context
@@ -104,22 +127,32 @@ func Update(opts UpdateOpts) (*Env, error) {
 	client.Atomic = true
 	client.Timeout = 300 * time.Second
 
+	display.Debug("running helm upgrade")
+
 	rel, err := client.Run(opts.NewConfig.Name, chart, values.AsMap())
 	if err != nil {
 		return nil, fmt.Errorf("failed to install helm chart: %w", err)
 	}
 
-	// TODO: populate ontologies
+	display.Debug("upgraded release: %s (status: %s)", rel.Name, rel.Info.Status)
 
 	newEnv, err := ReleaseToEnv(rel, opts.Context)
 	if err != nil {
 		return nil, fmt.Errorf("TODO: %w", err)
 	}
 
+	display.Done("Updated environment: %s", opts.OldEnvName)
+
 	return newEnv, nil
 }
 
 func (u *UpdateOpts) Validate() error {
+	display.Debug("oldEnvName: %s", u.OldEnvName)
+	display.Debug("context: %s", u.Context)
+	display.Debug("force: %v", u.Force)
+	display.Debug("reset: %v", u.Reset)
+	display.Debug("newConfig: %+v", u.NewConfig)
+
 	if u.OldEnvName == "" {
 		return fmt.Errorf("old environment name is required")
 	}
@@ -135,6 +168,8 @@ func (u *UpdateOpts) Validate() error {
 		}
 
 		u.Context = context
+
+		display.Debug("using current kubectl context: %s", u.Context)
 	} else if err := EnsureContextExists(u.Context); err != nil {
 		return fmt.Errorf("K8s context %q is not an available context: %w", u.Context, err)
 	}

@@ -20,7 +20,7 @@ var UpdateCmd = &cobra.Command{
 	Use:               "update [env-name]",
 	Short:             "Update and redeploy an existing K8s environment.",
 	Long:              "Recreates the specified environment with updated configuration or manifests. Optionally deletes and recreates the namespace if --force is used. Ensures rollback if the update fails.",
-	Args:              cobra.MinimumNArgs(1),
+	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: validArgsFunction,
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]

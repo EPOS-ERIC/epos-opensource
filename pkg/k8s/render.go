@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
+	"github.com/EPOS-ERIC/epos-opensource/display"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s/config"
 	"github.com/EPOS-ERIC/epos-opensource/validate"
 )
@@ -25,17 +26,23 @@ func Render(opts RenderOpts) ([]string, error) {
 		return nil, fmt.Errorf("invalid render parameters: %w", err)
 	}
 
+	display.Debug("rendering k8s templates")
 	files, err := opts.Config.Render()
 	if err != nil {
 		return nil, fmt.Errorf("failed to render templates: %w", err)
 	}
+	display.Debug("rendered k8s templates: %d", len(files))
 
 	if opts.OutputPath == "" {
+		display.Debug("output path not set, using current working directory")
+
 		opts.OutputPath, err = os.Getwd()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get current working directory: %w", err)
 		}
 	} else {
+		display.Debug("resolving output path")
+
 		opts.OutputPath, err = filepath.Abs(opts.OutputPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get absolute path for output path: %w", err)
@@ -50,6 +57,8 @@ func Render(opts RenderOpts) ([]string, error) {
 		if err := os.MkdirAll(opts.OutputPath, 0o750); err != nil {
 			return nil, fmt.Errorf("failed to create environment directory %s: %w", opts.OutputPath, err)
 		}
+
+		display.Debug("created output directory: %s", opts.OutputPath)
 	}
 
 	outputPaths := []string{}
@@ -61,6 +70,9 @@ func Render(opts RenderOpts) ([]string, error) {
 		}
 
 		filePath := filepath.Join(opts.OutputPath, name)
+
+		display.Debug("writing file: %s", filePath)
+
 		if err := os.MkdirAll(filepath.Dir(filePath), 0o750); err != nil {
 			return nil, fmt.Errorf("failed to create parent directory for %s file: %w", name, err)
 		}
@@ -73,12 +85,20 @@ func Render(opts RenderOpts) ([]string, error) {
 		outputPaths = append(outputPaths, name)
 	}
 
+	display.Done("Rendered K8s config in: %s", opts.OutputPath)
+
 	return outputPaths, nil
 }
 
 func (r *RenderOpts) Validate() error {
+	display.Debug("name: %s", r.Name)
+	display.Debug("outputPath: %s", r.OutputPath)
+	display.Debug("config: %+v", r.Config)
+
 	if r.Config == nil {
 		r.Config = config.GetDefaultConfig()
+
+		display.Debug("config not provided, using default config")
 	}
 
 	if r.Name == "" {
@@ -94,6 +114,8 @@ func (r *RenderOpts) Validate() error {
 	}
 
 	r.Config.Name = r.Name
+
+	display.Debug("validated render config name: %s", r.Config.Name)
 
 	return nil
 }

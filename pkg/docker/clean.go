@@ -28,6 +28,7 @@ func Clean(opts CleanOpts) (*sqlc.Docker, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get docker info for %s: %w", opts.Name, err)
 	}
+	display.Debug("loaded docker environment directory: %s", docker.Directory)
 
 	// TODO: check if the logic here can be simplified now that we use restart in the depends_on in the docker compose
 
@@ -40,8 +41,9 @@ func Clean(opts CleanOpts) (*sqlc.Docker, error) {
 
 	handleFailure := func(msg string, mainErr error) (*sqlc.Docker, error) {
 		display.Error("Unexpected error: %v", mainErr)
-
+		display.Warn("Clean failed, trying to restore services")
 		display.Step("Attempting recovery")
+
 		if err := deployStack(false, docker.Directory); err != nil {
 			return nil, fmt.Errorf("unable to recover from error: %w", err)
 		}
@@ -52,14 +54,19 @@ func Clean(opts CleanOpts) (*sqlc.Docker, error) {
 	}
 
 	display.Step("Cleaning database volume")
+	display.Debug("stopping metadata container: %s", metadataContainer)
 
 	if _, err := command.RunCommand(exec.Command("docker", "stop", metadataContainer), false); err != nil {
 		return handleFailure("failed to stop metadata container: %w", fmt.Errorf("%s: %w", metadataContainer, err))
 	}
 
+	display.Debug("removing metadata container: %s", metadataContainer)
+
 	if _, err := command.RunCommand(exec.Command("docker", "rm", "-v", metadataContainer), false); err != nil {
 		return handleFailure("failed to remove metadata container: %w", fmt.Errorf("%s: %w", metadataContainer, err))
 	}
+
+	display.Debug("removing database volume: %s", volumeName)
 
 	if _, err := command.RunCommand(exec.Command("docker", "volume", "rm", volumeName), false); err != nil {
 		return handleFailure("failed to remove volume: %w", fmt.Errorf("%s: %w", volumeName, err))
@@ -72,23 +79,33 @@ func Clean(opts CleanOpts) (*sqlc.Docker, error) {
 		return handleFailure("failed to clear ingested files tracking: %w", err)
 	}
 
+	display.Debug("cleared ingested file records for environment: %s", opts.Name)
 	display.Step("Restarting services")
+	display.Debug("stopping container: %s", backOfficeContainer)
 
 	if _, err := command.RunCommand(exec.Command("docker", "stop", backOfficeContainer), false); err != nil {
 		return handleFailure("failed to stop container: %w", fmt.Errorf("%s: %w", backOfficeContainer, err))
 	}
 
+	display.Debug("stopping container: %s", ingestorContainer)
+
 	if _, err := command.RunCommand(exec.Command("docker", "stop", ingestorContainer), false); err != nil {
 		return handleFailure("failed to stop container: %w", fmt.Errorf("%s: %w", ingestorContainer, err))
 	}
+
+	display.Debug("stopping container: %s", externalAccContainer)
 
 	if _, err := command.RunCommand(exec.Command("docker", "stop", externalAccContainer), false); err != nil {
 		return handleFailure("failed to stop container: %w", fmt.Errorf("%s: %w", externalAccContainer, err))
 	}
 
+	display.Debug("stopping container: %s", resourcesContainer)
+
 	if _, err := command.RunCommand(exec.Command("docker", "stop", resourcesContainer), false); err != nil {
 		return handleFailure("failed to stop container: %w", fmt.Errorf("%s: %w", resourcesContainer, err))
 	}
+
+	display.Debug("redeploying stack in directory: %s", docker.Directory)
 
 	if err := deployStack(false, docker.Directory); err != nil {
 		return handleFailure("failed to restart the environment: %w", err)
@@ -100,12 +117,15 @@ func Clean(opts CleanOpts) (*sqlc.Docker, error) {
 		return handleFailure("failed to populate base ontologies in environment: %w", err)
 	}
 
+	display.Debug("repopulated base ontologies from: %s", docker.ApiUrl)
 	display.Done("Cleaned environment: %s", opts.Name)
 
 	return docker, nil
 }
 
 func (c *CleanOpts) Validate() error {
+	display.Debug("name: %s", c.Name)
+
 	if err := EnsureEnvironmentExists(c.Name); err != nil {
 		return fmt.Errorf("no environment with the name '%s' exists: %w", c.Name, err)
 	}
