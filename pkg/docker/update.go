@@ -125,7 +125,7 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 	display.Step("Creating new environment directory")
 
 	// create the directory in the parent
-	dir, err := NewEnvDir(docker.Directory, opts.NewConfig)
+	dir, err := NewEnvDir(filepath.Dir(docker.Directory), opts.NewConfig)
 	if err != nil {
 		return handleFailure("failed to prepare environment directory: %w", err)
 	}
