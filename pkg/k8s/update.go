@@ -163,6 +163,21 @@ func (u *UpdateOpts) Validate() error {
 		return fmt.Errorf("'%s' is an invalid name for an environment: %w", u.OldEnvName, err)
 	}
 
+	if u.NewConfig != nil {
+		if u.Reset {
+			return fmt.Errorf("reset and new config are mutually exclusive")
+		}
+
+		if u.NewConfig.Name != "" && u.NewConfig.Name != u.OldEnvName {
+			return fmt.Errorf("config name %q must match environment name %q", u.NewConfig.Name, u.OldEnvName)
+		}
+
+		if err := u.NewConfig.Validate(); err != nil {
+			return fmt.Errorf("invalid config: %w", err)
+		}
+
+	}
+
 	if u.Context == "" {
 		context, err := common.GetCurrentKubeContext()
 		if err != nil {
@@ -178,21 +193,6 @@ func (u *UpdateOpts) Validate() error {
 
 	if err := EnsureEnvironmentExists(u.OldEnvName, u.Context); err != nil {
 		return fmt.Errorf("no environment with the name '%s' exists: %w", u.OldEnvName, err)
-	}
-
-	if u.NewConfig != nil {
-		if u.Reset {
-			return fmt.Errorf("reset and new config are mutually exclusive")
-		}
-
-		if err := u.NewConfig.Validate(); err != nil {
-			return fmt.Errorf("invalid config: %w", err)
-		}
-
-		if !u.Force && u.NewConfig.Name != "" && u.NewConfig.Name != u.OldEnvName {
-			return fmt.Errorf("config name %q must match environment name %q", u.NewConfig.Name, u.OldEnvName)
-		}
-
 	}
 
 	return nil

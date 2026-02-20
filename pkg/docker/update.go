@@ -247,18 +247,22 @@ func (u *UpdateOpts) Validate() error {
 		return fmt.Errorf("name is required")
 	}
 
-	if err := EnsureEnvironmentExists(u.OldEnvName); err != nil {
-		return fmt.Errorf("no environment with name '%s' exists: %w", u.OldEnvName, err)
-	}
-
 	if u.Reset && u.NewConfig != nil {
 		return fmt.Errorf("cannot specify custom config when Reset is true")
 	}
 
 	if u.NewConfig != nil {
+		if u.NewConfig.Name != "" && u.NewConfig.Name != u.OldEnvName {
+			return fmt.Errorf("config name %q must match environment name %q", u.NewConfig.Name, u.OldEnvName)
+		}
+
 		if err := u.NewConfig.Validate(); err != nil {
 			return fmt.Errorf("invalid config: %w", err)
 		}
+	}
+
+	if err := EnsureEnvironmentExists(u.OldEnvName); err != nil {
+		return fmt.Errorf("no environment with name '%s' exists: %w", u.OldEnvName, err)
 	}
 
 	return nil
