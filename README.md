@@ -123,6 +123,7 @@ The CLI is organized into two main commands: `docker` and `k8s`. Each has its ow
 | `clean`    | Clean the data of an environment.                               |
 | `delete`   | Stop and remove Docker Compose environments.                    |
 | `export`   | Export the default environment files to a directory.            |
+| `get`      | Get the currently applied Docker environment configuration.      |
 | `list`     | List installed Docker environments.                             |
 | `update`   | Recreate an environment with new settings.                      |
 
@@ -145,6 +146,7 @@ epos-opensource docker populate my-test /path/to/my/data
 | `clean`    | Clean the data of an environment.                                 |
 | `delete`   | Removes K8s environmentas and all their namespaces.               |
 | `export`   | Export default environment files and manifests.                   |
+| `get`      | Get the currently applied K8s environment configuration.          |
 | `list`     | List installed K8s environments.                                  |
 | `update`   | Update and redeploy an existing K8s environment.                  |
 

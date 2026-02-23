@@ -10,7 +10,6 @@ import (
 
 // GetEnv fetches a deployed K8s environment by release name and context.
 func GetEnv(name, context string) (*Env, error) {
-	// TODO: add a new cli command to get the chart/release?
 	settings := cli.New()
 	settings.KubeContext = context
 
