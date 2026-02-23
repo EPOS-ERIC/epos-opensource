@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/EPOS-ERIC/epos-opensource/db"
 	"github.com/EPOS-ERIC/epos-opensource/display"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
@@ -16,6 +17,8 @@ import (
 )
 
 var ErrImageMissing = errors.New("image not found locally")
+
+const imageUpdateCacheTTL = 12 * time.Hour
 
 type Images struct {
 	RabbitmqImage           string `yaml:"rabbitmq_image"`
@@ -56,6 +59,13 @@ func imageHasUpdate(ctx context.Context, imageRef string) (bool, *time.Time, err
 
 	localDigest := parts[1]
 
+	cached, err := db.GetImageUpdateCache(ctx, imageRef)
+	if err == nil && cached != nil && cached.FetchedAt != nil && time.Since(*cached.FetchedAt) < imageUpdateCacheTTL {
+		if localDigest == cached.RemoteDigest {
+			return false, nil, nil
+		}
+	}
+
 	ref, err := name.ParseReference(imageRef)
 	if err != nil {
 		return false, nil, fmt.Errorf("invalid image reference: %w", err)
@@ -70,6 +80,7 @@ func imageHasUpdate(ctx context.Context, imageRef string) (bool, *time.Time, err
 
 	hasUpdate := localDigest != remoteDigest
 	if !hasUpdate {
+		_ = db.UpsertImageUpdateCache(ctx, imageRef, remoteDigest, nil, time.Now())
 		return false, nil, nil
 	}
 
@@ -82,6 +93,8 @@ func imageHasUpdate(ctx context.Context, imageRef string) (bool, *time.Time, err
 	if err != nil {
 		return true, nil, fmt.Errorf("failed to get remote image config: %w", err)
 	}
+
+	_ = db.UpsertImageUpdateCache(ctx, imageRef, remoteDigest, &cf.Created.Time, time.Now())
 
 	return true, &cf.Created.Time, nil
 }

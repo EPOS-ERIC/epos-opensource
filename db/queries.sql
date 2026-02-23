@@ -56,6 +56,28 @@ SET
     tag_name = excluded.tag_name,
     fetched_at = excluded.fetched_at;
 
+-- name: GetImageUpdateCache :one
+SELECT
+    image_ref,
+    remote_digest,
+    remote_created_at,
+    fetched_at
+FROM
+    image_update_cache
+WHERE
+    image_ref = ?;
+
+-- name: UpsertImageUpdateCache :exec
+INSERT INTO
+    image_update_cache (image_ref, remote_digest, remote_created_at, fetched_at)
+VALUES
+    (?, ?, ?, ?) ON CONFLICT (image_ref) DO
+UPDATE
+SET
+    remote_digest = excluded.remote_digest,
+    remote_created_at = excluded.remote_created_at,
+    fetched_at = excluded.fetched_at;
+
 -- name: InsertIngestedFile :exec
 INSERT INTO
     ingested_files (

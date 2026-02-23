@@ -85,6 +85,30 @@ func (q *Queries) GetDockerByName(ctx context.Context, name string) (Docker, err
 	return i, err
 }
 
+const getImageUpdateCache = `-- name: GetImageUpdateCache :one
+SELECT
+    image_ref,
+    remote_digest,
+    remote_created_at,
+    fetched_at
+FROM
+    image_update_cache
+WHERE
+    image_ref = ?
+`
+
+func (q *Queries) GetImageUpdateCache(ctx context.Context, imageRef string) (ImageUpdateCache, error) {
+	row := q.db.QueryRowContext(ctx, getImageUpdateCache, imageRef)
+	var i ImageUpdateCache
+	err := row.Scan(
+		&i.ImageRef,
+		&i.RemoteDigest,
+		&i.RemoteCreatedAt,
+		&i.FetchedAt,
+	)
+	return i, err
+}
+
 const getIngestedFilesByEnvironment = `-- name: GetIngestedFilesByEnvironment :many
 SELECT
     file_path,
@@ -191,6 +215,35 @@ func (q *Queries) UpsertDocker(ctx context.Context, arg UpsertDockerParams) (Doc
 	var i Docker
 	err := row.Scan(&i.Name, &i.ConfigYaml)
 	return i, err
+}
+
+const upsertImageUpdateCache = `-- name: UpsertImageUpdateCache :exec
+INSERT INTO
+    image_update_cache (image_ref, remote_digest, remote_created_at, fetched_at)
+VALUES
+    (?, ?, ?, ?) ON CONFLICT (image_ref) DO
+UPDATE
+SET
+    remote_digest = excluded.remote_digest,
+    remote_created_at = excluded.remote_created_at,
+    fetched_at = excluded.fetched_at
+`
+
+type UpsertImageUpdateCacheParams struct {
+	ImageRef        string
+	RemoteDigest    string
+	RemoteCreatedAt *time.Time
+	FetchedAt       *time.Time
+}
+
+func (q *Queries) UpsertImageUpdateCache(ctx context.Context, arg UpsertImageUpdateCacheParams) error {
+	_, err := q.db.ExecContext(ctx, upsertImageUpdateCache,
+		arg.ImageRef,
+		arg.RemoteDigest,
+		arg.RemoteCreatedAt,
+		arg.FetchedAt,
+	)
+	return err
 }
 
 const upsertLatestReleaseCache = `-- name: UpsertLatestReleaseCache :exec

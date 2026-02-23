@@ -94,6 +94,44 @@ func UpsertLatestReleaseCache(tagName string, fetchedAt time.Time) error {
 	return nil
 }
 
+// GetImageUpdateCache retrieves a cached remote image state for an image reference.
+func GetImageUpdateCache(ctx context.Context, imageRef string) (*sqlc.ImageUpdateCache, error) {
+	q, err := Get()
+	if err != nil {
+		return nil, fmt.Errorf("error getting db connection: %w", err)
+	}
+
+	cache, err := q.GetImageUpdateCache(ctx, imageRef)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error getting image update cache: %w", err)
+	}
+
+	return &cache, nil
+}
+
+// UpsertImageUpdateCache updates or inserts cached remote image state.
+func UpsertImageUpdateCache(ctx context.Context, imageRef, remoteDigest string, remoteCreatedAt *time.Time, fetchedAt time.Time) error {
+	q, err := Get()
+	if err != nil {
+		return fmt.Errorf("error getting db connection: %w", err)
+	}
+
+	err = q.UpsertImageUpdateCache(ctx, sqlc.UpsertImageUpdateCacheParams{
+		ImageRef:        imageRef,
+		RemoteDigest:    remoteDigest,
+		RemoteCreatedAt: remoteCreatedAt,
+		FetchedAt:       &fetchedAt,
+	})
+	if err != nil {
+		return fmt.Errorf("error upserting image update cache: %w", err)
+	}
+
+	return nil
+}
+
 // InsertIngestedFile inserts or updates an ingested file record for a docker environment.
 func InsertIngestedFile(envName, filePath string) error {
 	q, err := Get()

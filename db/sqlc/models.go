@@ -13,6 +13,13 @@ type Docker struct {
 	ConfigYaml string
 }
 
+type ImageUpdateCache struct {
+	ImageRef        string
+	RemoteDigest    string
+	RemoteCreatedAt *time.Time
+	FetchedAt       *time.Time
+}
+
 type IngestedFile struct {
 	EnvironmentName string
 	FilePath        string
