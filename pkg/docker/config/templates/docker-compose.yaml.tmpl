@@ -15,7 +15,7 @@ services:
       gateway:
         condition: service_healthy
 
-{{if .Components.Backoffice.Enabled}}
+{{- if .Components.Backoffice.Enabled}}
   backoffice-ui:
     image: ${BACKOFFICE_UI_IMAGE}
     platform: linux/amd64
@@ -54,7 +54,7 @@ services:
       metadata-database:
         condition: service_healthy
         restart: true
-{{end}}
+{{- end}}
 
   gateway:
     image: ${GATEWAY_IMAGE}
@@ -92,24 +92,24 @@ services:
         condition: service_healthy
       external-access-service:
         condition: service_healthy
-{{if .Components.Converter.Enabled}}
+{{- if .Components.Converter.Enabled}}
       converter-service:
         condition: service_healthy
       converter-routine:
         condition: service_healthy
-{{end}}
-{{if .Components.Backoffice.Enabled}}
+{{- end}}
+{{- if .Components.Backoffice.Enabled}}
       backoffice-service:
         condition: service_healthy
-{{end}}
-{{if .Components.EmailSenderService.Enabled}}
+{{- end}}
+{{- if .Components.EmailSenderService.Enabled}}
       email-sender-service:
         condition: service_healthy
-{{end}}
-{{if .Components.SharingService.Enabled}}
+{{- end}}
+{{- if .Components.SharingService.Enabled}}
       sharing-service:
         condition: service_healthy
-{{end}}
+{{- end}}
 
   rabbitmq:
     image: ${RABBITMQ_IMAGE}
@@ -149,16 +149,14 @@ services:
       - APIHOST=http://${HOST}:${GATEWAY_PORT:-33000}/
       - PERSISTENCE_NAME="EPOSDataModel"
 
-{{if .Monitoring.Enabled}}
+{{- if .Monitoring.Enabled}}
       - MONITORING=true
       - MONITORING_URL=${MONITORING_URL}
       - MONITORING_USER=${MONITORING_USER}
       - MONITORING_PWD=${MONITORING_PWD}
-{{else}}
+{{- else}}
       - MONITORING=false
-{{end}}
-
-      - CACHE_TTL
+{{- end}}
 
       - CACHE_TTL
 
@@ -238,7 +236,7 @@ services:
         condition: service_healthy
         restart: true
 
-{{if .Components.Converter.Enabled}}
+{{- if .Components.Converter.Enabled}}
   converter-service:
     image: ${CONVERTER_SERVICE_IMAGE}
     platform: linux/amd64
@@ -298,9 +296,9 @@ services:
     depends_on:
       metadata-database:
         condition: service_healthy
-{{end}}
+{{- end}}
 
-{{if .Components.EmailSenderService.Enabled}}
+{{- if .Components.EmailSenderService.Enabled}}
   email-sender-service:
     image: ${EMAIL_SENDER_SERVICE_IMAGE}
     platform: linux/amd64
@@ -337,9 +335,9 @@ services:
       metadata-database:
         condition: service_healthy
         restart: true
-{{end}}
+{{- end}}
 
-{{if .Components.SharingService.Enabled}}
+{{- if .Components.SharingService.Enabled}}
   sharing-service:
     image: ${SHARING_SERVICE_IMAGE}
     platform: linux/amd64
@@ -360,7 +358,7 @@ services:
       metadata-database:
         condition: service_healthy
         restart: true
-{{end}}
+{{- end}}
 
   metadata-database:
     restart: always
@@ -388,3 +386,4 @@ volumes:
 
 networks:
   epos_network:
+    name: ${ENV_NAME}-epos-network
