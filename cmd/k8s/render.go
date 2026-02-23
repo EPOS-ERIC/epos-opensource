@@ -5,7 +5,6 @@ import (
 
 	"github.com/EPOS-ERIC/epos-opensource/display"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
-	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s/config"
 	"github.com/spf13/cobra"
 )
 
@@ -25,14 +24,10 @@ the environment directory with .env and k8s-compose.yaml files.`,
 			name = args[0]
 		}
 
-		var cfg *config.Config
-		var err error
-		if configFilePath != "" {
-			cfg, err = config.LoadConfig(configFilePath)
-			if err != nil {
-				display.Error("Failed to load config: %v", err)
-				os.Exit(1)
-			}
+		cfg, err := loadConfigIfProvided(configFilePath)
+		if err != nil {
+			display.Error("%v", err)
+			os.Exit(1)
 		}
 
 		outputPaths, err := k8s.Render(k8s.RenderOpts{

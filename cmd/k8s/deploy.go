@@ -20,16 +20,14 @@ var DeployCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		var cfg *config.Config
-		var err error
-		if configFilePath == "" {
+		cfg, err := loadConfigIfProvided(configFilePath)
+		if err != nil {
+			display.Error("%v", err)
+			os.Exit(1)
+		}
+
+		if cfg == nil {
 			cfg = config.GetDefaultConfig()
-		} else {
-			cfg, err = config.LoadConfig(configFilePath)
-			if err != nil {
-				display.Error("Failed to load config: %v", err)
-				os.Exit(1)
-			}
 		}
 
 		cfg.Name = name

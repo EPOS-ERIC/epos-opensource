@@ -6,7 +6,6 @@ import (
 
 	"github.com/EPOS-ERIC/epos-opensource/display"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
-	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s/config"
 
 	"github.com/spf13/cobra"
 )
@@ -25,15 +24,10 @@ var UpdateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		// TODO: this is reused in many cli commands, abstract it?
-		var cfg *config.Config
-		var err error
-		if configFilePath != "" {
-			cfg, err = config.LoadConfig(configFilePath)
-			if err != nil {
-				display.Error("Failed to load config: %v", err)
-				os.Exit(1)
-			}
+		cfg, err := loadConfigIfProvided(configFilePath)
+		if err != nil {
+			display.Error("%v", err)
+			os.Exit(1)
 		}
 
 		env, err := k8s.Update(k8s.UpdateOpts{
