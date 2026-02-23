@@ -61,6 +61,8 @@ func (a *App) showRenderForm() {
 		Title:    title,
 		Fields:   fields,
 		Buttons:  buttons,
+		Width:    64,
+		Height:   12,
 		OnCancel: func() {
 			a.ResetToHome(ResetOptions{
 				PageNames:    []string{"render-form"},

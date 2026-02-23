@@ -83,6 +83,8 @@ func (a *App) showUpdateForm() {
 		Title:    title,
 		Fields:   fields,
 		Buttons:  buttons,
+		Width:    64,
+		Height:   12,
 		BottomButton: &FormButton{
 			Label:        "Edit Config",
 			SelectedFunc: func() { a.editUpdateConfig(data, isDocker) },
