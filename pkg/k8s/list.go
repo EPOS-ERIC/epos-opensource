@@ -37,7 +37,7 @@ func List(context string) ([]Env, error) {
 			continue
 		}
 
-		envConfig, err := ReleaseToEnv(release, context)
+		envConfig, err := EnvFromRelease(release, context)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert release to config: %w", err)
 		}

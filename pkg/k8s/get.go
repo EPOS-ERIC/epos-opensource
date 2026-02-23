@@ -31,7 +31,7 @@ func GetEnv(name, context string) (*Env, error) {
 		return nil, fmt.Errorf("failed to get helm chart: %w", err)
 	}
 
-	env, err := ReleaseToEnv(rel, context)
+	env, err := EnvFromRelease(rel, context)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert release to config: %w", err)
 	}

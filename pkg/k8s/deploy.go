@@ -86,7 +86,7 @@ func Deploy(opts DeployOpts) (*Env, error) {
 
 	display.Debug("installed release: %s (status: %s)", rel.Name, rel.Info.Status)
 
-	env, err := ReleaseToEnv(rel, opts.Context)
+	env, err := EnvFromRelease(rel, opts.Context)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert release to environment: %w", err)
 	}

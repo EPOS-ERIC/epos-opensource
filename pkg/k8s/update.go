@@ -137,7 +137,7 @@ func Update(opts UpdateOpts) (*Env, error) {
 
 	display.Debug("upgraded release: %s (status: %s)", rel.Name, rel.Info.Status)
 
-	newEnv, err := ReleaseToEnv(rel, opts.Context)
+	newEnv, err := EnvFromRelease(rel, opts.Context)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert upgraded release to environment: %w", err)
 	}

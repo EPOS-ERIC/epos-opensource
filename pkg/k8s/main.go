@@ -63,9 +63,8 @@ func deleteNamespace(name, context string) error {
 	return nil
 }
 
-// ReleaseToConfig converts a Helm release values map into a typed K8s Config.
-func ReleaseToConfig(rel *release.Release) (*config.Config, error) {
-	// TODO: rename this function with a better name
+// ConfigFromRelease converts a Helm release values map into a typed K8s Config.
+func ConfigFromRelease(rel *release.Release) (*config.Config, error) {
 	if rel == nil {
 		return nil, fmt.Errorf("release is nil")
 	}
@@ -83,21 +82,20 @@ func ReleaseToConfig(rel *release.Release) (*config.Config, error) {
 	return &envConfig, nil
 }
 
-// ReleaseToEnv converts a Helm release to an Env bound to the provided kube context.
-func ReleaseToEnv(rel *release.Release, context string) (*Env, error) {
-	// TODO: rename this function with a better name
+// EnvFromRelease converts a Helm release to an Env bound to the provided kube context.
+func EnvFromRelease(rel *release.Release, context string) (*Env, error) {
 	if rel == nil {
 		return nil, fmt.Errorf("release is nil")
 	}
 
-	config, err := ReleaseToConfig(rel)
+	envConfig, err := ConfigFromRelease(rel)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert release to config: %w", err)
 	}
 
 	return &Env{
-		Config:  *config,
-		Name:    config.Name,
+		Config:  *envConfig,
+		Name:    envConfig.Name,
 		Context: context,
 	}, nil
 }
