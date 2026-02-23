@@ -31,6 +31,20 @@ func newConfigEditSession(fileName string) (*configEditSession, error) {
 	}, nil
 }
 
+func newReadOnlyConfigSession(fileName, content string) (*configEditSession, error) {
+	session, err := newConfigEditSession(fileName)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := os.WriteFile(session.FilePath(), []byte(content), 0o444); err != nil {
+		_ = session.Cleanup()
+		return nil, fmt.Errorf("failed to write read-only config snapshot: %w", err)
+	}
+
+	return session, nil
+}
+
 func (s *configEditSession) FilePath() string {
 	if s == nil {
 		return ""

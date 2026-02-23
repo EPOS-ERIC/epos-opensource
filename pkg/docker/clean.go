@@ -1,14 +1,12 @@
 package docker
 
 import (
-	_ "embed"
 	"fmt"
 	"os/exec"
 
 	"github.com/EPOS-ERIC/epos-opensource/command"
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/db"
-	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
 	"github.com/EPOS-ERIC/epos-opensource/display"
 )
 
@@ -19,18 +17,22 @@ type CleanOpts struct {
 }
 
 // Clean removes runtime data from an existing Docker environment and restarts required services.
-func Clean(opts CleanOpts) (*sqlc.Docker, error) {
+func Clean(opts CleanOpts) (*Env, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid clean parameters: %w", err)
 	}
 
 	display.Step("Cleaning data in environment: %s", opts.Name)
 
-	docker, err := db.GetDockerByName(opts.Name)
+	env, err := GetEnv(opts.Name)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get docker info for %s: %w", opts.Name, err)
+		return nil, fmt.Errorf("failed to load docker environment %s: %w", opts.Name, err)
 	}
-	display.Debug("loaded docker environment directory: %s", docker.Directory)
+
+	urls, err := env.BuildEnvURLs()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build environment URLs: %w", err)
+	}
 
 	// TODO: check if the logic here can be simplified now that we use restart in the depends_on in the docker compose
 
@@ -41,12 +43,12 @@ func Clean(opts CleanOpts) (*sqlc.Docker, error) {
 	resourcesContainer := fmt.Sprintf("%s-resources-service", opts.Name)
 	volumeName := fmt.Sprintf("%s_psqldata", opts.Name)
 
-	handleFailure := func(msg string, mainErr error) (*sqlc.Docker, error) {
+	handleFailure := func(msg string, mainErr error) (*Env, error) {
 		display.Error("Unexpected error: %v", mainErr)
 		display.Warn("Clean failed, trying to restore services")
 		display.Step("Attempting recovery")
 
-		if err := deployStack(false, docker.Directory); err != nil {
+		if err := deployStack(false, &env.EnvConfig); err != nil {
 			return nil, fmt.Errorf("unable to recover from error: %w", err)
 		}
 
@@ -106,22 +108,22 @@ func Clean(opts CleanOpts) (*sqlc.Docker, error) {
 		return handleFailure("failed to stop container: %w", fmt.Errorf("%s: %w", resourcesContainer, err))
 	}
 
-	display.Debug("redeploying stack in directory: %s", docker.Directory)
+	display.Debug("redeploying stack for environment: %s", env.Name)
 
-	if err := deployStack(false, docker.Directory); err != nil {
+	if err := deployStack(false, &env.EnvConfig); err != nil {
 		return handleFailure("failed to restart the environment: %w", err)
 	}
 
 	display.Done("Services restarted successfully")
 
-	if err := common.PopulateOntologies(docker.ApiUrl); err != nil {
+	if err := common.PopulateOntologies(urls.APIURL); err != nil {
 		return handleFailure("failed to populate base ontologies in environment: %w", err)
 	}
 
-	display.Debug("repopulated base ontologies from: %s", docker.ApiUrl)
+	display.Debug("repopulated base ontologies from: %s", urls.APIURL)
 	display.Done("Cleaned environment: %s", opts.Name)
 
-	return docker, nil
+	return env, nil
 }
 
 // Validate checks CleanOpts and ensures the target environment exists.

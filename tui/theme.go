@@ -120,8 +120,6 @@ var KeyHints = map[ScreenKey][]KeyHint{
 		{"B: copy backoffice", "B: copy backoffice url to clipboard", false, "Browser"},
 		{"a: api", "a: open api docs in browser", true, "Browser"},
 		{"A: copy api", "A: copy api url to clipboard", false, "Browser"},
-		{"e: directory", "e: open directory in browser", true, "Browser"},
-		{"E: copy directory", "E: copy directory url to clipboard", false, "Browser"},
 		{"enter: open file", "enter: open the selected ingested file/directory/url", false, "Browser"},
 		{"y: copy file", "y: copy the selected ingested file path to clipboard", false, "Browser"},
 		{"?: help", "?: show help for current context", true, "Generic"},

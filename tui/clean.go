@@ -55,7 +55,13 @@ func (a *App) showCleanProgress(envName string, isDocker bool, context string) {
 				if err != nil {
 					return "", err
 				}
-				return fmt.Sprintf("Environment cleaned successfully! GUI: %s", env.GuiUrl), nil
+
+				urls, err := env.BuildEnvURLs()
+				if err != nil {
+					return "", err
+				}
+
+				return fmt.Sprintf("Environment cleaned successfully! GUI: %s", urls.GUIURL), nil
 			} else {
 				env, err := k8s.Clean(k8s.CleanOpts{
 					Name:    envName,

@@ -8,9 +8,11 @@ import (
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/db"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"gopkg.in/yaml.v3"
 )
 
 // DetailRow represents a row in the details grid.
@@ -18,6 +20,8 @@ type DetailRow struct {
 	Label       string
 	Value       string
 	IncludeOpen bool
+	OnCopy      func()
+	OnOpen      func()
 }
 
 // DetailsPanel manages the right-side information and action panel.
@@ -41,7 +45,7 @@ type DetailsPanel struct {
 	currentDetailsType    string
 	currentDetailsContext string
 	currentDetailsRows    []DetailRow
-	currentDirectory      string
+	configViewSession     *configEditSession
 	detailsShown          bool
 }
 
@@ -75,6 +79,83 @@ func (dp *DetailsPanel) GetCurrentDetailsType() string {
 // GetCurrentDetailsContext returns the current details environment context.
 func (dp *DetailsPanel) GetCurrentDetailsContext() string {
 	return dp.currentDetailsContext
+}
+
+func (dp *DetailsPanel) cleanupConfigViewSession() {
+	if dp.configViewSession == nil {
+		return
+	}
+
+	_ = dp.configViewSession.Cleanup()
+	dp.configViewSession = nil
+}
+
+func (dp *DetailsPanel) currentAppliedConfigYAML() (string, error) {
+	switch dp.currentDetailsType {
+	case string(DockerKey):
+		env, err := docker.GetEnv(dp.currentDetailsName)
+		if err != nil {
+			return "", fmt.Errorf("failed to load docker environment: %w", err)
+		}
+
+		cfgBytes, err := env.Bytes()
+		if err != nil {
+			return "", fmt.Errorf("failed to marshal docker config: %w", err)
+		}
+
+		return string(cfgBytes), nil
+	case string(K8sKey):
+		env, err := k8s.GetEnv(dp.currentDetailsName, dp.currentDetailsContext)
+		if err != nil {
+			return "", fmt.Errorf("failed to load k8s environment: %w", err)
+		}
+
+		cfgBytes, err := yaml.Marshal(env.Config)
+		if err != nil {
+			return "", fmt.Errorf("failed to marshal k8s config: %w", err)
+		}
+
+		return string(cfgBytes), nil
+	default:
+		return "", fmt.Errorf("unsupported environment type: %s", dp.currentDetailsType)
+	}
+}
+
+func (dp *DetailsPanel) copyCurrentAppliedConfig() {
+	content, err := dp.currentAppliedConfigYAML()
+	if err != nil {
+		dp.app.ShowError(fmt.Sprintf("Failed to get applied config: %v", err))
+		return
+	}
+
+	dp.app.copyToClipboardWithFeedback(content, "Applied config copied to clipboard", "Failed to copy applied config")
+}
+
+func (dp *DetailsPanel) openCurrentAppliedConfig() {
+	content, err := dp.currentAppliedConfigYAML()
+	if err != nil {
+		dp.app.ShowError(fmt.Sprintf("Failed to get applied config: %v", err))
+		return
+	}
+
+	snapshot := "# Applied configuration snapshot (read-only)\n" +
+		"# Changes to this file do not update the deployed environment.\n\n" +
+		content
+
+	dp.cleanupConfigViewSession()
+
+	fileName := fmt.Sprintf("%s-%s-applied-config.yaml", dp.currentDetailsType, dp.currentDetailsName)
+	session, err := newReadOnlyConfigSession(fileName, snapshot)
+	if err != nil {
+		dp.app.ShowError(fmt.Sprintf("Failed to create config snapshot: %v", err))
+		return
+	}
+
+	dp.configViewSession = session
+
+	if err := dp.app.openConfigEditor(session.FilePath()); err != nil {
+		dp.app.ShowError(err.Error())
+	}
 }
 
 // buildUI constructs the component layout.
@@ -145,6 +226,8 @@ func (dp *DetailsPanel) buildUI() {
 
 // Update fetches and displays environment details in the panel.
 func (dp *DetailsPanel) Update(name, envType, context string, focus bool) {
+	dp.cleanupConfigViewSession()
+
 	dp.currentDetailsName = name
 	dp.currentDetailsType = envType
 	dp.currentDetailsContext = context
@@ -153,9 +236,9 @@ func (dp *DetailsPanel) Update(name, envType, context string, focus bool) {
 	detailsGridCount := 2
 
 	switch envType {
-	case "docker":
+	case string(DockerKey):
 		dp.currentDetailsContext = ""
-		if d, err := db.GetDockerByName(name); err != nil {
+		if env, err := docker.GetEnv(name); err != nil {
 			dp.detailsGrid.Clear()
 			dp.detailsButtons = nil
 			dp.detailsGrid.SetRows(1)
@@ -163,14 +246,20 @@ func (dp *DetailsPanel) Update(name, envType, context string, focus bool) {
 			errorTV := tview.NewTextView().SetText(fmt.Sprintf("Error fetching details for %s: %v", name, err)).SetTextColor(DefaultTheme.Destructive)
 			dp.detailsGrid.AddItem(errorTV, 0, 0, 1, 1, 0, 0, false)
 		} else {
-			apiURL, err := url.JoinPath(d.ApiUrl, "ui")
+			urls, err := env.BuildEnvURLs()
+			if err != nil {
+				dp.app.ShowError(fmt.Sprintf("Error building Docker URLs: %v", err))
+				return
+			}
+
+			apiURL, err := url.JoinPath(urls.APIURL, "ui")
 			if err != nil {
 				dp.app.ShowError(fmt.Sprintf("Error joining Docker API URL: %v", err))
 				return
 			}
 			var backofficeURL string
-			if d.BackofficeUrl != nil {
-				u, err := url.JoinPath(*d.BackofficeUrl, "home")
+			if urls.BackofficeURL != nil {
+				u, err := url.JoinPath(*urls.BackofficeURL, "home")
 				if err != nil {
 					dp.app.ShowError(fmt.Sprintf("Error joining Docker backoffice URL: %v", err))
 					return
@@ -178,20 +267,20 @@ func (dp *DetailsPanel) Update(name, envType, context string, focus bool) {
 				backofficeURL = u
 			}
 			nameDirRows := []DetailRow{
-				{Label: "Name", Value: d.Name, IncludeOpen: false},
-				{Label: "Directory", Value: d.Directory, IncludeOpen: true},
+				{Label: "Name", Value: env.Name, IncludeOpen: false},
+				{
+					Label:       "Applied Config",
+					Value:       "Runtime YAML snapshot",
+					IncludeOpen: true,
+					OnCopy:      dp.copyCurrentAppliedConfig,
+					OnOpen:      dp.openCurrentAppliedConfig,
+				},
 			}
 			nameDirGridCount = len(nameDirRows)
 			dp.createGridRows(dp.nameDirGrid, nameDirRows, &dp.nameDirButtons, "Basic Information")
-			for _, row := range nameDirRows {
-				if row.Label == "Directory" {
-					dp.currentDirectory = row.Value
-					break
-				}
-			}
 
 			rows := []DetailRow{
-				{Label: "GUI", Value: d.GuiUrl, IncludeOpen: true},
+				{Label: "GUI", Value: urls.GUIURL, IncludeOpen: true},
 			}
 			if backofficeURL != "" {
 				rows = append(rows, DetailRow{Label: "Backoffice", Value: backofficeURL, IncludeOpen: true})
@@ -223,11 +312,17 @@ func (dp *DetailsPanel) Update(name, envType, context string, focus bool) {
 			}
 
 			dp.currentDetailsContext = env.Context
-			dp.currentDirectory = ""
 
 			nameDirRows := []DetailRow{
 				{Label: "Name", Value: env.Name, IncludeOpen: false},
 				{Label: "Context", Value: env.Context, IncludeOpen: false},
+				{
+					Label:       "Applied Config",
+					Value:       "Runtime YAML snapshot",
+					IncludeOpen: true,
+					OnCopy:      dp.copyCurrentAppliedConfig,
+					OnOpen:      dp.openCurrentAppliedConfig,
+				},
 			}
 			nameDirGridCount = len(nameDirRows)
 			dp.createGridRows(dp.nameDirGrid, nameDirRows, &dp.nameDirButtons, "Basic Information")
@@ -269,6 +364,8 @@ func (dp *DetailsPanel) Update(name, envType, context string, focus bool) {
 // Clear shows the placeholder text in the details panel.
 func (dp *DetailsPanel) Clear() {
 	if dp.detailsShown {
+		dp.cleanupConfigViewSession()
+
 		dp.details.Clear()
 		dp.details.AddItem(dp.detailsEmpty, 0, 1, true)
 		dp.detailsShown = false
@@ -278,7 +375,6 @@ func (dp *DetailsPanel) Clear() {
 		dp.currentDetailsName = ""
 		dp.currentDetailsType = ""
 		dp.currentDetailsContext = ""
-		dp.currentDirectory = ""
 	}
 }
 
@@ -535,16 +631,6 @@ func (dp *DetailsPanel) SetupInput() {
 				dp.app.copyToClipboardWithFeedback(dp.currentDetailsRows[2].Value, "Copied to clipboard", "Failed to copy to clipboard")
 				return nil
 			}
-		case event.Rune() == 'e':
-			if dp.detailsShown && dp.currentDirectory != "" {
-				dp.openValue(dp.currentDirectory)
-				return nil
-			}
-		case event.Rune() == 'E':
-			if dp.detailsShown && dp.currentDirectory != "" {
-				dp.app.copyToClipboardWithFeedback(dp.currentDirectory, "Copied to clipboard", "Failed to copy to clipboard")
-				return nil
-			}
 		case event.Rune() == 'y':
 			if dp.app.tview.GetFocus() == dp.detailsList {
 				index := dp.detailsList.GetCurrentItem()
@@ -666,6 +752,20 @@ func (dp *DetailsPanel) createGridRows(grid *tview.Grid, rows []DetailRow, butto
 	}
 
 	for i, row := range rows {
+		copyAction := func() {
+			dp.app.copyToClipboardWithFeedback(row.Value, "Copied to clipboard", "Failed to copy to clipboard")
+		}
+		if row.OnCopy != nil {
+			copyAction = row.OnCopy
+		}
+
+		openAction := func() {
+			dp.openValue(row.Value)
+		}
+		if row.OnOpen != nil {
+			openAction = row.OnOpen
+		}
+
 		labelTV := tview.NewTextView().
 			SetDynamicColors(true).
 			SetText(DefaultTheme.PrimaryTag("b") + row.Label)
@@ -677,9 +777,7 @@ func (dp *DetailsPanel) createGridRows(grid *tview.Grid, rows []DetailRow, butto
 		valueTV.SetBorderPadding(0, 0, 1, 1)
 
 		// add spacing around buttons
-		copyBtn := NewStyledButton("Copy", func() {
-			dp.app.copyToClipboardWithFeedback(row.Value, "Copied to clipboard", "Failed to copy to clipboard")
-		})
+		copyBtn := NewStyledButton("Copy", copyAction)
 
 		// wrap button in a box with padding
 		copyBtnBox := tview.NewFlex().SetDirection(tview.FlexColumn)
@@ -694,9 +792,7 @@ func (dp *DetailsPanel) createGridRows(grid *tview.Grid, rows []DetailRow, butto
 		*buttons = append(*buttons, copyBtn)
 
 		if row.IncludeOpen {
-			openBtn := NewStyledButton("Open", func() {
-				dp.openValue(row.Value)
-			})
+			openBtn := NewStyledButton("Open", openAction)
 
 			// wrap button in a box with padding
 			openBtnBox := tview.NewFlex().SetDirection(tview.FlexColumn)

@@ -1,65 +1,66 @@
 package docker
 
 import (
-	_ "embed"
 	"fmt"
-	"os"
-	"path"
 
-	"github.com/EPOS-ERIC/epos-opensource/common"
-	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/db"
+	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/config"
 )
 
-const platform = "docker"
+// Env represents a deployed Docker environment and its effective configuration.
+type Env struct {
+	config.EnvConfig
 
-// NewEnvDir creates a new environment directory with config.yaml and rendered template files (.env, docker-compose.yaml).
-// The customPath parameter specifies a custom base path for the environment directory.
-// The cfg parameter contains the environment configuration used for templating.
-// Returns the path to the created environment directory.
-// If any error occurs after directory creation, the directory and its contents are automatically cleaned up.
-func NewEnvDir(customPath string, cfg *config.EnvConfig) (string, error) {
-	envPath, err := common.BuildEnvPath(customPath, cfg.Name, platform)
+	Name string
+}
+
+func envFromDBRow(row sqlc.Docker) (*Env, error) {
+	cfg, err := config.LoadConfigFromBytes([]byte(row.ConfigYaml))
 	if err != nil {
-		return "", err
+		return nil, fmt.Errorf("failed to parse stored docker config: %w", err)
 	}
 
-	if _, err := os.Stat(envPath); err == nil {
-		return "", fmt.Errorf("directory %s already exists", envPath)
-	} else if !os.IsNotExist(err) {
-		return "", fmt.Errorf("failed to check directory %s: %w", envPath, err)
+	if cfg.Name == "" {
+		cfg.Name = row.Name
 	}
 
-	if err := os.MkdirAll(envPath, 0o750); err != nil {
-		return "", fmt.Errorf("failed to create env directory %s: %w", envPath, err)
+	if cfg.Name != row.Name {
+		return nil, fmt.Errorf("stored config name %q does not match environment name %q", cfg.Name, row.Name)
 	}
 
-	var success bool
-	// Ensure cleanup of directory if any error occurs after creation
-	defer func() {
-		if !success {
-			if removeErr := os.RemoveAll(envPath); removeErr != nil {
-				display.Error("Failed to cleanup directory '%s' after error: %v. You may need to remove it manually.", envPath, removeErr)
-			}
-		}
-	}()
+	return &Env{
+		EnvConfig: *cfg,
+		Name:      row.Name,
+	}, nil
+}
 
-	err = cfg.Save(path.Join(envPath, "config.yaml"))
+func upsertEnvConfig(cfg *config.EnvConfig) (*Env, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("config is required")
+	}
+
+	if cfg.Name == "" {
+		return nil, fmt.Errorf("environment name is required")
+	}
+
+	bytes, err := cfg.Bytes()
 	if err != nil {
-		return "", fmt.Errorf("failed to save config: %w", err)
+		return nil, fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	files, err := cfg.Render()
+	stored, err := db.UpsertDocker(sqlc.Docker{
+		Name:       cfg.Name,
+		ConfigYaml: string(bytes),
+	})
 	if err != nil {
-		return "", fmt.Errorf("failed to render config: %w", err)
+		return nil, fmt.Errorf("failed to persist environment config: %w", err)
 	}
 
-	for name, content := range files {
-		if err := common.CreateFileWithContent(path.Join(envPath, name), content, true); err != nil {
-			return "", fmt.Errorf("failed to create .env file: %w", err)
-		}
+	env, err := envFromDBRow(*stored)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode persisted environment config: %w", err)
 	}
 
-	success = true
-	return envPath, nil
+	return env, nil
 }

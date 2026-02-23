@@ -7,7 +7,6 @@ import (
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/db"
-	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
 	"github.com/EPOS-ERIC/epos-opensource/display"
 )
 
@@ -24,26 +23,31 @@ type PopulateOpts struct {
 }
 
 // Populate ingests example or user-provided TTL data into an existing Docker environment.
-func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
+func Populate(opts PopulateOpts) (*Env, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid populate parameters: %w", err)
 	}
 
 	display.Step("Populating environment %s with %d path(s)", opts.Name, len(opts.TTLDirs))
 
-	docker, err := db.GetDockerByName(opts.Name)
+	env, err := GetEnv(opts.Name)
 	if err != nil {
-		return nil, fmt.Errorf("error getting docker environment from db called '%s': %w", opts.Name, err)
+		return nil, fmt.Errorf("error getting docker environment called '%s': %w", opts.Name, err)
 	}
 
-	display.Debug("loaded docker environment: %s (api: %s)", docker.Name, docker.ApiUrl)
+	urls, err := env.BuildEnvURLs()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build environment URLs: %w", err)
+	}
+
+	display.Debug("loaded docker environment: %s (api: %s)", env.Name, urls.APIURL)
 
 	var allSuccessfulFiles []string
 
 	if opts.PopulateExamples {
 		display.Debug("populating bundled examples")
 
-		successfulExamples, err := common.PopulateExample(docker.ApiUrl, opts.Parallel)
+		successfulExamples, err := common.PopulateExample(urls.APIURL, opts.Parallel)
 		allSuccessfulFiles = append(allSuccessfulFiles, successfulExamples...)
 		if err != nil {
 			return nil, fmt.Errorf("error populating environment with examples: %w", err)
@@ -62,7 +66,7 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 
 		display.Debug("populating metadata from absolute path: %s", absPath)
 
-		successfulFiles, err := common.PopulateEnv(absPath, docker.ApiUrl, opts.Parallel)
+		successfulFiles, err := common.PopulateEnv(absPath, urls.APIURL, opts.Parallel)
 		allSuccessfulFiles = append(allSuccessfulFiles, successfulFiles...)
 		if err != nil {
 			return nil, fmt.Errorf("error populating environment: %w", err)
@@ -83,7 +87,7 @@ func Populate(opts PopulateOpts) (*sqlc.Docker, error) {
 	display.Debug("recorded ingested files: %d", len(allSuccessfulFiles))
 	display.Done("Finished populating environment with ttl files from %d path(s)", len(opts.TTLDirs))
 
-	return docker, nil
+	return env, nil
 }
 
 // Validate checks PopulateOpts and verifies that input paths and environment state are valid.

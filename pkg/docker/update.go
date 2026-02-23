@@ -2,14 +2,11 @@
 package docker
 
 import (
-	_ "embed"
 	"fmt"
 	"log"
-	"path/filepath"
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/db"
-	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
 	"github.com/EPOS-ERIC/epos-opensource/display"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/config"
 )
@@ -29,39 +26,19 @@ type UpdateOpts struct {
 }
 
 // Update updates an existing Docker environment with new configuration.
-// It performs a safe update with rollback capability:
-//   - Creates a backup of the current environment in a temp directory
-//   - Deploys the new configuration
-//   - On failure, restores the backup automatically
-//
-// Options:
-//   - PullImages: Pull images before deploying
-//   - Force: Stop and reset the database before updating
-//   - Reset: Reset config to embedded defaults (ignores NewConfig if set)
-//   - OldEnvName: Name of the environment to update (required)
-//   - NewConfig: New configuration to apply (optional - preserves existing if nil)
-//
-// Returns the updated Docker record on success.
-// Returns an error if validation fails or update cannot complete.
-func Update(opts UpdateOpts) (*sqlc.Docker, error) {
+func Update(opts UpdateOpts) (*Env, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid parameters for update command: %w", err)
 	}
 
-	display.Debug("loading docker environment from db: %s", opts.OldEnvName)
+	display.Debug("loading current environment: %s", opts.OldEnvName)
 
-	docker, err := db.GetDockerByName(opts.OldEnvName)
+	oldEnv, err := GetEnv(opts.OldEnvName)
 	if err != nil {
-		return nil, fmt.Errorf("error getting docker environment from db called '%s': %w", opts.OldEnvName, err)
+		return nil, fmt.Errorf("failed to load current environment: %w", err)
 	}
 
-	display.Debug("loaded docker environment directory: %s", docker.Directory)
-	display.Debug("loading current config from: %s", filepath.Join(docker.Directory, "config.yaml"))
-
-	oldConfig, err := config.LoadConfig(filepath.Join(docker.Directory, "config.yaml"))
-	if err != nil {
-		return nil, fmt.Errorf("error loading config from directory '%s': %w", docker.Directory, err)
-	}
+	oldConfig := oldEnv.EnvConfig
 
 	if opts.Reset {
 		display.Info("Reset flag enabled: using default config")
@@ -70,9 +47,9 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 	}
 
 	if opts.NewConfig == nil {
-		display.Debug("new config not provided, using existing environment config")
+		display.Debug("new config not provided, using current environment config")
 
-		opts.NewConfig = oldConfig
+		opts.NewConfig = &oldConfig
 	}
 
 	if opts.NewConfig.Name == "" {
@@ -91,32 +68,20 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 		display.ImageUpdatesAvailable(updates, opts.NewConfig.Name)
 	}
 
-	bkpedir, err := common.CreateTmpCopy(docker.Directory)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create backup copy: %w", err)
-	}
-
-	display.Debug("created backup directory: %s", bkpedir)
-
-	handleFailure := func(msg string, mainErr error) (*sqlc.Docker, error) {
+	rollbackNeeded := false
+	handleFailure := func(msg string, mainErr error) (*Env, error) {
 		display.Error("Failed to update environment: %v", mainErr)
-		display.Step("Restoring environment from backup")
-		display.Warn("update failed, rolling back from backup")
 
-		if err := common.RemoveEnvDir(docker.Directory); err != nil {
-			display.Error("Failed to remove corrupted directory: %v", err)
-		}
+		if rollbackNeeded {
+			display.Step("Restoring previous environment configuration")
+			display.Warn("update failed, rolling back")
 
-		if err := common.RestoreTmpDir(bkpedir, docker.Directory); err != nil {
-			display.Error("Failed to restore from backup: %v", err)
-		} else {
-			if err := deployStack(true, docker.Directory); err != nil {
-				display.Error("Failed to deploy restored environment: %v", err)
+			rollbackConfig := oldConfig
+			if err := deployStack(true, &rollbackConfig); err != nil {
+				display.Error("Failed to rollback environment: %v", err)
+			} else {
+				display.Done("Rollback completed")
 			}
-		}
-
-		if cleanupErr := common.RemoveTmpDir(bkpedir); cleanupErr != nil {
-			display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
 		}
 
 		return nil, fmt.Errorf(msg, mainErr)
@@ -129,37 +94,20 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 		display.Info("Force flag enabled: stopping old environment with volumes")
 		display.Step("Stopping old environment")
 
-		if err := downStack(docker.Directory, true); err != nil {
+		if err := downStack(&oldConfig, true); err != nil {
 			return handleFailure("docker compose down failed: %w", err)
 		}
 
+		rollbackNeeded = true
+
 		display.Done("Stopped environment: %s", oldConfig.Name)
 	}
-
-	display.Step("Removing old environment directory")
-
-	// Remove the contents of the env dir and create the updated env file and docker-compose
-	if err := common.RemoveEnvDir(docker.Directory); err != nil {
-		return handleFailure("failed to remove directory: %w", fmt.Errorf("%s: %w", docker.Directory, err))
-	}
-
-	display.Debug("removed old environment directory: %s", docker.Directory)
-	display.Step("Creating new environment directory")
-
-	// create the directory in the parent
-	dir, err := NewEnvDir(filepath.Dir(docker.Directory), opts.NewConfig)
-	if err != nil {
-		return handleFailure("failed to prepare environment directory: %w", err)
-	}
-
-	display.Debug("created updated environment directory: %s", dir)
-	display.Done("Updated environment created in directory: %s", dir)
 
 	// If pullImages is set before deploying pull the images for the updated env
 	if opts.PullImages {
 		display.Debug("pulling images before stack deployment")
 
-		if err := pullEnvImages(dir, opts.NewConfig.Name); err != nil {
+		if err := pullEnvImages(opts.NewConfig); err != nil {
 			display.Error("Pulling images failed: %v", err)
 			return handleFailure("pulling images failed: %w", err)
 		}
@@ -167,8 +115,9 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 
 	// Deploy the updated compose
 	display.Debug("deploying updated stack")
+	rollbackNeeded = true
 
-	if err = deployStack(true, dir); err != nil {
+	if err := deployStack(true, opts.NewConfig); err != nil {
 		display.Error("Deploy failed: %v", err)
 		return handleFailure("deploy failed: %w", err)
 	}
@@ -197,42 +146,14 @@ func Update(opts UpdateOpts) (*sqlc.Docker, error) {
 		}
 	}
 
-	// If everything goes right, delete the tmp dir and finish
-	if cleanupErr := common.RemoveTmpDir(bkpedir); cleanupErr != nil {
-		display.Error("Failed to cleanup tmp dir: %v", cleanupErr)
-	} else {
-		display.Debug("cleaned backup directory: %s", bkpedir)
-	}
-
-	display.Debug("deleting old docker record: %s", opts.OldEnvName)
-
-	err = db.DeleteDocker(opts.OldEnvName)
+	newEnv, err := upsertEnvConfig(opts.NewConfig)
 	if err != nil {
-		return handleFailure("failed to delete old docker in db: %w", fmt.Errorf("%s (dir: %s): %w", opts.OldEnvName, docker.Directory, err))
-	}
-
-	var backofficePort int64
-	if opts.NewConfig.Components.Backoffice.Enabled {
-		backofficePort = int64(opts.NewConfig.Components.Backoffice.GUI.Port)
-	}
-
-	newDocker, err := db.UpsertDocker(sqlc.Docker{
-		Name:           opts.NewConfig.Name,
-		Directory:      dir,
-		ApiUrl:         urls.APIURL,
-		GuiUrl:         urls.GUIURL,
-		BackofficeUrl:  urls.BackofficeURL,
-		ApiPort:        int64(opts.NewConfig.Components.Gateway.Port),
-		GuiPort:        int64(opts.NewConfig.Components.PlatformGUI.Port),
-		BackofficePort: &backofficePort,
-	})
-	if err != nil {
-		return handleFailure("failed to insert docker in db: %w", fmt.Errorf("%s (dir: %s): %w", opts.NewConfig.Name, dir, err))
+		return handleFailure("failed to persist environment config: %w", err)
 	}
 
 	display.Done("Updated environment: %s", opts.NewConfig.Name)
 
-	return newDocker, nil
+	return newEnv, nil
 }
 
 // Validate checks UpdateOpts for consistency and verifies that the target environment exists.

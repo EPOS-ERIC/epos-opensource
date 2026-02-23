@@ -45,7 +45,13 @@ Multiple directories and/or files can be provided and will be processed in order
 			os.Exit(1)
 		}
 
-		display.URLs(env.GuiUrl, env.ApiUrl, fmt.Sprintf("epos-opensource docker populate %s", name), env.BackofficeUrl)
+		urls, err := env.BuildEnvURLs()
+		if err != nil {
+			display.Error("failed to build environment URLs: %v", err)
+			os.Exit(1)
+		}
+
+		display.URLs(urls.GUIURL, urls.APIURL, fmt.Sprintf("epos-opensource docker populate %s", name), urls.BackofficeURL)
 	},
 }
 

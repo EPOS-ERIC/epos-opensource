@@ -16,18 +16,9 @@ func UpsertDocker(docker sqlc.Docker) (*sqlc.Docker, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting db connection: %w", err)
 	}
-	d, err := q.UpsertDocker(context.Background(), sqlc.UpsertDockerParams{
-		Name:           docker.Name,
-		Directory:      docker.Directory,
-		ApiUrl:         docker.ApiUrl,
-		GuiUrl:         docker.GuiUrl,
-		BackofficeUrl:  docker.BackofficeUrl,
-		GuiPort:        docker.GuiPort,
-		ApiPort:        docker.ApiPort,
-		BackofficePort: docker.BackofficePort,
-	})
+	d, err := q.UpsertDocker(context.Background(), sqlc.UpsertDockerParams(docker))
 	if err != nil {
-		return nil, fmt.Errorf("error inserting docker %s (dir: %s) in db: %w", docker.Name, docker.Directory, err)
+		return nil, fmt.Errorf("error inserting docker %s in db: %w", docker.Name, err)
 	}
 	return &d, nil
 }

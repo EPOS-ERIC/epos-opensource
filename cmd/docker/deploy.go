@@ -34,7 +34,6 @@ var DeployCmd = &cobra.Command{
 		cfg.Name = name
 
 		env, err := docker.Deploy(docker.DeployOpts{
-			Path:       path,
 			PullImages: pullImages,
 			Config:     cfg,
 		})
@@ -43,12 +42,17 @@ var DeployCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		display.URLs(env.GuiUrl, env.ApiUrl, fmt.Sprintf("epos-opensource docker deploy %s", env.Name), env.BackofficeUrl)
+		urls, err := env.BuildEnvURLs()
+		if err != nil {
+			display.Error("failed to build environment URLs: %v", err)
+			os.Exit(1)
+		}
+
+		display.URLs(urls.GUIURL, urls.APIURL, fmt.Sprintf("epos-opensource docker deploy %s", env.Name), urls.BackofficeURL)
 	},
 }
 
 func init() {
-	DeployCmd.Flags().StringVarP(&path, "path", "p", "", "Location for the environment files")
 	DeployCmd.Flags().BoolVarP(&pullImages, "update-images", "u", false, "Download Docker images before starting")
 	DeployCmd.Flags().StringVar(&configFilePath, "config", "", "Path to YAML configuration file")
 }

@@ -46,7 +46,13 @@ var UpdateCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		display.URLs(env.GuiUrl, env.ApiUrl, fmt.Sprintf("epos-opensource docker update %s", name), env.BackofficeUrl)
+		urls, err := env.BuildEnvURLs()
+		if err != nil {
+			display.Error("failed to build environment URLs: %v", err)
+			os.Exit(1)
+		}
+
+		display.URLs(urls.GUIURL, urls.APIURL, fmt.Sprintf("epos-opensource docker update %s", name), urls.BackofficeURL)
 	},
 }
 

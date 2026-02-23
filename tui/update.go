@@ -2,10 +2,8 @@ package tui
 
 import (
 	"fmt"
-	"path/filepath"
 	"time"
 
-	"github.com/EPOS-ERIC/epos-opensource/db"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/docker"
 	dockerconfig "github.com/EPOS-ERIC/epos-opensource/pkg/docker/config"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
@@ -245,18 +243,14 @@ func (a *App) buildUpdateConfig(data *updateFormData, isDocker bool) (*dockercon
 }
 
 func (a *App) loadDockerUpdateSeed(envName string) (*dockerconfig.EnvConfig, error) {
-	env, err := db.GetDockerByName(envName)
+	env, err := docker.GetEnv(envName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load docker environment %s: %w", envName, err)
 	}
 
-	cfgPath := filepath.Join(env.Directory, "config.yaml")
-	cfg, err := dockerconfig.LoadConfig(cfgPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load docker config %s: %w", cfgPath, err)
-	}
+	cfg := env.EnvConfig
 
-	return cfg, nil
+	return &cfg, nil
 }
 
 func (a *App) loadK8sUpdateSeed(envName, context string) (*k8sconfig.Config, error) {

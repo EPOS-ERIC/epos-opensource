@@ -36,9 +36,12 @@ func (q *Queries) DeleteIngestedFilesByEnvironment(ctx context.Context, environm
 
 const getAllDocker = `-- name: GetAllDocker :many
 SELECT
-    name, directory, api_url, gui_url, backoffice_url, api_port, gui_port, backoffice_port
+    name,
+    config_yaml
 FROM
     docker
+ORDER BY
+    name
 `
 
 // Docker queries
@@ -51,16 +54,7 @@ func (q *Queries) GetAllDocker(ctx context.Context) ([]Docker, error) {
 	var items []Docker
 	for rows.Next() {
 		var i Docker
-		if err := rows.Scan(
-			&i.Name,
-			&i.Directory,
-			&i.ApiUrl,
-			&i.GuiUrl,
-			&i.BackofficeUrl,
-			&i.ApiPort,
-			&i.GuiPort,
-			&i.BackofficePort,
-		); err != nil {
+		if err := rows.Scan(&i.Name, &i.ConfigYaml); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -76,7 +70,8 @@ func (q *Queries) GetAllDocker(ctx context.Context) ([]Docker, error) {
 
 const getDockerByName = `-- name: GetDockerByName :one
 SELECT
-    name, directory, api_url, gui_url, backoffice_url, api_port, gui_port, backoffice_port
+    name,
+    config_yaml
 FROM
     docker
 WHERE
@@ -86,16 +81,7 @@ WHERE
 func (q *Queries) GetDockerByName(ctx context.Context, name string) (Docker, error) {
 	row := q.db.QueryRowContext(ctx, getDockerByName, name)
 	var i Docker
-	err := row.Scan(
-		&i.Name,
-		&i.Directory,
-		&i.ApiUrl,
-		&i.GuiUrl,
-		&i.BackofficeUrl,
-		&i.ApiPort,
-		&i.GuiPort,
-		&i.BackofficePort,
-	)
+	err := row.Scan(&i.Name, &i.ConfigYaml)
 	return i, err
 }
 
@@ -183,62 +169,27 @@ const upsertDocker = `-- name: UpsertDocker :one
 INSERT INTO
     docker (
         name,
-        directory,
-        api_url,
-        gui_url,
-        backoffice_url,
-        gui_port,
-        api_port,
-        backoffice_port
+        config_yaml
     )
 VALUES
-    (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (name) DO
+    (?, ?) ON CONFLICT (name) DO
 UPDATE
 SET
-    directory = excluded.directory,
-    api_url = excluded.api_url,
-    gui_url = excluded.gui_url,
-    backoffice_url = excluded.backoffice_url,
-    gui_port = excluded.gui_port,
-    api_port = excluded.api_port,
-    backoffice_port = excluded.backoffice_port
+    config_yaml = excluded.config_yaml
 RETURNING
-    name, directory, api_url, gui_url, backoffice_url, api_port, gui_port, backoffice_port
+    name,
+    config_yaml
 `
 
 type UpsertDockerParams struct {
-	Name           string
-	Directory      string
-	ApiUrl         string
-	GuiUrl         string
-	BackofficeUrl  *string
-	GuiPort        int64
-	ApiPort        int64
-	BackofficePort *int64
+	Name       string
+	ConfigYaml string
 }
 
 func (q *Queries) UpsertDocker(ctx context.Context, arg UpsertDockerParams) (Docker, error) {
-	row := q.db.QueryRowContext(ctx, upsertDocker,
-		arg.Name,
-		arg.Directory,
-		arg.ApiUrl,
-		arg.GuiUrl,
-		arg.BackofficeUrl,
-		arg.GuiPort,
-		arg.ApiPort,
-		arg.BackofficePort,
-	)
+	row := q.db.QueryRowContext(ctx, upsertDocker, arg.Name, arg.ConfigYaml)
 	var i Docker
-	err := row.Scan(
-		&i.Name,
-		&i.Directory,
-		&i.ApiUrl,
-		&i.GuiUrl,
-		&i.BackofficeUrl,
-		&i.ApiPort,
-		&i.GuiPort,
-		&i.BackofficePort,
-	)
+	err := row.Scan(&i.Name, &i.ConfigYaml)
 	return i, err
 }
 

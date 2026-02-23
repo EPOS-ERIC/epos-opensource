@@ -39,27 +39,44 @@ func LoadConfig(path string) (*EnvConfig, error) {
 		return nil, fmt.Errorf("failed to read config file %s: %w", path, err)
 	}
 
-	var config EnvConfig
-	err = yaml.Unmarshal(data, &config)
-	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling config yaml: %w", err)
-	}
+	config, err := LoadConfigFromBytes(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse config file %s: %w", path, err)
+	}
+
+	return config, nil
+}
+
+// LoadConfigFromBytes loads a Docker configuration from YAML bytes.
+func LoadConfigFromBytes(data []byte) (*EnvConfig, error) {
+	var config EnvConfig
+	err := yaml.Unmarshal(data, &config)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshalling config yaml: %w", err)
 	}
 
 	return &config, nil
 }
 
-// Save writes the current configuration as YAML to path.
-func (e *EnvConfig) Save(path string) error {
+// Bytes marshals the current configuration to YAML bytes.
+func (e *EnvConfig) Bytes() ([]byte, error) {
 	bytes, err := yaml.Marshal(e)
 	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
+		return nil, fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	return bytes, nil
+}
+
+// Save writes the current configuration as YAML to path.
+func (e *EnvConfig) Save(path string) error {
+	bytes, err := e.Bytes()
+	if err != nil {
+		return err
 	}
 
 	if err := common.CreateFileWithContent(path, string(bytes), false); err != nil {
-		return fmt.Errorf("failed to create .env file: %w", err)
+		return fmt.Errorf("failed to create config file: %w", err)
 	}
 
 	return nil

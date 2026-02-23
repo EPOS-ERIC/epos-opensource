@@ -15,7 +15,6 @@ import (
 // deployFormData holds the form field values.
 type deployFormData struct {
 	name          string
-	path          string // Docker only
 	pullImages    bool   // Docker only
 	context       string // K8s only
 	configSession *configEditSession
@@ -46,11 +45,6 @@ func (a *App) showDeployForm() {
 
 	if isDocker {
 		fields = append(fields,
-			FormField{
-				Type:             "input",
-				Label:            "Path",
-				InputChangedFunc: func(text string) { data.path = text },
-			},
 			FormField{
 				Type:                "checkbox",
 				Label:               "Update Images",
@@ -150,13 +144,16 @@ func (a *App) showDeployProgress(data *deployFormData, isDocker bool, dockerCfg 
 
 			if isDocker {
 				env, derr := docker.Deploy(docker.DeployOpts{
-					Path:       data.path,
 					PullImages: data.pullImages,
 					Config:     dockerCfg,
 				})
 				err = derr
 				if env != nil {
-					guiURL = env.GuiUrl
+					urls, uerr := env.BuildEnvURLs()
+					if uerr != nil {
+						return "", uerr
+					}
+					guiURL = urls.GUIURL
 				}
 			} else {
 				env, kerr := k8s.Deploy(k8s.DeployOpts{

@@ -2,42 +2,133 @@ package docker
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/EPOS-ERIC/epos-opensource/command"
+	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/config"
 )
 
-// composeCommand creates a docker compose command configured with the given directory and environment name
-func composeCommand(dir string, args ...string) *exec.Cmd {
-	cmd := exec.Command("docker", append([]string{"compose"}, args...)...)
-	cmd.Dir = dir
+type composeBundle struct {
+	dir         string
+	envFile     string
+	composeFile string
+}
+
+func createComposeBundle(cfg *config.EnvConfig) (*composeBundle, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("config is required")
+	}
+
+	files, err := cfg.Render()
+	if err != nil {
+		return nil, fmt.Errorf("failed to render docker templates: %w", err)
+	}
+
+	tmpDir, err := os.MkdirTemp("", "epos-docker-*")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temporary compose bundle directory: %w", err)
+	}
+
+	bundle := &composeBundle{
+		dir:         tmpDir,
+		envFile:     filepath.Join(tmpDir, ".env"),
+		composeFile: filepath.Join(tmpDir, "docker-compose.yaml"),
+	}
+
+	if err := common.CreateFileWithContent(bundle.envFile, files[".env"], true); err != nil {
+		_ = os.RemoveAll(tmpDir)
+		return nil, fmt.Errorf("failed to write temporary .env file: %w", err)
+	}
+
+	if err := common.CreateFileWithContent(bundle.composeFile, files["docker-compose.yaml"], true); err != nil {
+		_ = os.RemoveAll(tmpDir)
+		return nil, fmt.Errorf("failed to write temporary docker-compose file: %w", err)
+	}
+
+	return bundle, nil
+}
+
+func withComposeBundle(cfg *config.EnvConfig, fn func(bundle *composeBundle) error) error {
+	bundle, err := createComposeBundle(cfg)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err := os.RemoveAll(bundle.dir); err != nil {
+			display.Warn("failed to cleanup temporary compose bundle %s: %v", bundle.dir, err)
+		}
+	}()
+
+	if err := fn(bundle); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// composeCommand creates a docker compose command configured with explicit files and project name.
+func composeCommand(bundle *composeBundle, projectName string, args ...string) *exec.Cmd {
+	baseArgs := []string{
+		"compose",
+		"-p",
+		projectName,
+		"--env-file",
+		bundle.envFile,
+		"-f",
+		bundle.composeFile,
+	}
+
+	cmd := exec.Command("docker", append(baseArgs, args...)...)
+	cmd.Dir = bundle.dir
 	return cmd
 }
 
 // pullEnvImages pulls docker images for the environment with custom messages
 // TODO make this take just the image struct and pull those, not using the env file
-func pullEnvImages(dir, name string) error {
-	display.Step("Pulling images for environment: %s", name)
-	if _, err := command.RunCommand(composeCommand(dir, "pull"), false); err != nil {
-		return fmt.Errorf("pull images failed: %w", err)
+func pullEnvImages(cfg *config.EnvConfig) error {
+	display.Step("Pulling images for environment: %s", cfg.Name)
+
+	err := withComposeBundle(cfg, func(bundle *composeBundle) error {
+		if _, err := command.RunCommand(composeCommand(bundle, cfg.Name, "pull"), false); err != nil {
+			return fmt.Errorf("pull images failed: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
 	}
-	display.Done("Images pulled for environment: %s", name)
+
+	display.Done("Images pulled for environment: %s", cfg.Name)
+
 	return nil
 }
 
-// deployStack deploys the stack in the specified directory.
-// the deployed stack will use the given ports for the deployment of the services.
-// it is the responsibility of the caller to ensure the ports are not used
-func deployStack(removeOrphans bool, dir string) error {
+// deployStack deploys the stack using a rendered temporary compose bundle.
+// The deployed stack will use the configured ports for the deployment of the services.
+// It is the responsibility of the caller to ensure the ports are not used.
+func deployStack(removeOrphans bool, cfg *config.EnvConfig) error {
 	display.Step("Deploying stack")
 
 	args := []string{"up", "-d"}
 	if removeOrphans {
 		args = append(args, "--remove-orphans")
 	}
-	if _, err := command.RunCommand(composeCommand(dir, args...), false); err != nil {
-		return fmt.Errorf("deployment of stack failed: %w", err)
+
+	err := withComposeBundle(cfg, func(bundle *composeBundle) error {
+		if _, err := command.RunCommand(composeCommand(bundle, cfg.Name, args...), false); err != nil {
+			return fmt.Errorf("deployment of stack failed: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 
 	display.Done("Stack deployed successfully")
@@ -45,54 +136,23 @@ func deployStack(removeOrphans bool, dir string) error {
 	return nil
 }
 
-// downStack stops the stack running in the given directory
-func downStack(dir string, removeVolumes bool) error {
-	if removeVolumes {
-		_, err := command.RunCommand(composeCommand(dir, "down", "-v"), false)
+// downStack stops the stack for the given environment configuration.
+func downStack(cfg *config.EnvConfig, removeVolumes bool) error {
+	err := withComposeBundle(cfg, func(bundle *composeBundle) error {
+		args := []string{"down"}
+		if removeVolumes {
+			args = append(args, "-v")
+		}
+
+		if _, err := command.RunCommand(composeCommand(bundle, cfg.Name, args...), false); err != nil {
+			return fmt.Errorf("docker compose down failed: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
 		return err
 	}
-	_, err := command.RunCommand(composeCommand(dir, "down"), false)
-	return err
-}
 
-// DeploymentPorts groups externally exposed service ports for a Docker environment.
-type DeploymentPorts struct {
-	GUI        int
-	API        int
-	Backoffice int
+	return nil
 }
-
-// ensureFree makes sure that the ports are free and usable. If they are not, new ones are generated and substituted in place
-// func (d *DeploymentPorts) ensureFree() error {
-// 	ensurePortFree := func(port int, name string) (int, error) {
-// 		isFree, err := common.IsPortFree(port)
-// 		if err != nil {
-// 			display.Warn("error checking availability of port for %s: %d. Continuing anyway", name, port)
-// 		}
-// 		if !isFree {
-// 			freePort, err := common.FindFreePort()
-// 			if err != nil {
-// 				return 0, fmt.Errorf("error getting free port for %s", name)
-// 			}
-// 			display.Info("Port %d for %s is already used, using new random free port: %d", port, name, freePort)
-// 			return freePort, nil
-// 		}
-// 		return port, nil
-// 	}
-//
-// 	var err error
-//
-// 	d.GUI, err = ensurePortFree(d.GUI, "DATAPORTAL_PORT")
-// 	if err != nil {
-// 		return err
-// 	}
-// 	d.API, err = ensurePortFree(d.API, "GATEWAY_PORT")
-// 	if err != nil {
-// 		return err
-// 	}
-// 	d.Backoffice, err = ensurePortFree(d.Backoffice, "BACKOFFICE_PORT")
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }

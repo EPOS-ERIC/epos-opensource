@@ -1,35 +1,27 @@
 -- Docker queries
 -- name: GetAllDocker :many
 SELECT
-    *
+    name,
+    config_yaml
 FROM
-    docker;
+    docker
+ORDER BY
+    name;
 
 -- name: UpsertDocker :one
 INSERT INTO
     docker (
         name,
-        directory,
-        api_url,
-        gui_url,
-        backoffice_url,
-        gui_port,
-        api_port,
-        backoffice_port
+        config_yaml
     )
 VALUES
-    (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (name) DO
+    (?, ?) ON CONFLICT (name) DO
 UPDATE
 SET
-    directory = excluded.directory,
-    api_url = excluded.api_url,
-    gui_url = excluded.gui_url,
-    backoffice_url = excluded.backoffice_url,
-    gui_port = excluded.gui_port,
-    api_port = excluded.api_port,
-    backoffice_port = excluded.backoffice_port
+    config_yaml = excluded.config_yaml
 RETURNING
-    *;
+    name,
+    config_yaml;
 
 -- name: DeleteDocker :exec
 DELETE FROM
@@ -39,7 +31,8 @@ WHERE
 
 -- name: GetDockerByName :one
 SELECT
-    *
+    name,
+    config_yaml
 FROM
     docker
 WHERE

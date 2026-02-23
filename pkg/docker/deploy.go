@@ -1,13 +1,10 @@
 package docker
 
 import (
-	_ "embed"
 	"fmt"
 	"log"
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
-	"github.com/EPOS-ERIC/epos-opensource/db"
-	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
 	"github.com/EPOS-ERIC/epos-opensource/display"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/config"
 	"github.com/EPOS-ERIC/epos-opensource/validate"
@@ -15,8 +12,6 @@ import (
 
 // DeployOpts defines inputs for Deploy.
 type DeployOpts struct {
-	// Custom directory path for .env and docker-compose.yaml files
-	Path string
 	// Pull images before deploying
 	PullImages bool
 	// Environment configuration (required)
@@ -24,7 +19,7 @@ type DeployOpts struct {
 }
 
 // Deploy creates and starts a Docker-based EPOS environment and persists it in the local store.
-func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
+func Deploy(opts DeployOpts) (*Env, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid deploy parameters: %w", err)
 	}
@@ -35,15 +30,7 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 		return nil, fmt.Errorf("failed to ensure ports are free: %w", err)
 	}
 
-	display.Step("Creating environment: %s", opts.Config.Name)
-
-	dir, err := NewEnvDir(opts.Path, opts.Config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to prepare environment directory: %w", err)
-	}
-
-	display.Debug("created environment directory: %s", dir)
-	display.Done("Environment created in directory: %s", dir)
+	display.Step("Deploying environment: %s", opts.Config.Name)
 
 	if !opts.PullImages {
 		updates, err := opts.Config.CheckForUpdates()
@@ -54,15 +41,13 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 	}
 
 	var stackDeployed bool
-	handleFailure := func(msg string, mainErr error) (*sqlc.Docker, error) {
+	handleFailure := func(msg string, mainErr error) (*Env, error) {
 		if stackDeployed {
-			if derr := downStack(dir, false); derr != nil {
+			if derr := downStack(opts.Config, false); derr != nil {
 				display.Warn("docker compose down failed, there may be dangling resources: %v", derr)
 			}
 		}
-		if err := common.RemoveEnvDir(dir); err != nil {
-			return nil, fmt.Errorf("error deleting environment %s: %w", dir, err)
-		}
+
 		display.Error("stack deployment failed")
 		return nil, fmt.Errorf(msg, mainErr)
 	}
@@ -70,7 +55,7 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 	if opts.PullImages {
 		display.Debug("pulling images before stack deployment")
 
-		if err := pullEnvImages(dir, opts.Config.Name); err != nil {
+		if err := pullEnvImages(opts.Config); err != nil {
 			display.Error("Pulling images failed: %v", err)
 			return handleFailure("pulling images failed: %w", err)
 		}
@@ -78,13 +63,13 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 
 	stackDeployed = true
 
-	err = deployStack(true, dir)
+	err := deployStack(true, opts.Config)
 	if err != nil {
 		display.Error("Deploy failed: %v", err)
 		return handleFailure("deploy failed: %w", err)
 	}
 
-	display.Debug("stack deployed in directory: %s", dir)
+	display.Debug("stack deployed: %s", opts.Config.Name)
 
 	urls, err := opts.Config.BuildEnvURLs()
 	if err != nil {
@@ -101,33 +86,18 @@ func Deploy(opts DeployOpts) (*sqlc.Docker, error) {
 
 	display.Debug("initialized base ontologies using: %s", urls.APIURL)
 
-	var backofficePort int64
-	if opts.Config.Components.Backoffice.Enabled {
-		backofficePort = int64(opts.Config.Components.Backoffice.GUI.Port)
-	}
-
-	docker, err := db.UpsertDocker(sqlc.Docker{
-		Name:           opts.Config.Name,
-		Directory:      dir,
-		ApiUrl:         urls.APIURL,
-		GuiUrl:         urls.GUIURL,
-		BackofficeUrl:  urls.BackofficeURL,
-		ApiPort:        int64(opts.Config.Components.Gateway.Port),
-		GuiPort:        int64(opts.Config.Components.PlatformGUI.Port),
-		BackofficePort: &backofficePort,
-	})
+	env, err := upsertEnvConfig(opts.Config)
 	if err != nil {
-		return handleFailure("failed to insert docker in db: %w", fmt.Errorf("%s (dir: %s): %w", opts.Config.Name, dir, err))
+		return handleFailure("failed to persist environment config: %w", err)
 	}
 
 	display.Done("Created environment: %s", opts.Config.Name)
 
-	return docker, err
+	return env, nil
 }
 
 // Validate checks DeployOpts and resolves any required preconditions before deployment.
 func (d *DeployOpts) Validate() error {
-	display.Debug("path: %s", d.Path)
 	display.Debug("pullImages: %v", d.PullImages)
 	display.Debug("config: %+v", d.Config)
 
@@ -145,10 +115,6 @@ func (d *DeployOpts) Validate() error {
 
 	if err := EnsureEnvironmentDoesNotExist(d.Config.Name); err != nil {
 		return fmt.Errorf("an environment with the name '%s' already exists: %w", d.Config.Name, err)
-	}
-
-	if err := validate.PathExists(d.Path); err != nil {
-		return fmt.Errorf("invalid path: %w", err)
 	}
 
 	return nil

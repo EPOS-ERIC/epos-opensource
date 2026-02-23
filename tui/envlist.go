@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
-	"github.com/EPOS-ERIC/epos-opensource/db"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -120,12 +120,12 @@ func (el *EnvList) loadData() envListData {
 		k8sEnvs:    []k8sEnvRef{},
 	}
 
-	dockers, err := db.GetAllDocker()
+	envs, err := docker.List()
 	if err != nil {
 		data.dockerErr = err
 	} else {
-		for _, dockerEnv := range dockers {
-			data.dockerEnvs = append(data.dockerEnvs, dockerEnv.Name)
+		for _, env := range envs {
+			data.dockerEnvs = append(data.dockerEnvs, env.Name)
 		}
 	}
 
