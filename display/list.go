@@ -2,10 +2,8 @@ package display
 
 import (
 	"fmt"
-	"net/url"
 	"strings"
 
-	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 )
@@ -80,29 +78,4 @@ func InfraList(rows [][]any, headers []string, title string) {
 	}
 	t.AppendFooter(table.Row(footer), rowMerge)
 	fmt.Println(t.Render())
-}
-
-func DockerList(dockers []sqlc.Docker, title string) {
-	// TODO: Move Docker row shaping into cmd/docker (like K8s) once a shared list model exists.
-	rows := make([][]any, len(dockers))
-	for i, d := range dockers {
-		gatewayURL, err := url.JoinPath(d.ApiUrl, "ui")
-		if err != nil {
-			Warn("Could not construct gateway URL: %v", err)
-			gatewayURL = d.ApiUrl
-		}
-		var backofficeURL string
-		if d.BackofficeUrl != nil {
-			u, err := url.JoinPath(*d.BackofficeUrl, "home")
-			if err != nil {
-				Warn("Could not construct backoffice URL: %v", err)
-				backofficeURL = *d.BackofficeUrl
-			} else {
-				backofficeURL = u
-			}
-		}
-		rows[i] = []any{d.Name, d.Directory, d.GuiUrl, gatewayURL, backofficeURL}
-	}
-	headers := []string{"Name", "Directory", "GUI URL", "API URL", "Backoffice URL"}
-	InfraList(rows, headers, title)
 }
