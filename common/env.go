@@ -36,18 +36,6 @@ func CreateFileWithContent(filePath, content string, doNotEdit bool) error {
 	return nil
 }
 
-// GetContentFromPathOrDefault reads content from filePath if provided, otherwise returns defaultContent
-func GetContentFromPathOrDefault(filePath, defaultContent string) (string, error) {
-	if filePath == "" {
-		return defaultContent, nil
-	}
-	content, err := os.ReadFile(filePath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read file %s: %w", filePath, err)
-	}
-	return string(content), nil
-}
-
 func deleteEnvDir(path string) error {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return fmt.Errorf("directory %s does not exist", path)

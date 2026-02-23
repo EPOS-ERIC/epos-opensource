@@ -114,11 +114,6 @@ func (el *EnvList) GetFlex() *tview.Flex {
 	return el.flex
 }
 
-// Refresh updates the lists, preserving current focus/selection.
-func (el *EnvList) Refresh() {
-	el.applyData(el.loadData())
-}
-
 func (el *EnvList) loadData() envListData {
 	data := envListData{
 		dockerEnvs: []string{},
