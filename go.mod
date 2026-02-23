@@ -6,7 +6,6 @@ tool github.com/sqlc-dev/sqlc/cmd/sqlc
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0
-	github.com/creack/pty v1.1.24
 	github.com/gdamore/tcell/v2 v2.13.4
 	github.com/google/go-containerregistry v0.20.6
 	github.com/google/go-github/v72 v72.0.0
