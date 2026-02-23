@@ -41,7 +41,7 @@ func Deploy(opts DeployOpts) (*Env, error) {
 
 	chart, err := config.GetChart()
 	if err != nil {
-		return nil, fmt.Errorf("TODO: %w", err)
+		return nil, fmt.Errorf("failed to load helm chart: %w", err)
 	}
 
 	display.Debug("built chart: %+v", chart)
@@ -49,7 +49,7 @@ func Deploy(opts DeployOpts) (*Env, error) {
 
 	values, err := opts.Config.AsValues()
 	if err != nil {
-		return nil, fmt.Errorf("TODO: %w", err)
+		return nil, fmt.Errorf("failed to build helm values from config: %w", err)
 	}
 
 	display.Debug("built values: %+v", values)
@@ -88,7 +88,7 @@ func Deploy(opts DeployOpts) (*Env, error) {
 
 	env, err := ReleaseToEnv(rel, opts.Context)
 	if err != nil {
-		return nil, fmt.Errorf("TODO: %w", err)
+		return nil, fmt.Errorf("failed to convert release to environment: %w", err)
 	}
 
 	display.Done("Deployed environment: %s", opts.Config.Name)

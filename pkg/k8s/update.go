@@ -94,7 +94,7 @@ func Update(opts UpdateOpts) (*Env, error) {
 
 	chart, err := config.GetChart()
 	if err != nil {
-		return nil, fmt.Errorf("TODO: %w", err)
+		return nil, fmt.Errorf("failed to load helm chart: %w", err)
 	}
 
 	display.Debug("built chart: %+v", chart)
@@ -102,7 +102,7 @@ func Update(opts UpdateOpts) (*Env, error) {
 
 	values, err := opts.NewConfig.AsValues()
 	if err != nil {
-		return nil, fmt.Errorf("TODO: %w", err)
+		return nil, fmt.Errorf("failed to build helm values from config: %w", err)
 	}
 
 	display.Debug("built values: %+v", values)
@@ -139,7 +139,7 @@ func Update(opts UpdateOpts) (*Env, error) {
 
 	newEnv, err := ReleaseToEnv(rel, opts.Context)
 	if err != nil {
-		return nil, fmt.Errorf("TODO: %w", err)
+		return nil, fmt.Errorf("failed to convert upgraded release to environment: %w", err)
 	}
 
 	display.Done("Updated environment: %s", opts.OldEnvName)
