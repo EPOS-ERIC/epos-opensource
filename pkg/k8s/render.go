@@ -84,7 +84,7 @@ func Render(opts RenderOpts) ([]string, error) {
 			return nil, fmt.Errorf("failed to create %s file: %w", name, err)
 		}
 
-		outputPaths = append(outputPaths, name)
+		outputPaths = append(outputPaths, filePath)
 	}
 
 	display.Done("Rendered K8s config in: %s", opts.OutputPath)

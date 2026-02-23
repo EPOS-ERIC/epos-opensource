@@ -410,6 +410,15 @@ func (el *EnvList) setupRootInput(envsFlex *tview.Flex) {
 				el.app.showUpdateForm()
 				return nil
 			}
+		case event.Rune() == 'r':
+			if el.IsDockerActive() && el.docker.GetItemCount() > 0 {
+				el.app.showRenderForm()
+				return nil
+			}
+			if !el.IsDockerActive() && el.k8s.GetItemCount() > 0 {
+				el.app.showRenderForm()
+				return nil
+			}
 		case event.Rune() == 'p':
 			if el.IsDockerActive() && el.docker.GetItemCount() > 0 {
 				el.app.showPopulateForm()

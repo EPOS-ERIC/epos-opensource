@@ -63,6 +63,7 @@ var FooterTexts = map[ScreenKey]FooterText{
 	HelpKey:          HelpFooter,
 	UpdateFormKey:    UpdateFooter,
 	DeployFormKey:    NewFooter,
+	RenderFormKey:    RenderFooter,
 }
 
 func GetFooterText(key ScreenKey) FooterText {
@@ -90,6 +91,7 @@ var KeyHints = map[ScreenKey][]KeyHint{
 		{"d: delete", "d: delete the selected docker environment", true, "Environment"},
 		{"c: clean", "c: clean the selected docker environment", true, "Environment"},
 		{"u: update", "u: update the selected docker environment", true, "Environment"},
+		{"r: render", "r: render files for the selected docker environment", true, "Environment"},
 		{"p: populate", "p: populate the selected docker environment", true, "Environment"},
 		{"enter: details", "enter: view details of the selected docker environment", true, "Navigation"},
 		{"?: help", "?: show help for current context", true, "Generic"},
@@ -102,6 +104,7 @@ var KeyHints = map[ScreenKey][]KeyHint{
 		{"d: delete", "d: delete the selected k8s environment", true, "Environment"},
 		{"c: clean", "c: clean the selected k8s environment", true, "Environment"},
 		{"u: update", "u: update the selected k8s environment", true, "Environment"},
+		{"r: render", "r: render files for the selected k8s environment", true, "Environment"},
 		{"p: populate", "p: populate the selected k8s environment", true, "Environment"},
 		{"enter: details", "enter: view details of the selected k8s environment", true, "Navigation"},
 		{"?: help", "?: show help for current context", true, "Generic"},
@@ -113,6 +116,7 @@ var KeyHints = map[ScreenKey][]KeyHint{
 		{"d: delete", "d: delete this docker environment", true, "Environment"},
 		{"c: clean", "c: clean this docker environment", true, "Environment"},
 		{"u: update", "u: update this docker environment", true, "Environment"},
+		{"r: render", "r: render files for this docker environment", true, "Environment"},
 		{"p: populate", "p: populate this docker environment", true, "Environment"},
 		{"g: gui", "g: open gui in browser", true, "Browser"},
 		{"G: copy gui", "G: copy gui url to clipboard", false, "Browser"},
@@ -131,6 +135,7 @@ var KeyHints = map[ScreenKey][]KeyHint{
 		{"d: delete", "d: delete this k8s environment", true, "Environment"},
 		{"c: clean", "c: clean this k8s environment", true, "Environment"},
 		{"u: update", "u: update this k8s environment", true, "Environment"},
+		{"r: render", "r: render files for this k8s environment", true, "Environment"},
 		{"p: populate", "p: populate this k8s environment", true, "Environment"},
 		{"g: gui", "g: open gui in browser", true, "Browser"},
 		{"G: copy gui", "G: copy gui url to clipboard", false, "Browser"},
@@ -203,6 +208,12 @@ var KeyHints = map[ScreenKey][]KeyHint{
 		{"esc: cancel", "esc: cancel file selection", true, "Generic"},
 	},
 	"deploy-form": {
+		{"tab: next", "", true, "Generic"},
+		{"S-tab: prev", "", true, "Generic"},
+		{"enter: submit", "", true, "Generic"},
+		{"esc: cancel", "", true, "Generic"},
+	},
+	"render-form": {
 		{"tab: next", "", true, "Generic"},
 		{"S-tab: prev", "", true, "Generic"},
 		{"enter: submit", "", true, "Generic"},

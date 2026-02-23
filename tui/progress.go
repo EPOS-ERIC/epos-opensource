@@ -304,6 +304,7 @@ func (op *OperationProgress) showCompletionOverlay() {
 // returnToHome cleans up and returns to home screen.
 func (op *OperationProgress) returnToHome() {
 	pageName := fmt.Sprintf("%s-progress", op.operation)
+	op.app.outputWriter.ClearView()
 
 	op.app.ResetToHome(ResetOptions{
 		PageNames:      []string{pageName, "completion-overlay"},
@@ -327,7 +328,6 @@ func (op *OperationProgress) handleInput(event *tcell.EventKey) *tcell.EventKey 
 		if op.state == StateRunning {
 			return nil
 		}
-		op.app.outputWriter.ClearView()
 		op.returnToHome()
 		return nil
 	}

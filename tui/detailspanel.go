@@ -3,10 +3,8 @@ package tui
 import (
 	"fmt"
 	"net/url"
-	"os"
 	"strings"
 
-	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/db"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/docker"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
@@ -36,6 +34,7 @@ type DetailsPanel struct {
 	deleteButton          *tview.Button
 	cleanButton           *tview.Button
 	updateButton          *tview.Button
+	renderButton          *tview.Button
 	populateButton        *tview.Button
 	detailsList           *tview.List
 	detailsListEmpty      *tview.TextView
@@ -179,6 +178,10 @@ func (dp *DetailsPanel) buildUI() {
 		dp.app.showUpdateForm()
 	})
 
+	dp.renderButton = NewStyledButton("Render", func() {
+		dp.app.showRenderForm()
+	})
+
 	dp.populateButton = NewStyledButton("Populate", func() {
 		dp.app.showPopulateForm()
 	})
@@ -186,6 +189,8 @@ func (dp *DetailsPanel) buildUI() {
 	dp.buttonsFlex = tview.NewFlex().SetDirection(tview.FlexColumn)
 	dp.buttonsFlex.AddItem(tview.NewBox(), 0, 1, false)
 	dp.buttonsFlex.AddItem(dp.populateButton, 14, 0, true)
+	dp.buttonsFlex.AddItem(tview.NewBox(), 0, 1, false)
+	dp.buttonsFlex.AddItem(dp.renderButton, 12, 0, false)
 	dp.buttonsFlex.AddItem(tview.NewBox(), 0, 1, false)
 	dp.buttonsFlex.AddItem(dp.updateButton, 12, 0, false)
 	dp.buttonsFlex.AddItem(tview.NewBox(), 0, 1, false)
@@ -485,8 +490,10 @@ func (dp *DetailsPanel) CycleFocus() {
 		dp.app.tview.SetFocus(dp.deleteButton)
 	case dp.updateButton:
 		dp.app.tview.SetFocus(dp.cleanButton)
-	case dp.populateButton:
+	case dp.renderButton:
 		dp.app.tview.SetFocus(dp.updateButton)
+	case dp.populateButton:
+		dp.app.tview.SetFocus(dp.renderButton)
 	case dp.detailsListFlex, dp.detailsList, dp.detailsListEmpty:
 		dp.app.tview.SetFocus(dp.populateButton)
 	default:
@@ -539,6 +546,8 @@ func (dp *DetailsPanel) CycleFocusBackward() {
 	case dp.cleanButton:
 		dp.app.tview.SetFocus(dp.updateButton)
 	case dp.updateButton:
+		dp.app.tview.SetFocus(dp.renderButton)
+	case dp.renderButton:
 		dp.app.tview.SetFocus(dp.populateButton)
 	case dp.populateButton:
 		dp.focusIngestedFiles()
@@ -598,6 +607,9 @@ func (dp *DetailsPanel) SetupInput() {
 			return nil
 		case event.Rune() == 'u':
 			dp.app.showUpdateForm()
+			return nil
+		case event.Rune() == 'r':
+			dp.app.showRenderForm()
 			return nil
 		case event.Rune() == 'p':
 			dp.app.showPopulateForm()
@@ -692,24 +704,8 @@ func (dp *DetailsPanel) createDetailsRows(rows []DetailRow) {
 
 // openValue opens the given value (URL, directory, or file) using the appropriate command.
 func (dp *DetailsPanel) openValue(value string) {
-	var cmd string
-	if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") {
-		cmd = dp.app.config.TUI.OpenURLCommand
-	} else {
-		if info, err := os.Stat(value); err == nil && info.IsDir() {
-			cmd = dp.app.config.TUI.OpenDirectoryCommand
-		} else {
-			cmd = dp.app.config.TUI.OpenFileCommand
-		}
-	}
-	if cmd != "" {
-		dp.app.tview.Suspend(func() {
-			if err := common.OpenWithCommand(cmd, value); err != nil {
-				dp.app.ShowError(fmt.Sprintf("Failed to open: %v", err))
-			}
-		})
-	} else {
-		dp.app.ShowError("Failed to open")
+	if err := dp.app.openValue(value); err != nil {
+		dp.app.ShowError(err.Error())
 	}
 }
 

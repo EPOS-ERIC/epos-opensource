@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -488,6 +489,39 @@ func (a *App) RunBackgroundTask(opts TaskOptions) {
 			progress.Complete(true, msg)
 		}
 	}()
+}
+
+func (a *App) openValue(value string) error {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return fmt.Errorf("empty value")
+	}
+
+	var cmd string
+	if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") {
+		cmd = a.config.TUI.OpenURLCommand
+	} else {
+		if info, err := os.Stat(value); err == nil && info.IsDir() {
+			cmd = a.config.TUI.OpenDirectoryCommand
+		} else {
+			cmd = a.config.TUI.OpenFileCommand
+		}
+	}
+
+	if strings.TrimSpace(cmd) == "" {
+		return fmt.Errorf("no open command configured")
+	}
+
+	var openErr error
+	a.tview.Suspend(func() {
+		openErr = common.OpenWithCommand(cmd, value)
+	})
+
+	if openErr != nil {
+		return fmt.Errorf("failed to open: %w", openErr)
+	}
+
+	return nil
 }
 
 // PushFocus saves the current focus to the stack.
