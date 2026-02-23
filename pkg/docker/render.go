@@ -67,7 +67,7 @@ func Render(opts RenderOpts) ([]string, error) {
 	envFilePath := filepath.Join(opts.OutputPath, ".env")
 	display.Debug("writing file: %s", envFilePath)
 
-	if err := common.CreateFileWithContent(envFilePath, files[".env"], true); err != nil {
+	if err := common.CreateFileWithContent(envFilePath, files[".env"], false); err != nil {
 		return nil, fmt.Errorf("failed to create .env file: %w", err)
 	}
 
@@ -75,7 +75,7 @@ func Render(opts RenderOpts) ([]string, error) {
 
 	display.Debug("writing file: %s", composeFilePath)
 
-	if err := common.CreateFileWithContent(composeFilePath, files["docker-compose.yaml"], true); err != nil {
+	if err := common.CreateFileWithContent(composeFilePath, files["docker-compose.yaml"], false); err != nil {
 		return nil, fmt.Errorf("failed to create docker-compose.yaml file: %w", err)
 	}
 

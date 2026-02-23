@@ -79,7 +79,7 @@ func Render(opts RenderOpts) ([]string, error) {
 			return nil, fmt.Errorf("failed to create parent directory for %s file: %w", name, err)
 		}
 
-		err := common.CreateFileWithContent(filePath, out, true)
+		err := common.CreateFileWithContent(filePath, out, false)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create %s file: %w", name, err)
 		}
