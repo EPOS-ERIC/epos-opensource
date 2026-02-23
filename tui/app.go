@@ -219,7 +219,7 @@ func (a *App) refreshEnvListAsync() {
 // UpdateFooter updates the footer section text and shortcut keys.
 func (a *App) UpdateFooter(contextKey ScreenKey) {
 	section := GetFooterText(contextKey)
-	keys := getFooterHints(contextKey)
+	keys := a.getFooterHints(contextKey)
 	a.footerMutex.Lock()
 	a.currentFooterSection = string(section)
 	a.currentFooterKeys = keys
@@ -227,6 +227,27 @@ func (a *App) UpdateFooter(contextKey ScreenKey) {
 	a.footerMutex.Unlock()
 
 	a.drawFooter(string(section), keys)
+}
+
+func (a *App) getFooterHints(contextKey ScreenKey) []string {
+	keys := getFooterHints(contextKey)
+	if (contextKey == DetailsDockerKey || contextKey == DetailsK8sKey) && a.detailsPanel != nil && !a.detailsPanel.hasDetailRow("Backoffice") {
+		return filterBackofficeHints(keys)
+	}
+
+	return keys
+}
+
+func filterBackofficeHints(keys []string) []string {
+	filtered := make([]string, 0, len(keys))
+	for _, key := range keys {
+		if strings.HasPrefix(key, "b: backoffice") || strings.HasPrefix(key, "B: copy backoffice") {
+			continue
+		}
+		filtered = append(filtered, key)
+	}
+
+	return filtered
 }
 
 // UpdateFooterCustom updates the footer with custom keys (not from context).

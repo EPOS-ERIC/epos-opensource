@@ -608,12 +608,17 @@ func (dp *DetailsPanel) SetupInput() {
 				return nil
 			}
 		case event.Rune() == 'b':
-			if dp.detailsShown && len(dp.currentDetailsRows) > 1 {
-				dp.openValue(dp.currentDetailsRows[1].Value)
+			if dp.detailsShown {
+				if value, ok := dp.findDetailRowValue("Backoffice"); ok {
+					dp.openValue(value)
+				}
 				return nil
 			}
-			if dp.detailsShown && len(dp.currentDetailsRows) > 2 {
-				dp.openValue(dp.currentDetailsRows[2].Value)
+		case event.Rune() == 'a':
+			if dp.detailsShown {
+				if value, ok := dp.findDetailRowValue("API"); ok {
+					dp.openValue(value)
+				}
 				return nil
 			}
 		case event.Rune() == 'G':
@@ -622,13 +627,17 @@ func (dp *DetailsPanel) SetupInput() {
 				return nil
 			}
 		case event.Rune() == 'B':
-			if dp.detailsShown && len(dp.currentDetailsRows) > 1 {
-				dp.app.copyToClipboardWithFeedback(dp.currentDetailsRows[1].Value, "Copied to clipboard", "Failed to copy to clipboard")
+			if dp.detailsShown {
+				if value, ok := dp.findDetailRowValue("Backoffice"); ok {
+					dp.app.copyToClipboardWithFeedback(value, "Copied to clipboard", "Failed to copy to clipboard")
+				}
 				return nil
 			}
 		case event.Rune() == 'A':
-			if dp.detailsShown && len(dp.currentDetailsRows) > 2 {
-				dp.app.copyToClipboardWithFeedback(dp.currentDetailsRows[2].Value, "Copied to clipboard", "Failed to copy to clipboard")
+			if dp.detailsShown {
+				if value, ok := dp.findDetailRowValue("API"); ok {
+					dp.app.copyToClipboardWithFeedback(value, "Copied to clipboard", "Failed to copy to clipboard")
+				}
 				return nil
 			}
 		case event.Rune() == 'y':
@@ -649,6 +658,21 @@ func (dp *DetailsPanel) SetupInput() {
 	dp.detailsList.SetInputCapture(handler)
 	dp.detailsListEmpty.SetInputCapture(handler)
 	dp.detailsListFlex.SetInputCapture(handler)
+}
+
+func (dp *DetailsPanel) findDetailRowValue(label string) (string, bool) {
+	for _, row := range dp.currentDetailsRows {
+		if row.Label == label {
+			return row.Value, true
+		}
+	}
+
+	return "", false
+}
+
+func (dp *DetailsPanel) hasDetailRow(label string) bool {
+	_, ok := dp.findDetailRowValue(label)
+	return ok
 }
 
 // setupFocusHandlers configures visual feedback when components gain/lose focus.
