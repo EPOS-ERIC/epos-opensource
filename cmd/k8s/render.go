@@ -16,7 +16,7 @@ var RenderCmd = &cobra.Command{
 	Long: `Render Kubernetes environment configuration files from defaults or a YAML config.
 
 The command renders Helm chart files from YAML configuration and creates
-the environment directory with .env and k8s-compose.yaml files.`,
+the environment directory with rendered Kubernetes manifest files.`,
 	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := ""

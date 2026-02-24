@@ -18,7 +18,7 @@ type RenderOpts struct {
 	Name string
 	// Optional. Custom config for the environment.
 	Config *config.Config
-	// Optional. path to export the embedded k8s-compose.yaml and .env files
+	// Optional. Path to write rendered Kubernetes manifest files.
 	OutputPath string
 }
 
