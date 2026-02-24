@@ -45,13 +45,6 @@ func Populate(opts PopulateOpts) (*Env, error) {
 
 	display.Debug("selected local port for port-forward: %d", port)
 
-	URLs, err := env.BuildEnvURLs()
-	if err != nil {
-		return nil, fmt.Errorf("error building environment URLs: %w", err)
-	}
-
-	display.Debug("environment urls: %+v", URLs)
-
 	// start a port forward locally to the ingestor service and use that to do the populate posts
 	err = ForwardAndRun(opts.Name, "ingestor-service", port, 8080, opts.Context, func(host string, port int) error {
 		display.Step("Starting port-forward to ingestor-service pod")
@@ -64,13 +57,7 @@ func Populate(opts PopulateOpts) (*Env, error) {
 
 			successfulExamples, err := common.PopulateExample(url, opts.Parallel)
 			if err != nil {
-				display.Warn("error populating environment with examples through port-forward: %v. Trying with direct URL: %s", err, URLs.APIURL)
-				display.Debug("retrying example population with direct URL")
-
-				successfulExamples, err = common.PopulateExample(URLs.APIURL, opts.Parallel)
-				if err != nil {
-					return fmt.Errorf("error populating environment with examples with direct URL: %w", err)
-				}
+				return fmt.Errorf("error populating environment with examples through port-forward: %w", err)
 			}
 
 			display.Debug("populated example files: %d", len(successfulExamples))
@@ -88,13 +75,7 @@ func Populate(opts PopulateOpts) (*Env, error) {
 
 			successfulFiles, err := common.PopulateEnv(absPath, url, opts.Parallel)
 			if err != nil {
-				display.Warn("error populating environment through port-forward: %v. Trying with direct URL: %s", err, URLs.APIURL)
-				display.Debug("retrying metadata population with direct URL")
-
-				successfulFiles, err = common.PopulateEnv(absPath, URLs.APIURL, opts.Parallel)
-				if err != nil {
-					return fmt.Errorf("error populating environment with direct URL: %w", err)
-				}
+				return fmt.Errorf("error populating environment through port-forward: %w", err)
 			}
 
 			display.Debug("populated metadata files from path %s: %d", absPath, len(successfulFiles))
