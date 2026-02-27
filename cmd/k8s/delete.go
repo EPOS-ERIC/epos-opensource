@@ -38,6 +38,7 @@ var DeleteCmd = &cobra.Command{
 		err := k8s.Delete(k8s.DeleteOpts{
 			Name:    name,
 			Context: context,
+			Timeout: timeout,
 		})
 		if err != nil {
 			display.Error("%v", err)
@@ -49,4 +50,5 @@ var DeleteCmd = &cobra.Command{
 func init() {
 	DeleteCmd.Flags().BoolVarP(&deleteForce, "force", "f", false, "Force delete without confirmation prompt")
 	DeleteCmd.Flags().StringVar(&context, "context", "", "Kubectl context to use. Uses current context if not set")
+	DeleteCmd.Flags().DurationVar(&timeout, "timeout", 0, "Operation timeout (e.g. 30s, 5m). Uses default when not set")
 }

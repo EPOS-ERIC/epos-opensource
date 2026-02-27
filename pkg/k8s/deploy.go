@@ -16,6 +16,8 @@ import (
 type DeployOpts struct {
 	// Optional. Kubernetes context to use; defaults to the current kubectl context when unset.
 	Context string
+	// Optional. Timeout for Helm operations; defaults when unset.
+	Timeout time.Duration
 	// Required. Environment configuration used to build deployment values.
 	Config *config.Config
 }
@@ -75,7 +77,7 @@ func Deploy(opts DeployOpts) (*Env, error) {
 	client.Wait = true
 	client.WaitForJobs = true
 	client.Atomic = true
-	client.Timeout = 300 * time.Second
+	client.Timeout = opts.Timeout
 
 	display.Debug("running helm install")
 
@@ -104,6 +106,13 @@ func (d *DeployOpts) Validate() error {
 	if d.Config == nil {
 		return fmt.Errorf("config is required")
 	}
+
+	resolvedTimeout, err := resolveCommandTimeout(d.Timeout)
+	if err != nil {
+		return fmt.Errorf("invalid timeout: %w", err)
+	}
+
+	d.Timeout = resolvedTimeout
 
 	if err := d.Config.Validate(); err != nil {
 		return fmt.Errorf("invalid config: %w", err)

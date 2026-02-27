@@ -17,6 +17,8 @@ type DeleteOpts struct {
 	Name []string
 	// Optional. Kubernetes context to use; defaults to the current kubectl context when unset.
 	Context string
+	// Optional. Timeout for Helm operations; defaults when unset.
+	Timeout time.Duration
 }
 
 // Delete uninstalls one or more K8s environments and removes their namespaces.
@@ -53,7 +55,7 @@ func Delete(opts DeleteOpts) error {
 			uninstall := action.NewUninstall(actionConfig)
 			uninstall.Wait = true
 			uninstall.IgnoreNotFound = true
-			uninstall.Timeout = 300 * time.Second // TODO set this globally for the package? have it in the config with a default?
+			uninstall.Timeout = opts.Timeout
 
 			if _, err := uninstall.Run(envName); err != nil {
 				return fmt.Errorf("failed to uninstall helm release '%s': %w", envName, err)
@@ -64,7 +66,7 @@ func Delete(opts DeleteOpts) error {
 			display.Debug("running kubectl delete namespace for env: %s", envName)
 
 			// helm does not delete the namespace, only its resources so we have to do it ourselves
-			if err := deleteNamespace(envName, opts.Context); err != nil {
+			if err := deleteNamespace(envName, opts.Context, opts.Timeout); err != nil {
 				return fmt.Errorf("failed to delete namespace %s: %w", envName, err)
 			}
 
@@ -81,6 +83,14 @@ func Delete(opts DeleteOpts) error {
 func (d *DeleteOpts) Validate() error {
 	display.Debug("names: %+v", d.Name)
 	display.Debug("context: %s", d.Context)
+	display.Debug("timeout: %s", d.Timeout)
+
+	resolvedTimeout, err := resolveCommandTimeout(d.Timeout)
+	if err != nil {
+		return fmt.Errorf("invalid timeout: %w", err)
+	}
+
+	d.Timeout = resolvedTimeout
 
 	if d.Context == "" {
 		context, err := common.GetCurrentKubeContext()

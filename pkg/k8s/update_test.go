@@ -3,6 +3,7 @@ package k8s
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s/config"
 )
@@ -37,6 +38,12 @@ func TestUpdateOpts_Validate(t *testing.T) {
 			opts:        UpdateOpts{OldEnvName: "test", Force: true, NewConfig: &config.Config{Name: "different-name"}},
 			wantErr:     true,
 			errContains: "must match environment name",
+		},
+		{
+			name:        "Negative timeout returns error",
+			opts:        UpdateOpts{OldEnvName: "test", Timeout: -1 * time.Second},
+			wantErr:     true,
+			errContains: "invalid timeout",
 		},
 	}
 

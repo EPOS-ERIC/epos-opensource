@@ -34,6 +34,7 @@ var DeployCmd = &cobra.Command{
 
 		env, err := k8s.Deploy(k8s.DeployOpts{
 			Context: context,
+			Timeout: timeout,
 			Config:  cfg,
 		})
 		if err != nil {
@@ -54,4 +55,5 @@ var DeployCmd = &cobra.Command{
 func init() {
 	DeployCmd.Flags().StringVar(&context, "context", "", "Kubectl context to use. Uses current context if not set")
 	DeployCmd.Flags().StringVar(&configFilePath, "config", "", "Path to YAML configuration file")
+	DeployCmd.Flags().DurationVar(&timeout, "timeout", 0, "Operation timeout (e.g. 30s, 5m). Uses default when not set")
 }

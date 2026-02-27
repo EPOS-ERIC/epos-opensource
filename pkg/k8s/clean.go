@@ -16,6 +16,8 @@ type CleanOpts struct {
 	Name string
 	// Optional. Kubernetes context to use; defaults to the current kubectl context when unset.
 	Context string
+	// Optional. Timeout for each clean job execution; defaults when unset.
+	Timeout time.Duration
 }
 
 // Clean runs one-off cleanup jobs in an existing K8s environment and returns refreshed metadata.
@@ -77,7 +79,7 @@ func Clean(opts CleanOpts) (*Env, error) {
 
 		display.Debug("running clean job: %s", job.name)
 
-		if err := runOneOffJobFromManifest(opts.Context, opts.Name, job.name, manifest, 5*time.Minute); err != nil {
+		if err := runOneOffJobFromManifest(opts.Context, opts.Name, job.name, manifest, opts.Timeout); err != nil {
 			return nil, fmt.Errorf("failed to run %s clean job: %w", job.errorLabel, err)
 		}
 	}
@@ -155,10 +157,18 @@ func runOneOffJobFromManifest(context, namespace, jobName, manifest string, time
 func (c *CleanOpts) Validate() error {
 	display.Debug("name: %s", c.Name)
 	display.Debug("context: %s", c.Context)
+	display.Debug("timeout: %s", c.Timeout)
 
 	if c.Name == "" {
 		return fmt.Errorf("environment name is required")
 	}
+
+	resolvedTimeout, err := resolveCommandTimeout(c.Timeout)
+	if err != nil {
+		return fmt.Errorf("invalid timeout: %w", err)
+	}
+
+	c.Timeout = resolvedTimeout
 
 	if err := validate.Name(c.Name); err != nil {
 		return fmt.Errorf("'%s' is an invalid name for an environment: %w", c.Name, err)

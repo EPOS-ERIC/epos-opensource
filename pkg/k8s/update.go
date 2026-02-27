@@ -20,6 +20,8 @@ type UpdateOpts struct {
 	OldEnvName string
 	// Optional. Kubernetes context to use; defaults to the current kubectl context when unset.
 	Context string
+	// Optional. Timeout for Helm operations; defaults when unset.
+	Timeout time.Duration
 	// Optional. do an uninstall then an install (to wipe volumes and stuff) maybe we should rename the flag?
 	Force bool
 	// Optional. reset the environment config to the embedded defaults maybe we should rename the flag?
@@ -74,11 +76,13 @@ func Update(opts UpdateOpts) (*Env, error) {
 		if err := Delete(DeleteOpts{
 			Name:    []string{opts.OldEnvName},
 			Context: opts.Context,
+			Timeout: opts.Timeout,
 		}); err != nil {
 			return nil, fmt.Errorf("failed to delete environment: %w", err)
 		}
 		env, err := Deploy(DeployOpts{
 			Context: opts.Context,
+			Timeout: opts.Timeout,
 			Config:  opts.NewConfig,
 		})
 		if err != nil {
@@ -126,7 +130,7 @@ func Update(opts UpdateOpts) (*Env, error) {
 	client.Wait = true
 	client.WaitForJobs = true
 	client.Atomic = true
-	client.Timeout = 300 * time.Second
+	client.Timeout = opts.Timeout
 
 	display.Debug("running helm upgrade")
 
@@ -162,6 +166,13 @@ func (u *UpdateOpts) Validate() error {
 	if err := validate.Name(u.OldEnvName); err != nil {
 		return fmt.Errorf("'%s' is an invalid name for an environment: %w", u.OldEnvName, err)
 	}
+
+	resolvedTimeout, err := resolveCommandTimeout(u.Timeout)
+	if err != nil {
+		return fmt.Errorf("invalid timeout: %w", err)
+	}
+
+	u.Timeout = resolvedTimeout
 
 	if u.NewConfig != nil {
 		if u.Reset {

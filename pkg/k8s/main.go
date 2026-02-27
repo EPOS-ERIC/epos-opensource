@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/EPOS-ERIC/epos-opensource/command"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s/config"
@@ -56,8 +57,8 @@ func newKubectlCommand(dir, context string, args ...string) *exec.Cmd {
 }
 
 // deleteNamespace removes the specified namespace and all its resources.
-func deleteNamespace(name, context string) error {
-	if err := runKubectl(".", false, context, "delete", "namespace", name); err != nil {
+func deleteNamespace(name, context string, timeout time.Duration) error {
+	if err := runKubectl(".", false, context, "delete", "namespace", name, "--timeout", timeout.String()); err != nil {
 		return fmt.Errorf("failed to delete namespace %s: %w", name, err)
 	}
 	return nil
