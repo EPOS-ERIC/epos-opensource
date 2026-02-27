@@ -20,15 +20,7 @@ spec:
     spec:
       restartPolicy: Never
       initContainers:
-      - name: wait-for-ingestor-service
-        image: busybox:latest
-        command:
-        - /bin/sh
-        - -c
-        - |-
-          until nc -z ingestor-service 8080; do
-            sleep 1;
-          done
+      {{- include "epos.waitForServiceInitContainer" (dict "name" "ingestor-service" "port" 8080) | nindent 6 }}
       containers:
       - name: {{ $name }}
         image: curlimages/curl:8.12.1

@@ -34,24 +34,8 @@ spec:
     spec:
       {{- include "epos.imagePullSecrets" . | nindent 6 }}
       initContainers:
-      - name: wait-for-metadata-database
-        image: busybox:latest
-        command:
-        - /bin/sh
-        - -c
-        - |-
-          until nc -z metadata-database 5432; do
-            sleep 1;
-          done
-      - name: wait-for-rabbitmq
-        image: busybox:latest
-        command:
-        - /bin/sh
-        - -c
-        - |-
-          until nc -z rabbitmq 5672; do
-            sleep 1;
-          done
+      {{- include "epos.waitForServiceInitContainer" (dict "name" "metadata-database" "port" 5432) | nindent 6 }}
+      {{- include "epos.waitForServiceInitContainer" (dict "name" "rabbitmq" "port" 5672) | nindent 6 }}
       containers:
       - name: external-access-service
         image: {{ .Values.images.external_access_image }}

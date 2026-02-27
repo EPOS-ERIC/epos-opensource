@@ -46,85 +46,21 @@ spec:
     spec:
       {{- include "epos.imagePullSecrets" . | nindent 6 }}
       initContainers:
-      - name: wait-for-ingestor-service
-        image: busybox:latest
-        command:
-        - /bin/sh
-        - -c
-        - |-
-          until nc -z ingestor-service 8080; do
-            sleep 1;
-          done
-      - name: wait-for-external-access-service
-        image: busybox:latest
-        command:
-        - /bin/sh
-        - -c
-        - |-
-          until nc -z external-access-service 8080; do
-            sleep 1;
-          done
-      - name: wait-for-resources-service
-        image: busybox:latest
-        command:
-        - /bin/sh
-        - -c
-        - |-
-          until nc -z resources-service 8080; do
-            sleep 1;
-          done
+      {{- include "epos.waitForServiceInitContainer" (dict "name" "ingestor-service" "port" 8080) | nindent 6 }}
+      {{- include "epos.waitForServiceInitContainer" (dict "name" "external-access-service" "port" 8080) | nindent 6 }}
+      {{- include "epos.waitForServiceInitContainer" (dict "name" "resources-service" "port" 8080) | nindent 6 }}
       {{- if .Values.components.sharing_service.enabled }}
-      - name: wait-for-sharing-service
-        image: busybox:latest
-        command:
-        - /bin/sh
-        - -c
-        - |-
-          until nc -z sharing-service 8080; do
-            sleep 1;
-          done
+      {{- include "epos.waitForServiceInitContainer" (dict "name" "sharing-service" "port" 8080) | nindent 6 }}
       {{- end }}
       {{- if .Values.components.converter.enabled }}
-      - name: wait-for-converter-service
-        image: busybox:latest
-        command:
-        - /bin/sh
-        - -c
-        - |-
-          until nc -z converter-service 8080; do
-            sleep 1;
-          done
-      - name: wait-for-converterroutine
-        image: busybox:latest
-        command:
-        - /bin/sh
-        - -c
-        - |-
-          until nc -z converter-routine 8080; do
-            sleep 1;
-          done
+      {{- include "epos.waitForServiceInitContainer" (dict "name" "converter-service" "port" 8080) | nindent 6 }}
+      {{- include "epos.waitForServiceInitContainer" (dict "name" "converter-routine" "port" 8080) | nindent 6 }}
       {{- end }}
       {{- if .Values.components.email_sender_service.enabled }}
-      - name: wait-for-email-sender-service
-        image: busybox:latest
-        command:
-        - /bin/sh
-        - -c
-        - |-
-          until nc -z email-sender-service 8080; do
-            sleep 1;
-          done
+      {{- include "epos.waitForServiceInitContainer" (dict "name" "email-sender-service" "port" 8080) | nindent 6 }}
       {{- end }}
       {{- if .Values.components.backoffice.enabled }}
-      - name: wait-for-backoffice-service
-        image: busybox:latest
-        command:
-        - /bin/sh
-        - -c
-        - |-
-          until nc -z backoffice-service 8080; do
-            sleep 1;
-          done
+      {{- include "epos.waitForServiceInitContainer" (dict "name" "backoffice-service" "port" 8080) | nindent 6 }}
       {{- end }}
       containers:
       - name: gateway

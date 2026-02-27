@@ -43,15 +43,7 @@ spec:
     spec:
       {{- include "epos.imagePullSecrets" . | nindent 6 }}
       initContainers:
-      - name: wait-for-metadata-database
-        image: busybox:latest
-        command:
-        - /bin/sh
-        - -c
-        - |-
-          until nc -z metadata-database 5432; do
-            sleep 1;
-          done
+      {{- include "epos.waitForServiceInitContainer" (dict "name" "metadata-database" "port" 5432) | nindent 6 }}
       containers:
       - name: email-sender-service
         image: {{ .Values.images.email_sender_service_image }}

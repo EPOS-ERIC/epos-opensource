@@ -1,5 +1,4 @@
 {{- if and .Values.jobs.enabled .Values.jobs.init_db.enabled -}}
-# TODO: use top level variables for common reused things in templates
 {{- $name := "init-db-job" -}}
 ---
 apiVersion: batch/v1
@@ -22,16 +21,7 @@ spec:
     spec:
       restartPolicy: Never
       initContainers:
-      # TODO: we should probably put the init containers in some helper and reuse them in the templates instead of duplicating them
-      - name: wait-for-metadata-database
-        image: busybox:latest
-        command:
-        - /bin/sh
-        - -c
-        - |-
-          until nc -z metadata-database 5432; do
-            sleep 1;
-          done
+      {{- include "epos.waitForServiceInitContainer" (dict "name" "metadata-database" "port" 5432) | nindent 6 }}
       containers:
       - name: {{ $name }}
         image: {{ .Values.jobs.init_db.image }}

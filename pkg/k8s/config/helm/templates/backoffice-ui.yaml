@@ -33,24 +33,8 @@ spec:
     spec:
       {{- include "epos.imagePullSecrets" . | nindent 6 }}
       initContainers:
-      - name: wait-for-gateway
-        image: busybox:latest
-        command:
-        - /bin/sh
-        - -c
-        - |-
-          until nc -z gateway 5000; do
-            sleep 1;
-          done
-      - name: wait-for-backoffice
-        image: busybox:latest
-        command:
-        - /bin/sh
-        - -c
-        - |-
-          until nc -z backoffice-service 8080; do
-            sleep 1;
-          done
+      {{- include "epos.waitForServiceInitContainer" (dict "name" "gateway" "port" 5000) | nindent 6 }}
+      {{- include "epos.waitForServiceInitContainer" (dict "name" "backoffice-service" "port" 8080) | nindent 6 }}
       containers:
       - name: backoffice-ui
         image: {{ .Values.images.backoffice_ui_image }}

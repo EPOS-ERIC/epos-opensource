@@ -70,3 +70,15 @@ securityContext:
 {{- define "epos.postgresqlConnectionString" -}}
 jdbc:postgresql://{{ default .Values.components.metadata_database.host }}:{{ default .Values.components.metadata_database.port 5432 }}/{{ .Values.components.metadata_database.db_name }}?user={{ .Values.components.metadata_database.user }}&password={{ .Values.components.metadata_database.password }}
 {{- end -}}
+
+{{- define "epos.waitForServiceInitContainer" -}}
+- name: wait-for-{{ .name }}
+  image: busybox:latest
+  command:
+  - /bin/sh
+  - -c
+  - |-
+    until nc -z {{ .name }} {{ .port }}; do
+      sleep 1;
+    done
+{{- end -}}
