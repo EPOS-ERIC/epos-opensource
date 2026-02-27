@@ -35,7 +35,6 @@ spec:
       containers:
       - name: {{ $name }}
         image: {{ .Values.jobs.init_db.image }}
-        imagePullPolicy: Always
         command: [ "/bin/sh", "-c" ]
         args:
         - |

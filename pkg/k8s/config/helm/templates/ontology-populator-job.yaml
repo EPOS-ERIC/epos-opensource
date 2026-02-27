@@ -32,7 +32,6 @@ spec:
       containers:
       - name: {{ $name }}
         image: curlimages/curl:8.12.1
-        imagePullPolicy: IfNotPresent
         command: ["/bin/sh", "-c"]
         args:
         - |

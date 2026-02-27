@@ -36,7 +36,6 @@ spec:
       containers:
       - name: {{ $name }}
         image: {{ .Values.jobs.metadata_populator.image }}
-        imagePullPolicy: Always
         command: ["/bin/sh", "-c"]
         args:
         - |

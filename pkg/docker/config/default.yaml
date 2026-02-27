@@ -162,7 +162,7 @@ images:
   # Docker image for RabbitMQ message broker
   rabbitmq_image: "rabbitmq:3.13.7-management"
   # Docker image for the data portal service
-  dataportal_image: "epos/data-portal:latest"
+  dataportal_image: "ghcr.io/epos-eric/epos-gui:latest"
   # Docker image for the API gateway service
   gateway_image: "ghcr.io/epos-eric/epos-api-gateway:latest"
   # Docker image for the metadata database

@@ -34,13 +34,7 @@ func Clean(opts CleanOpts) (*Env, error) {
 		return nil, fmt.Errorf("failed to build environment URLs: %w", err)
 	}
 
-	// TODO: check if the logic here can be simplified now that we use restart in the depends_on in the docker compose
-
 	metadataContainer := fmt.Sprintf("%s-metadata-database", opts.Name)
-	backOfficeContainer := fmt.Sprintf("%s-backoffice-service", opts.Name)
-	ingestorContainer := fmt.Sprintf("%s-ingestor-service", opts.Name)
-	externalAccContainer := fmt.Sprintf("%s-external-access-service", opts.Name)
-	resourcesContainer := fmt.Sprintf("%s-resources-service", opts.Name)
 	volumeName := fmt.Sprintf("%s_psqldata", opts.Name)
 
 	handleFailure := func(msg string, mainErr error) (*Env, error) {
@@ -83,31 +77,6 @@ func Clean(opts CleanOpts) (*Env, error) {
 	}
 
 	display.Debug("cleared ingested file records for environment: %s", opts.Name)
-	display.Step("Restarting services")
-	display.Debug("stopping container: %s", backOfficeContainer)
-
-	if _, err := command.RunCommand(exec.Command("docker", "stop", backOfficeContainer), false); err != nil {
-		return handleFailure("failed to stop container: %w", fmt.Errorf("%s: %w", backOfficeContainer, err))
-	}
-
-	display.Debug("stopping container: %s", ingestorContainer)
-
-	if _, err := command.RunCommand(exec.Command("docker", "stop", ingestorContainer), false); err != nil {
-		return handleFailure("failed to stop container: %w", fmt.Errorf("%s: %w", ingestorContainer, err))
-	}
-
-	display.Debug("stopping container: %s", externalAccContainer)
-
-	if _, err := command.RunCommand(exec.Command("docker", "stop", externalAccContainer), false); err != nil {
-		return handleFailure("failed to stop container: %w", fmt.Errorf("%s: %w", externalAccContainer, err))
-	}
-
-	display.Debug("stopping container: %s", resourcesContainer)
-
-	if _, err := command.RunCommand(exec.Command("docker", "stop", resourcesContainer), false); err != nil {
-		return handleFailure("failed to stop container: %w", fmt.Errorf("%s: %w", resourcesContainer, err))
-	}
-
 	display.Debug("redeploying stack for environment: %s", env.Name)
 
 	if err := deployStack(false, &env.EnvConfig); err != nil {
