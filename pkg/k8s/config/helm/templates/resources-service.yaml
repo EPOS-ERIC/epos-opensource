@@ -10,7 +10,11 @@ FACETS_TYPE_DEFAULT: "categories"
 
 APICONTEXT: "/api/v1"
 
+{{- if .Values.url_prefix_namespace }}
 APIHOST: {{ .Values.protocol }}://{{ .Values.domain }}/{{ .Release.Namespace }}
+{{- else }}
+APIHOST: {{ .Values.protocol }}://{{ .Values.domain }}
+{{- end }}
 
 MONITORING: "{{ .Values.monitoring.enabled }}"
 {{- if .Values.monitoring.enabled }}
