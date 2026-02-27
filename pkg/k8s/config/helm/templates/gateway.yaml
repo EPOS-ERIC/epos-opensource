@@ -1,0 +1,217 @@
+{{- define "epos.gatewayConfigData" -}}
+LOAD_RESOURCES_API: "{{.Values.components.resources_service.auth.enabled}}:{{.Values.components.resources_service.auth.only_admin}}"
+LOAD_INGESTOR_API: "{{.Values.components.ingestor_service.auth.enabled}}:{{.Values.components.ingestor_service.auth.only_admin}}"
+LOAD_EXTERNAL_ACCESS_API: "{{.Values.components.external_access_service.auth.enabled}}:{{.Values.components.external_access_service.auth.only_admin}}"
+{{- if .Values.components.backoffice.enabled}}
+LOAD_BACKOFFICE_API: "{{ .Values.components.backoffice.service.auth.enabled }}:{{ .Values.components.backoffice.service.auth.only_admin }}"
+{{- end}}
+{{- if .Values.components.sharing_service.enabled}}
+LOAD_SHARING_API: "{{ .Values.components.sharing_service.auth.enabled }}:{{ .Values.components.sharing_service.auth.only_admin }}"
+{{- end}}
+{{- if .Values.components.converter.enabled}}
+LOAD_CONVERTER_API: "{{ .Values.components.converter.auth.enabled }}:{{ .Values.components.converter.auth.only_admin }}"
+{{- end}}
+{{- if .Values.components.email_sender_service.enabled}}
+LOAD_EMAIL_SENDER_API: "{{ .Values.components.email_sender_service.auth.enabled }}:{{ .Values.components.email_sender_service.auth.only_admin }}"
+{{- end}}
+IS_AAI_ENABLED: "{{ .Values.components.gateway.aai.enabled }}"
+SECURITY_KEY: "{{ .Values.components.gateway.aai.security_key }}"
+AAI_SERVICE_ENDPOINT: "{{ .Values.components.gateway.aai.service_endpoint }}"
+{{- if .Values.url_prefix_namespace }}
+BASECONTEXT: "/{{ .Release.Namespace }}"
+{{- end }}
+{{- end -}}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+spec:
+  replicas: {{ .Values.components.gateway.replicas | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "epos.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: gateway
+  template:
+    metadata:
+      labels:
+        {{- include "epos.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: gateway
+      annotations:
+        checksum/gateway-config: {{ include "epos.gatewayConfigData" . | sha256sum }}
+    spec:
+      {{- include "epos.imagePullSecrets" . | nindent 6 }}
+      initContainers:
+      - name: wait-for-ingestor-service
+        image: busybox:latest
+        command:
+        - /bin/sh
+        - -c
+        - |-
+          until nc -z ingestor-service 8080; do
+            sleep 1;
+          done
+      - name: wait-for-external-access-service
+        image: busybox:latest
+        command:
+        - /bin/sh
+        - -c
+        - |-
+          until nc -z external-access-service 8080; do
+            sleep 1;
+          done
+      - name: wait-for-resources-service
+        image: busybox:latest
+        command:
+        - /bin/sh
+        - -c
+        - |-
+          until nc -z resources-service 8080; do
+            sleep 1;
+          done
+      {{- if .Values.components.sharing_service.enabled }}
+      - name: wait-for-sharing-service
+        image: busybox:latest
+        command:
+        - /bin/sh
+        - -c
+        - |-
+          until nc -z sharing-service 8080; do
+            sleep 1;
+          done
+      {{- end }}
+      {{- if .Values.components.converter.enabled }}
+      - name: wait-for-converter-service
+        image: busybox:latest
+        command:
+        - /bin/sh
+        - -c
+        - |-
+          until nc -z converter-service 8080; do
+            sleep 1;
+          done
+      - name: wait-for-converterroutine
+        image: busybox:latest
+        command:
+        - /bin/sh
+        - -c
+        - |-
+          until nc -z converter-routine 8080; do
+            sleep 1;
+          done
+      {{- end }}
+      {{- if .Values.components.email_sender_service.enabled }}
+      - name: wait-for-email-sender-service
+        image: busybox:latest
+        command:
+        - /bin/sh
+        - -c
+        - |-
+          until nc -z email-sender-service 8080; do
+            sleep 1;
+          done
+      {{- end }}
+      {{- if .Values.components.backoffice.enabled }}
+      - name: wait-for-backoffice-service
+        image: busybox:latest
+        command:
+        - /bin/sh
+        - -c
+        - |-
+          until nc -z backoffice-service 8080; do
+            sleep 1;
+          done
+      {{- end }}
+      containers:
+      - name: gateway
+        image: {{ .Values.images.gateway_image }}
+        ports:
+        - containerPort: 5000
+          name: http
+        envFrom:
+        - configMapRef:
+            name: gateway
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - python3 -c 'import urllib.request; resp=urllib.request.urlopen("http://localhost:5000/api/v1/ui", timeout=5); print(f"Status {resp.getcode()}"); exit(0 if resp.getcode() == 200 else 1)' || exit 1
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 5
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - python3 -c 'import urllib.request; resp=urllib.request.urlopen("http://localhost:5000/api/v1/ui", timeout=5); print(f"Status {resp.getcode()}"); exit(0 if resp.getcode() == 200 else 1)' || exit 1
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 5
+      {{- include "epos.nodeSelector" . | nindent 6 }}
+      {{- include "epos.tolerations" . | nindent 6 }}
+      {{- include "epos.affinity" . | nindent 6 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+spec:
+  ports:
+  - port: 5000
+    targetPort: 5000
+    name: http
+  selector:
+    {{- include "epos.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+data:
+  {{- include "epos.gatewayConfigData" . | nindent 2 }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gateway
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: {{ .Values.components.gateway.base_url }}
+	{{- if .Values.url_prefix_namespace }}
+    nginx.ingress.kubernetes.io/rewrite-target: /{{ .Release.Namespace }}{{ .Values.components.gateway.base_url }}
+	{{- else }}
+    nginx.ingress.kubernetes.io/rewrite-target: {{ .Values.components.gateway.base_url }}
+	{{- end }}
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+	  {{- if .Values.url_prefix_namespace }}
+      - path: /{{ .Release.Namespace }}{{ .Values.components.gateway.base_url }}
+	  {{- else }}
+      - path: {{ .Values.components.gateway.base_url }}
+	  {{- end }}
+        pathType: Prefix
+        backend:
+          service:
+            name: gateway
+            port:
+              number: 5000

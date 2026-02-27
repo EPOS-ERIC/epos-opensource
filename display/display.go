@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net/url"
 	"os"
 	"time"
 
@@ -21,8 +20,9 @@ import (
 )
 
 var (
-	Stdout io.Writer = os.Stdout
-	Stderr io.Writer = os.Stderr
+	Stdout      io.Writer = os.Stdout
+	Stderr      io.Writer = os.Stderr
+	EnableDebug bool      = false
 )
 
 // ImageUpdateInfo holds information about an image update.
@@ -32,13 +32,16 @@ type ImageUpdateInfo struct {
 }
 
 const (
-	reset      = "\033[0m"
-	red        = "\033[31m"
-	green      = "\033[32m"
-	yellow     = "\033[33m"
-	blue       = "\033[34m"
-	cyan       = "\033[36m"
-	logoHollow = `⣠⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣠⣤⣶⣶⣶⣶⣶⣤⣤⣀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣤⣤⣶⣶⣦⣤⣤⣀⡀⠀⠀⠀
+	resetSeq     = "\033[0m"
+	boldSeq      = "\033[1m"
+	underlineSeq = "\033[4m"
+	redSeq       = "\033[31m"
+	greenSeq     = "\033[32m"
+	yellowSeq    = "\033[33m"
+	blueSeq      = "\033[34m"
+	purpleSeq    = "\033[35m"
+	cyanSeq      = "\033[36m"
+	logoHollow   = `⣠⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣠⣤⣶⣶⣶⣶⣶⣤⣤⣀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣤⣤⣶⣶⣦⣤⣤⣀⡀⠀⠀⠀
 ⣿⣿⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⣿⣿⠛⠛⠛⠛⠛⠛⠛⠛⠿⠿⣿⣿⣷⣄⠀⠀⠀⣀⣴⣿⣿⡿⠿⠛⠛⠛⠛⠛⠻⢿⣿⣿⣦⣄⠀⠀⠀⣠⣾⣿⣿⠿⠟⠛⠛⠛⠿⠿⣿⣿⣷⣤⡀
 ⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⢻⣿⣷⣀⣾⣿⡿⠛⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⢿⣿⣷⣄⣾⣿⡟⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⣻⣿⣷
 ⣿⣿⠀⠀⠀⠀⢠⣤⣤⣤⣤⣤⣤⣤⣤⣿⣿⠀⠀⠀⠀⢀⣴⣶⣷⣶⣄⠀⠀⠀⢻⣿⣿⣿⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⣿⣿⣿⡟⠀⠀⠀⠀⣠⣤⣤⣤⣄⡀⣠⣾⣿⡿⠁
@@ -65,51 +68,50 @@ const (
 )
 
 // printStdout formats and prints a message with color, icon and label to standard out
-func printStdout(color, label, format string, a ...any) {
+func printStdout(bold bool, color, label, format string, a ...any) {
 	message := fmt.Sprintf(format, a...)
-	_, _ = fmt.Fprintf(Stdout, "%s[%s]  %s%s\n", color, label, reset, message)
+	modifiers := color
+	if bold {
+		modifiers += boldSeq
+	}
+	log.Printf(format, a...)
+	_, _ = fmt.Fprintf(Stdout, "%s[%s]%s  %s\n", modifiers, label, resetSeq, message)
 }
 
 func Error(format string, a ...any) {
 	message := fmt.Sprintf(format, a...)
 	log.Printf(format, a...)
-	_, _ = fmt.Fprintf(Stderr, "%s[%s]  %s%s\n", red, "ERROR", message, reset)
+	_, _ = fmt.Fprintf(Stderr, "%s%s[%s] %s  %s\n", redSeq, boldSeq, "ERROR", message, resetSeq)
 }
 
 func Warn(format string, a ...any) {
-	printStdout(yellow, "WARN", format, a...)
+	printStdout(true, yellowSeq, "WARN", format, a...)
 }
 
 func Info(format string, a ...any) {
-	printStdout(blue, "INFO", format, a...)
+	printStdout(false, blueSeq, "INFO", format, a...)
 }
 
 func Step(format string, a ...any) {
-	printStdout(cyan, "STEP", format, a...)
+	printStdout(false, cyanSeq, "STEP", format, a...)
 }
 
 func Done(format string, a ...any) {
-	printStdout(green, "DONE", format, a...)
+	printStdout(false, greenSeq, "DONE", format, a...)
+}
+
+func Debug(format string, a ...any) {
+	if EnableDebug {
+		printStdout(true, purpleSeq, "DEBUG", format, a...)
+	}
 }
 
 func Copyright() string {
 	return fmt.Sprintf("Copyright (C) %d  EPOS ERIC", time.Now().Year())
 }
 
-// Urls prints the URLs for the data portal, API gateway, and backoffice for a specific environment
-func Urls(portalURL, gatewayURL, backofficeURL, title string) {
-	if newGatewayURL, err := url.JoinPath(gatewayURL, "ui"); err != nil {
-		Warn("Could not construct gateway URL: %v", err)
-	} else {
-		gatewayURL = newGatewayURL
-	}
-
-	if newBackofficeURL, err := url.JoinPath(backofficeURL, "home"); err != nil {
-		Warn("Could not construct backoffice URL: %v", err)
-	} else {
-		backofficeURL = newBackofficeURL
-	}
-
+// URLs prints the URLs for the data portal, API gateway, and backoffice for a specific environment
+func URLs(portalURL, gatewayURL, title string, backofficeURL *string) {
 	t := table.NewWriter()
 	t.SetTitle(title)
 	t.SetStyle(table.StyleRounded)
@@ -127,11 +129,13 @@ func Urls(portalURL, gatewayURL, backofficeURL, title string) {
 	// Add content
 	t.AppendRow(table.Row{logoHollow, logoHollow}, table.RowConfig{AutoMerge: true, AutoMergeAlign: text.AlignCenter})
 	t.AppendSeparator()
-	t.AppendRow(table.Row{"EPOS Platform Interface", portalURL})
+	t.AppendRow(table.Row{"EPOS Platform UI", portalURL})
 	t.AppendSeparator()
 	t.AppendRow(table.Row{"EPOS API Gateway", gatewayURL})
-	t.AppendSeparator()
-	t.AppendRow(table.Row{"EPOS Backoffice", backofficeURL})
+	if backofficeURL != nil {
+		t.AppendSeparator()
+		t.AppendRow(table.Row{"EPOS Backoffice UI", *backofficeURL})
+	}
 	copyrightText := Copyright()
 	t.AppendFooter(table.Row{copyrightText, copyrightText}, table.RowConfig{AutoMerge: true, AutoMergeAlign: text.AlignLeft})
 

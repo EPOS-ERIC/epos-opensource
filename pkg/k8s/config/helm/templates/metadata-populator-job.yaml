@@ -1,0 +1,138 @@
+{{- if and .Values.jobs.enabled .Values.jobs.metadata_populator.enabled -}}
+# TODO: this is the default for epos, we have to make this more dynamic by making it customizable using the cli or something
+# TODO: use top level variables for common reused things in templates
+{{- $name := "metadata-populator" -}}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $name }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+spec:
+  backoffLimit: {{ .Values.jobs.metadata_populator.backoff_limit }}
+  activeDeadlineSeconds: {{ .Values.jobs.metadata_populator.active_deadline_seconds }}
+  template:
+    metadata:
+      name: {{ $name }}
+    spec:
+      restartPolicy: Never
+      initContainers:
+      # TODO: we should probably put the init containers in some helper and reuse them in the templates instead of duplicating them
+      - name: wait-for-ingestor-service
+        image: busybox:latest
+        command:
+        - /bin/sh
+        - -c
+        - |-
+          until nc -z ingestor-service 8080; do
+            sleep 1;
+          done
+      containers:
+      - name: {{ $name }}
+        image: {{ .Values.jobs.metadata_populator.image }}
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          set -eu
+          
+          log() {
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] [metadata-populator] $1"
+          }
+          
+          log "Starting metadata population..."
+
+          # Start nginx
+          nginx
+          log "✓ Nginx started"
+
+          log "Waiting for ingestor-service health check..."
+          until curl -fsS "http://ingestor-service:8080/api/ingestor-service/v1/actuator/health" >/dev/null 2>&1; do
+            sleep 2
+          done
+
+          SECONDS=0
+
+          log "Downloading metadata index..."
+          files="$(curl -fsS 'http://metadata-populator/index.txt' | tr -d '\r' | sed '/^[[:space:]]*$/d')"
+
+          get_group_name() {
+            case "$1" in
+              *tcs-geomag*) echo 'Geomagnetic%20Observations' ;;
+              *tcs-gnss*)   echo 'GNSS%20Data%20and%20Products' ;;
+              *tcs-vo*)     echo 'Volcano%20Observations' ;;
+              *tcs-gim*)    echo 'Geological%20Information%20and%20Modeling' ;;
+              *tcs-seismo*) echo 'Seismology' ;;
+              *tcs-msl*)    echo 'Multi-scale%20Laboratories' ;;
+              *tcs-tsu*)    echo 'Tsunami' ;;
+              *tcs-satd*)   echo 'Satellite%20Data' ;;
+              *tcs-nfo*)    echo 'Near%20Fault%20Observatories' ;;
+              *tcs-ah*)     echo 'Anthropogenic%20Hazards' ;;
+              *)            echo 'ALL' >&2; echo 'ALL' ;;
+            esac
+          }
+
+          max="{{ .Values.jobs.metadata_populator.max_parallel }}"
+          count=0
+          log "Starting parallel metadata ingestion (MAX_PARALLEL=$max)"
+
+          for i in ${files}; do
+            filename="${i##*/}"
+            groupname="$(get_group_name "$i")"
+            log "Processing $i (group=$groupname)"
+            (
+              curl -fsS -X POST --header "accept: */*" \
+                "http://ingestor-service:8080/api/ingestor-service/v1/populate?path=http://metadata-populator/$filename&model=EPOS-DCAT-AP-V1&mapping=EDM-TO-DCAT-AP&type=single&metadataGroup=$groupname"
+              log "✓ Completed $i"
+            ) &
+            count=$((count + 1))
+            if [ $((count % max)) -eq 0 ]; then
+              wait
+            fi
+          done
+
+          wait
+          duration=$SECONDS
+          log "✓ Total ingestion time: $((duration/60))m $((duration%60))s"
+
+          curl -fsS -X POST --header "accept: application/json" "http://resources-service:8080/api/resources-service/v1/invalidate"
+
+          log "Metadata population completed successfully!"
+        envFrom:
+        - configMapRef:
+            name: {{ $name }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+data:
+  # TODO: check if the values of the variables is correct
+  POSTGRESQL_JOB_CONNECTION_STRING: "{{ include "epos.postgresqlConnectionString" . }}"
+  POSTGRESQL_JOB_CONNECTION_STRING_PG: "{{ include "epos.postgresqlConnectionString" . }}"
+  ALLOW_EMPTY_PASSWORD: "yes"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+    name: http
+  selector:
+    {{- include "epos.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+{{- end -}}

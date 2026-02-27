@@ -19,8 +19,6 @@ var Stdout io.Writer = os.Stdout
 // RunCommand executes a command and handles its output.
 // If interceptOut is true, stdout is captured and returned as a string.
 // If interceptOut is false, stdout is passed through to Stdout.
-// Stderr is handled specially for docker commands (printed as normal output)
-// and for other commands (shown as warnings on success, errors on failure).
 func RunCommand(cmd *exec.Cmd, interceptOut bool) (string, error) {
 	var stdout bytes.Buffer
 	var stderrLines []string
@@ -32,7 +30,9 @@ func RunCommand(cmd *exec.Cmd, interceptOut bool) (string, error) {
 	} else {
 		cmd.Stdout = Stdout
 	}
-	cmd.Stdin = os.Stdin
+	if cmd.Stdin == nil {
+		cmd.Stdin = os.Stdin
+	}
 
 	if cmd.Env == nil {
 		cmd.Env = os.Environ()

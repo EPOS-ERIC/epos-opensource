@@ -10,88 +10,15 @@ import (
 	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
 )
 
-// InsertK8s adds a new k8s entry to the database.
-func InsertK8s(name, dir, contextStr, apiURL, guiURL, backofficeURL, protocol string, tlsEnabled bool) (*sqlc.K8s, error) {
+// UpsertDocker adds a new docker entry to the database.
+func UpsertDocker(docker sqlc.Docker) (*sqlc.Docker, error) {
 	q, err := Get()
 	if err != nil {
 		return nil, fmt.Errorf("error getting db connection: %w", err)
 	}
-	k, err := q.InsertK8s(context.Background(), sqlc.InsertK8sParams{
-		Name:          name,
-		Directory:     dir,
-		Context:       contextStr,
-		ApiUrl:        apiURL,
-		GuiUrl:        guiURL,
-		Protocol:      protocol,
-		BackofficeUrl: backofficeURL,
-		TlsEnabled:    tlsEnabled,
-	})
+	d, err := q.UpsertDocker(context.Background(), sqlc.UpsertDockerParams(docker))
 	if err != nil {
-		return nil, fmt.Errorf("error inserting k8s %s (dir: %s) in db: %w", name, dir, err)
-	}
-	return &k, nil
-}
-
-// DeleteK8s removes a k8s entry from the database for the given name.
-func DeleteK8s(name string) error {
-	q, err := Get()
-	if err != nil {
-		return fmt.Errorf("error getting db connection: %w", err)
-	}
-	err = q.DeleteK8s(context.Background(), name)
-	if err != nil {
-		return fmt.Errorf("error deleting k8s %s from db: %w", name, err)
-	}
-	return nil
-}
-
-// GetK8sByName retrieves a single k8s entry by name from the database.
-func GetK8sByName(name string) (*sqlc.K8s, error) {
-	q, err := Get()
-	if err != nil {
-		return nil, fmt.Errorf("error getting db connection: %w", err)
-	}
-	k, err := q.GetK8sByName(context.Background(), name)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("error getting k8s %s: no row found: %w", name, err)
-		}
-		return nil, fmt.Errorf("error getting k8s %s: %w", name, err)
-	}
-	return &k, nil
-}
-
-// GetAllK8s retrieves all k8s entries from the database.
-func GetAllK8s() ([]sqlc.K8s, error) {
-	q, err := Get()
-	if err != nil {
-		return nil, fmt.Errorf("error getting db connection: %w", err)
-	}
-	ks, err := q.GetAllK8s(context.Background())
-	if err != nil {
-		return nil, fmt.Errorf("error getting all k8s: %w", err)
-	}
-	return ks, nil
-}
-
-// InsertDocker adds a new docker entry to the database.
-func InsertDocker(docker sqlc.Docker) (*sqlc.Docker, error) {
-	q, err := Get()
-	if err != nil {
-		return nil, fmt.Errorf("error getting db connection: %w", err)
-	}
-	d, err := q.InsertDocker(context.Background(), sqlc.InsertDockerParams{
-		Name:           docker.Name,
-		Directory:      docker.Directory,
-		ApiUrl:         docker.ApiUrl,
-		GuiUrl:         docker.GuiUrl,
-		BackofficeUrl:  docker.BackofficeUrl,
-		GuiPort:        docker.GuiPort,
-		ApiPort:        docker.ApiPort,
-		BackofficePort: docker.BackofficePort,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error inserting docker %s (dir: %s) in db: %w", docker.Name, docker.Directory, err)
+		return nil, fmt.Errorf("error inserting docker %s in db: %w", docker.Name, err)
 	}
 	return &d, nil
 }
@@ -167,14 +94,51 @@ func UpsertLatestReleaseCache(tagName string, fetchedAt time.Time) error {
 	return nil
 }
 
-// InsertIngestedFile inserts or updates an ingested file record.
-func InsertIngestedFile(envType, envName, filePath string) error {
+// GetImageUpdateCache retrieves a cached remote image state for an image reference.
+func GetImageUpdateCache(ctx context.Context, imageRef string) (*sqlc.ImageUpdateCache, error) {
+	q, err := Get()
+	if err != nil {
+		return nil, fmt.Errorf("error getting db connection: %w", err)
+	}
+
+	cache, err := q.GetImageUpdateCache(ctx, imageRef)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error getting image update cache: %w", err)
+	}
+
+	return &cache, nil
+}
+
+// UpsertImageUpdateCache updates or inserts cached remote image state.
+func UpsertImageUpdateCache(ctx context.Context, imageRef, remoteDigest string, remoteCreatedAt *time.Time, fetchedAt time.Time) error {
+	q, err := Get()
+	if err != nil {
+		return fmt.Errorf("error getting db connection: %w", err)
+	}
+
+	err = q.UpsertImageUpdateCache(ctx, sqlc.UpsertImageUpdateCacheParams{
+		ImageRef:        imageRef,
+		RemoteDigest:    remoteDigest,
+		RemoteCreatedAt: remoteCreatedAt,
+		FetchedAt:       &fetchedAt,
+	})
+	if err != nil {
+		return fmt.Errorf("error upserting image update cache: %w", err)
+	}
+
+	return nil
+}
+
+// InsertIngestedFile inserts or updates an ingested file record for a docker environment.
+func InsertIngestedFile(envName, filePath string) error {
 	q, err := Get()
 	if err != nil {
 		return fmt.Errorf("error getting db connection: %w", err)
 	}
 	err = q.InsertIngestedFile(context.Background(), sqlc.InsertIngestedFileParams{
-		EnvironmentType: envType,
 		EnvironmentName: envName,
 		FilePath:        filePath,
 	})
@@ -185,15 +149,12 @@ func InsertIngestedFile(envType, envName, filePath string) error {
 }
 
 // DeleteIngestedFilesByEnvironment deletes all ingested file records for an environment.
-func DeleteIngestedFilesByEnvironment(envType, envName string) error {
+func DeleteIngestedFilesByEnvironment(envName string) error {
 	q, err := Get()
 	if err != nil {
 		return fmt.Errorf("error getting db connection: %w", err)
 	}
-	err = q.DeleteIngestedFilesByEnvironment(context.Background(), sqlc.DeleteIngestedFilesByEnvironmentParams{
-		EnvironmentType: envType,
-		EnvironmentName: envName,
-	})
+	err = q.DeleteIngestedFilesByEnvironment(context.Background(), envName)
 	if err != nil {
 		return fmt.Errorf("error deleting ingested files: %w", err)
 	}
@@ -201,15 +162,12 @@ func DeleteIngestedFilesByEnvironment(envType, envName string) error {
 }
 
 // GetIngestedFilesByEnvironment retrieves all ingested file records for an environment.
-func GetIngestedFilesByEnvironment(envType, envName string) ([]sqlc.GetIngestedFilesByEnvironmentRow, error) {
+func GetIngestedFilesByEnvironment(envName string) ([]sqlc.GetIngestedFilesByEnvironmentRow, error) {
 	q, err := Get()
 	if err != nil {
 		return nil, fmt.Errorf("error getting db connection: %w", err)
 	}
-	files, err := q.GetIngestedFilesByEnvironment(context.Background(), sqlc.GetIngestedFilesByEnvironmentParams{
-		EnvironmentType: envType,
-		EnvironmentName: envName,
-	})
+	files, err := q.GetIngestedFilesByEnvironment(context.Background(), envName)
 	if err != nil {
 		return nil, fmt.Errorf("error getting ingested files: %w", err)
 	}

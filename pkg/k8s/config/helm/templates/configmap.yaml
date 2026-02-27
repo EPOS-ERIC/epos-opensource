@@ -1,0 +1,21 @@
+{{- $fullName := include "epos.fullname" . }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: global
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+data:
+  PROTOCOL: {{ .Values.protocol | quote }}
+  DOMAIN: {{ .Values.domain | quote }}
+  GATEWAY_URL: {{ printf "%s://%s:5000" .Values.protocol .Values.domain | quote }}
+  METADATA_DB_HOST: metadata-database
+  METADATA_DB_PORT: "5432"
+  METADATA_DB_NAME: {{ .Values.components.metadata_database.db_name }}
+  METADATA_DB_USER: {{ .Values.components.metadata_database.user }}
+  METADATA_DB_PASSWORD: {{ .Values.components.metadata_database.password }}
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_USERNAME: {{ .Values.components.rabbitmq.username }}
+  RABBITMQ_PASSWORD: {{ .Values.components.rabbitmq.password }}
+  RABBITMQ_VHOST: {{ .Values.components.rabbitmq.vhost }}

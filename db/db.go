@@ -1,6 +1,6 @@
 // Package db manages the SQLite database for epos-opensource.
 // It embeds the SQL schema, ensures the database file is created under the configured data directory,
-// and provides functions to open the connection and perform CRUD operations on K8s and Docker entries.
+// and provides functions to open the connection and perform CRUD operations on Docker entries.
 package db
 
 import (

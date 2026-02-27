@@ -2,9 +2,8 @@ package display
 
 import (
 	"fmt"
-	"net/url"
+	"strings"
 
-	"github.com/EPOS-ERIC/epos-opensource/db/sqlc"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 )
@@ -14,6 +13,38 @@ func InfraList(rows [][]any, headers []string, title string) {
 		Info("No installed environments found")
 		return
 	}
+
+	columnHidden := make([]bool, len(headers))
+	for col := range headers {
+		emptyInAllRows := true
+		for _, row := range rows {
+			if col >= len(row) {
+				continue
+			}
+
+			if row[col] == nil {
+				continue
+			}
+
+			if strings.TrimSpace(fmt.Sprint(row[col])) != "" {
+				emptyInAllRows = false
+				break
+			}
+		}
+		columnHidden[col] = emptyInAllRows
+	}
+
+	allHidden := true
+	for _, hidden := range columnHidden {
+		if !hidden {
+			allHidden = false
+			break
+		}
+	}
+	if allHidden && len(columnHidden) > 0 {
+		columnHidden[0] = false
+	}
+
 	t := table.NewWriter()
 	t.SetTitle(title)
 	t.SetStyle(table.StyleRounded)
@@ -25,7 +56,7 @@ func InfraList(rows [][]any, headers []string, title string) {
 	t.Style().Color.Header = text.Colors{text.FgCyan}
 	colConfigs := make([]table.ColumnConfig, len(headers))
 	for i := range headers {
-		colConfigs[i] = table.ColumnConfig{Number: i + 1, AlignHeader: text.AlignCenter}
+		colConfigs[i] = table.ColumnConfig{Number: i + 1, AlignHeader: text.AlignCenter, Hidden: columnHidden[i]}
 	}
 	t.SetColumnConfigs(colConfigs)
 	headerAny := make([]any, len(headers))
@@ -47,42 +78,4 @@ func InfraList(rows [][]any, headers []string, title string) {
 	}
 	t.AppendFooter(table.Row(footer), rowMerge)
 	fmt.Println(t.Render())
-}
-
-func DockerList(dockers []sqlc.Docker, title string) {
-	rows := make([][]any, len(dockers))
-	for i, d := range dockers {
-		gatewayURL, err := url.JoinPath(d.ApiUrl, "ui")
-		if err != nil {
-			Warn("Could not construct gateway URL: %v", err)
-			gatewayURL = d.ApiUrl
-		}
-		backofficeURL, err := url.JoinPath(d.BackofficeUrl, "home")
-		if err != nil {
-			Warn("Could not construct backoffice URL: %v", err)
-			backofficeURL = d.BackofficeUrl
-		}
-		rows[i] = []any{d.Name, d.Directory, d.GuiUrl, backofficeURL, gatewayURL}
-	}
-	headers := []string{"Name", "Directory", "GUI URL", "Backoffice URL", "API URL"}
-	InfraList(rows, headers, title)
-}
-
-func K8sList(kubes []sqlc.K8s, title string) {
-	rows := make([][]any, len(kubes))
-	for i, k := range kubes {
-		gatewayURL, err := url.JoinPath(k.ApiUrl, "ui")
-		if err != nil {
-			Warn("Could not construct gateway URL: %v", err)
-			gatewayURL = k.ApiUrl
-		}
-		backofficeURL, err := url.JoinPath(k.BackofficeUrl, "home")
-		if err != nil {
-			Warn("Could not construct backoffice URL: %v", err)
-			backofficeURL = k.BackofficeUrl
-		}
-		rows[i] = []any{k.Name, k.Directory, k.Context, k.GuiUrl, backofficeURL, gatewayURL}
-	}
-	headers := []string{"Name", "Directory", "Context", "GUI URL", "Backoffice URL", "API URL"}
-	InfraList(rows, headers, title)
 }

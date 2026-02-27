@@ -1,0 +1,104 @@
+{{- define "epos.converterRoutineConfigData" -}}
+LOG_LEVEL: "INFO"
+POSTGRESQL_CONNECTION_STRING: "{{ include "epos.postgresqlConnectionString" . }}"
+{{- end -}}
+
+{{- if .Values.components.converter.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: converter-routine
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: converter-routine
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "epos.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: converter-routine
+  template:
+    metadata:
+      labels:
+        {{- include "epos.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: converter-routine
+      annotations:
+        checksum/converter-routine-config: {{ include "epos.converterRoutineConfigData" . | sha256sum }}
+    spec:
+      {{- include "epos.imagePullSecrets" . | nindent 6 }}
+      initContainers:
+      - name: wait-for-metadata-database
+        image: busybox:latest
+        command:
+        - /bin/sh
+        - -c
+        - |-
+          until nc -z metadata-database 5432; do
+            sleep 1;
+          done
+      containers:
+      - name: converter-routine
+        image: {{ .Values.images.converter_routine_image }}
+        ports:
+        - containerPort: 8080
+          name: http
+        envFrom:
+        - configMapRef:
+            name: converter-routine
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - wget -q -O - http://localhost:8080/api/converter-routine/v1/actuator/health | grep -i 'healthy'
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 5
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - wget -q -O - http://localhost:8080/api/converter-routine/v1/actuator/health | grep -i 'healthy'
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 5
+        volumeMounts:
+        - name: converter-data
+          mountPath: /data
+      volumes:
+      - name: converter-data
+        emptyDir: {}
+      {{- include "epos.nodeSelector" . | nindent 6 }}
+      {{- include "epos.tolerations" . | nindent 6 }}
+      {{- include "epos.affinity" . | nindent 6 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: converter-routine
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: converter-routine
+spec:
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  selector:
+    {{- include "epos.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: converter-routine
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: converter-routine
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: converter-routine
+data:
+  {{- include "epos.converterRoutineConfigData" . | nindent 2 }}
+{{- end }}

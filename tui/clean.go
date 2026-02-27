@@ -3,20 +3,21 @@ package tui
 import (
 	"fmt"
 
-	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore"
-	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 )
 
 // showCleanConfirm displays a confirmation dialog for cleaning an environment.
 func (a *App) showCleanConfirm() {
-	envName, _ := a.envList.GetSelected()
+	envName, isDocker, k8sContext := a.envList.GetSelected()
 	if envName == "" {
 		return
 	}
 
-	isDocker := a.envList.IsDockerActive()
-
 	message := "This will permanently delete all data in environment '" + envName + "'.\n\n" + DefaultTheme.DestructiveTag("b") + "This action cannot be undone." + "[-]"
+	if !isDocker && k8sContext != "" {
+		message = "This will permanently delete all data in environment '" + envName + "' (context: '" + k8sContext + "').\n\n" + DefaultTheme.DestructiveTag("b") + "This action cannot be undone." + "[-]"
+	}
 
 	a.UpdateFooter(CleanConfirmKey)
 
@@ -29,7 +30,7 @@ func (a *App) showCleanConfirm() {
 		ConfirmDestructive: true,
 		Secondary:          true,
 		OnConfirm: func() {
-			a.showCleanProgress(envName, isDocker)
+			a.showCleanProgress(envName, isDocker, k8sContext)
 		},
 		OnCancel: func() {
 			a.ResetToHome(ResetOptions{
@@ -41,28 +42,41 @@ func (a *App) showCleanConfirm() {
 }
 
 // showCleanProgress displays the cleaning progress with live output.
-func (a *App) showCleanProgress(envName string, isDocker bool) {
+func (a *App) showCleanProgress(envName string, isDocker bool, context string) {
 	a.RunBackgroundTask(TaskOptions{
 		Operation: "Clean",
 		EnvName:   envName,
 		IsDocker:  isDocker,
 		Task: func() (string, error) {
 			if isDocker {
-				docker, err := dockercore.Clean(dockercore.CleanOpts{
+				env, err := docker.Clean(docker.CleanOpts{
 					Name: envName,
 				})
 				if err != nil {
 					return "", err
 				}
-				return fmt.Sprintf("Environment cleaned successfully! GUI: %s", docker.GuiUrl), nil
+
+				urls, err := env.BuildEnvURLs()
+				if err != nil {
+					return "", err
+				}
+
+				return fmt.Sprintf("Environment cleaned successfully! GUI: %s", urls.GUIURL), nil
 			} else {
-				kube, err := k8score.Clean(k8score.CleanOpts{
-					Name: envName,
+				env, err := k8s.Clean(k8s.CleanOpts{
+					Name:    envName,
+					Context: context,
 				})
 				if err != nil {
 					return "", err
 				}
-				return fmt.Sprintf("Environment cleaned successfully! GUI: %s", kube.GuiUrl), nil
+
+				urls, err := env.BuildEnvURLs()
+				if err != nil {
+					return "", err
+				}
+
+				return fmt.Sprintf("Environment cleaned successfully! GUI: %s", urls.GUIURL), nil
 			}
 		},
 	})

@@ -1,64 +1,27 @@
--- K8s queries
--- name: GetAllK8s :many
-SELECT
-    *
-FROM
-    k8s;
-
--- name: InsertK8s :one
-INSERT INTO
-    k8s (
-        name,
-        directory,
-        context,
-        api_url,
-        gui_url,
-        backoffice_url,
-        protocol,
-        tls_enabled
-    )
-VALUES
-    (?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING
-    *;
-
--- name: DeleteK8s :exec
-DELETE FROM
-    k8s
-WHERE
-    name = ?;
-
--- name: GetK8sByName :one
-SELECT
-    *
-FROM
-    k8s
-WHERE
-    name = ?;
-
 -- Docker queries
 -- name: GetAllDocker :many
 SELECT
-    *
+    name,
+    config_yaml
 FROM
-    docker;
+    docker
+ORDER BY
+    name;
 
--- name: InsertDocker :one
+-- name: UpsertDocker :one
 INSERT INTO
     docker (
         name,
-        directory,
-        api_url,
-        gui_url,
-        backoffice_url,
-        gui_port,
-        api_port,
-        backoffice_port
+        config_yaml
     )
 VALUES
-    (?, ?, ?, ?, ?, ?, ?, ?)
+    (?, ?) ON CONFLICT (name) DO
+UPDATE
+SET
+    config_yaml = excluded.config_yaml
 RETURNING
-    *;
+    name,
+    config_yaml;
 
 -- name: DeleteDocker :exec
 DELETE FROM
@@ -68,7 +31,8 @@ WHERE
 
 -- name: GetDockerByName :one
 SELECT
-    *
+    name,
+    config_yaml
 FROM
     docker
 WHERE
@@ -92,16 +56,37 @@ SET
     tag_name = excluded.tag_name,
     fetched_at = excluded.fetched_at;
 
+-- name: GetImageUpdateCache :one
+SELECT
+    image_ref,
+    remote_digest,
+    remote_created_at,
+    fetched_at
+FROM
+    image_update_cache
+WHERE
+    image_ref = ?;
+
+-- name: UpsertImageUpdateCache :exec
+INSERT INTO
+    image_update_cache (image_ref, remote_digest, remote_created_at, fetched_at)
+VALUES
+    (?, ?, ?, ?) ON CONFLICT (image_ref) DO
+UPDATE
+SET
+    remote_digest = excluded.remote_digest,
+    remote_created_at = excluded.remote_created_at,
+    fetched_at = excluded.fetched_at;
+
 -- name: InsertIngestedFile :exec
 INSERT INTO
     ingested_files (
-        environment_type,
         environment_name,
         file_path,
         ingested_at
     )
 VALUES
-    (?, ?, ?, CURRENT_TIMESTAMP) ON CONFLICT (environment_type, environment_name, file_path) DO
+    (?, ?, CURRENT_TIMESTAMP) ON CONFLICT (environment_name, file_path) DO
 UPDATE
 SET
     ingested_at = CURRENT_TIMESTAMP;
@@ -110,8 +95,7 @@ SET
 DELETE FROM
     ingested_files
 WHERE
-    environment_type = ?
-    AND environment_name = ?;
+    environment_name = ?;
 
 -- name: GetIngestedFilesByEnvironment :many
 SELECT
@@ -120,7 +104,6 @@ SELECT
 FROM
     ingested_files
 WHERE
-    environment_type = ?
-    AND environment_name = ?
+    environment_name = ?
 ORDER BY
     ingested_at DESC;

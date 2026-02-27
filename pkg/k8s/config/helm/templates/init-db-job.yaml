@@ -1,0 +1,61 @@
+{{- if and .Values.jobs.enabled .Values.jobs.init_db.enabled -}}
+# TODO: use top level variables for common reused things in templates
+{{- $name := "init-db-job" -}}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $name }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+spec:
+  backoffLimit: {{ .Values.jobs.init_db.backoff_limit }}
+  activeDeadlineSeconds: {{ .Values.jobs.init_db.active_deadline_seconds }}
+  template:
+    metadata:
+      name: {{ $name }}
+    spec:
+      restartPolicy: Never
+      initContainers:
+      # TODO: we should probably put the init containers in some helper and reuse them in the templates instead of duplicating them
+      - name: wait-for-metadata-database
+        image: busybox:latest
+        command:
+        - /bin/sh
+        - -c
+        - |-
+          until nc -z metadata-database 5432; do
+            sleep 1;
+          done
+      containers:
+      - name: {{ $name }}
+        image: {{ .Values.jobs.init_db.image }}
+        command: [ "/bin/sh", "-c" ]
+        args:
+        - |
+          set -e
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] [init-db] Starting database initialization..."
+          /init-db/init-db.sh
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] [init-db] Database initialization completed successfully"
+        envFrom:
+        - configMapRef:
+            name: {{ $name }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "epos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+data:
+  # TODO: check if the values of the variables is correct
+  POSTGRESQL_JOB_CONNECTION_STRING: "{{ trimPrefix "jdbc:" (include "epos.postgresqlConnectionString" .) }}"
+  POSTGRESQL_JOB_CONNECTION_STRING_PG: "{{ trimPrefix "jdbc:" (include "epos.postgresqlConnectionString" .) }}"
+  ALLOW_EMPTY_PASSWORD: "yes"
+{{- end -}}

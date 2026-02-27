@@ -5,9 +5,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore"
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker"
 
 	"github.com/spf13/cobra"
 )
@@ -36,7 +36,7 @@ var DeleteCmd = &cobra.Command{
 			}
 		}
 
-		err := dockercore.Delete(dockercore.DeleteOpts{
+		err := docker.Delete(docker.DeleteOpts{
 			Name: name,
 		})
 		if err != nil {

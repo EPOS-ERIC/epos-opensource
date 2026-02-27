@@ -78,7 +78,7 @@ func TestExport(t *testing.T) {
 			path, cleanup := tt.setup(t)
 			defer cleanup()
 
-			err := Export(path, tt.filename, tt.content)
+			gotPath, err := Export(path, tt.filename, tt.content)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("Export() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -96,20 +96,24 @@ func TestExport(t *testing.T) {
 					return path
 				}(), tt.filename)
 
+			if gotPath != fp {
+				t.Fatalf("Export() path = %q, want %q", gotPath, fp)
+			}
+
 			gotData, err := os.ReadFile(fp)
 			if err != nil {
 				t.Fatalf("reading exported file: %v", err)
 			}
-			if string(gotData) != string(tt.content) {
-				t.Errorf("file content %q, want %q", gotData, tt.content)
+			if !stringHasSuffix(string(gotData), string(tt.content)) {
+				t.Errorf("file content does not end with expected content")
 			}
 
 			info, err := os.Stat(fp)
 			if err != nil {
 				t.Fatalf("stat exported file: %v", err)
 			}
-			if info.Mode().Perm() != 0o600 {
-				t.Errorf("file perms %o, want 0o600", info.Mode().Perm())
+			if info.Mode().Perm() != 0o644 {
+				t.Errorf("file perms %o, want 0o644", info.Mode().Perm())
 			}
 
 			// If Export had to create the directory, confirm it exists.
@@ -119,4 +123,8 @@ func TestExport(t *testing.T) {
 			}
 		})
 	}
+}
+
+func stringHasSuffix(s, suffix string) bool {
+	return len(s) >= len(suffix) && s[len(s)-len(suffix):] == suffix
 }

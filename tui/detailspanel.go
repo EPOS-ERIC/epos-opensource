@@ -3,13 +3,14 @@ package tui
 import (
 	"fmt"
 	"net/url"
-	"os"
 	"strings"
 
-	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/db"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"gopkg.in/yaml.v3"
 )
 
 // DetailRow represents a row in the details grid.
@@ -17,30 +18,34 @@ type DetailRow struct {
 	Label       string
 	Value       string
 	IncludeOpen bool
+	OnCopy      func()
+	OnOpen      func()
 }
 
 // DetailsPanel manages the right-side information and action panel.
 type DetailsPanel struct {
-	app                *App
-	details            *tview.Flex
-	detailsGrid        *tview.Grid
-	detailsButtons     []*tview.Button
-	nameDirGrid        *tview.Grid
-	nameDirButtons     []*tview.Button
-	buttonsFlex        *tview.Flex
-	deleteButton       *tview.Button
-	cleanButton        *tview.Button
-	updateButton       *tview.Button
-	populateButton     *tview.Button
-	detailsList        *tview.List
-	detailsListEmpty   *tview.TextView
-	detailsListFlex    *tview.Flex
-	detailsEmpty       *tview.TextView
-	currentDetailsName string
-	currentDetailsType string
-	currentDetailsRows []DetailRow
-	currentDirectory   string
-	detailsShown       bool
+	app                   *App
+	details               *tview.Flex
+	detailsGrid           *tview.Grid
+	detailsButtons        []*tview.Button
+	nameDirGrid           *tview.Grid
+	nameDirButtons        []*tview.Button
+	buttonsFlex           *tview.Flex
+	deleteButton          *tview.Button
+	cleanButton           *tview.Button
+	updateButton          *tview.Button
+	renderButton          *tview.Button
+	populateButton        *tview.Button
+	detailsList           *tview.List
+	detailsListEmpty      *tview.TextView
+	detailsListFlex       *tview.Flex
+	detailsEmpty          *tview.TextView
+	currentDetailsName    string
+	currentDetailsType    string
+	currentDetailsContext string
+	currentDetailsRows    []DetailRow
+	configViewSession     *configEditSession
+	detailsShown          bool
 }
 
 // NewDetailsPanel creates a new DetailsPanel component.
@@ -70,6 +75,88 @@ func (dp *DetailsPanel) GetCurrentDetailsType() string {
 	return dp.currentDetailsType
 }
 
+// GetCurrentDetailsContext returns the current details environment context.
+func (dp *DetailsPanel) GetCurrentDetailsContext() string {
+	return dp.currentDetailsContext
+}
+
+func (dp *DetailsPanel) cleanupConfigViewSession() {
+	if dp.configViewSession == nil {
+		return
+	}
+
+	_ = dp.configViewSession.Cleanup()
+	dp.configViewSession = nil
+}
+
+func (dp *DetailsPanel) currentAppliedConfigYAML() (string, error) {
+	switch dp.currentDetailsType {
+	case string(DockerKey):
+		env, err := docker.GetEnv(dp.currentDetailsName)
+		if err != nil {
+			return "", fmt.Errorf("failed to load docker environment: %w", err)
+		}
+
+		cfgBytes, err := env.Bytes()
+		if err != nil {
+			return "", fmt.Errorf("failed to marshal docker config: %w", err)
+		}
+
+		return string(cfgBytes), nil
+	case string(K8sKey):
+		env, err := k8s.GetEnv(dp.currentDetailsName, dp.currentDetailsContext)
+		if err != nil {
+			return "", fmt.Errorf("failed to load k8s environment: %w", err)
+		}
+
+		cfgBytes, err := yaml.Marshal(env.Config)
+		if err != nil {
+			return "", fmt.Errorf("failed to marshal k8s config: %w", err)
+		}
+
+		return string(cfgBytes), nil
+	default:
+		return "", fmt.Errorf("unsupported environment type: %s", dp.currentDetailsType)
+	}
+}
+
+func (dp *DetailsPanel) copyCurrentAppliedConfig() {
+	content, err := dp.currentAppliedConfigYAML()
+	if err != nil {
+		dp.app.ShowError(fmt.Sprintf("Failed to get applied config: %v", err))
+		return
+	}
+
+	dp.app.copyToClipboardWithFeedback(content, "Applied config copied to clipboard", "Failed to copy applied config")
+}
+
+func (dp *DetailsPanel) openCurrentAppliedConfig() {
+	content, err := dp.currentAppliedConfigYAML()
+	if err != nil {
+		dp.app.ShowError(fmt.Sprintf("Failed to get applied config: %v", err))
+		return
+	}
+
+	snapshot := "# Applied configuration snapshot (read-only)\n" +
+		"# Changes to this file do not update the deployed environment.\n\n" +
+		content
+
+	dp.cleanupConfigViewSession()
+
+	fileName := fmt.Sprintf("%s-%s-applied-config.yaml", dp.currentDetailsType, dp.currentDetailsName)
+	session, err := newReadOnlyConfigSession(fileName, snapshot)
+	if err != nil {
+		dp.app.ShowError(fmt.Sprintf("Failed to create config snapshot: %v", err))
+		return
+	}
+
+	dp.configViewSession = session
+
+	if err := dp.app.openConfigEditor(session.FilePath()); err != nil {
+		dp.app.ShowError(err.Error())
+	}
+}
+
 // buildUI constructs the component layout.
 func (dp *DetailsPanel) buildUI() {
 	dp.detailsGrid = tview.NewGrid()
@@ -91,6 +178,10 @@ func (dp *DetailsPanel) buildUI() {
 		dp.app.showUpdateForm()
 	})
 
+	dp.renderButton = NewStyledButton("Render", func() {
+		dp.app.showRenderForm()
+	})
+
 	dp.populateButton = NewStyledButton("Populate", func() {
 		dp.app.showPopulateForm()
 	})
@@ -98,6 +189,8 @@ func (dp *DetailsPanel) buildUI() {
 	dp.buttonsFlex = tview.NewFlex().SetDirection(tview.FlexColumn)
 	dp.buttonsFlex.AddItem(tview.NewBox(), 0, 1, false)
 	dp.buttonsFlex.AddItem(dp.populateButton, 14, 0, true)
+	dp.buttonsFlex.AddItem(tview.NewBox(), 0, 1, false)
+	dp.buttonsFlex.AddItem(dp.renderButton, 12, 0, false)
 	dp.buttonsFlex.AddItem(tview.NewBox(), 0, 1, false)
 	dp.buttonsFlex.AddItem(dp.updateButton, 12, 0, false)
 	dp.buttonsFlex.AddItem(tview.NewBox(), 0, 1, false)
@@ -137,16 +230,20 @@ func (dp *DetailsPanel) buildUI() {
 }
 
 // Update fetches and displays environment details in the panel.
-func (dp *DetailsPanel) Update(name, envType string, focus bool) {
+func (dp *DetailsPanel) Update(name, envType, context string, focus bool) {
+	dp.cleanupConfigViewSession()
+
 	dp.currentDetailsName = name
 	dp.currentDetailsType = envType
+	dp.currentDetailsContext = context
 
 	nameDirGridCount := 2
 	detailsGridCount := 2
 
 	switch envType {
-	case "docker":
-		if d, err := db.GetDockerByName(name); err != nil {
+	case string(DockerKey):
+		dp.currentDetailsContext = ""
+		if env, err := docker.GetEnv(name); err != nil {
 			dp.detailsGrid.Clear()
 			dp.detailsButtons = nil
 			dp.detailsGrid.SetRows(1)
@@ -154,40 +251,53 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 			errorTV := tview.NewTextView().SetText(fmt.Sprintf("Error fetching details for %s: %v", name, err)).SetTextColor(DefaultTheme.Destructive)
 			dp.detailsGrid.AddItem(errorTV, 0, 0, 1, 1, 0, 0, false)
 		} else {
-			apiURL, err := url.JoinPath(d.ApiUrl, "ui")
+			urls, err := env.BuildEnvURLs()
+			if err != nil {
+				dp.app.ShowError(fmt.Sprintf("Error building Docker URLs: %v", err))
+				return
+			}
+
+			apiURL, err := url.JoinPath(urls.APIURL, "ui")
 			if err != nil {
 				dp.app.ShowError(fmt.Sprintf("Error joining Docker API URL: %v", err))
 				return
 			}
-			backofficeURL, err := url.JoinPath(d.BackofficeUrl, "home")
-			if err != nil {
-				dp.app.ShowError(fmt.Sprintf("Error joining Docker backoffice URL: %v", err))
-				return
+			var backofficeURL string
+			if urls.BackofficeURL != nil {
+				u, err := url.JoinPath(*urls.BackofficeURL, "home")
+				if err != nil {
+					dp.app.ShowError(fmt.Sprintf("Error joining Docker backoffice URL: %v", err))
+					return
+				}
+				backofficeURL = u
 			}
 			nameDirRows := []DetailRow{
-				{Label: "Name", Value: d.Name, IncludeOpen: false},
-				{Label: "Directory", Value: d.Directory, IncludeOpen: true},
+				{Label: "Name", Value: env.Name, IncludeOpen: false},
+				{
+					Label:       "Applied Config",
+					Value:       "Runtime YAML snapshot",
+					IncludeOpen: true,
+					OnCopy:      dp.copyCurrentAppliedConfig,
+					OnOpen:      dp.openCurrentAppliedConfig,
+				},
 			}
 			nameDirGridCount = len(nameDirRows)
 			dp.createGridRows(dp.nameDirGrid, nameDirRows, &dp.nameDirButtons, "Basic Information")
-			for _, row := range nameDirRows {
-				if row.Label == "Directory" {
-					dp.currentDirectory = row.Value
-					break
-				}
-			}
 
 			rows := []DetailRow{
-				{Label: "GUI", Value: d.GuiUrl, IncludeOpen: true},
-				{Label: "Backoffice", Value: backofficeURL, IncludeOpen: true},
-				{Label: "API", Value: apiURL, IncludeOpen: true},
+				{Label: "GUI", Value: urls.GUIURL, IncludeOpen: true},
 			}
+			if backofficeURL != "" {
+				rows = append(rows, DetailRow{Label: "Backoffice", Value: backofficeURL, IncludeOpen: true})
+			}
+			rows = append(rows, DetailRow{Label: "API", Value: apiURL, IncludeOpen: true})
 			detailsGridCount = len(rows)
 			dp.currentDetailsRows = rows
 			dp.createDetailsRows(rows)
 		}
-	case "k8s":
-		if k, err := db.GetK8sByName(name); err != nil {
+	case string(K8sKey):
+		env, err := k8s.GetEnv(name, context)
+		if err != nil {
 			dp.detailsGrid.Clear()
 			dp.detailsButtons = nil
 			dp.detailsGrid.SetRows(1)
@@ -195,25 +305,40 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 			errorTV := tview.NewTextView().SetText(fmt.Sprintf("Error fetching details for %s: %v", name, err)).SetTextColor(DefaultTheme.Destructive)
 			dp.detailsGrid.AddItem(errorTV, 0, 0, 1, 1, 0, 0, false)
 		} else {
+			urls, err := env.BuildEnvURLs()
+			if err != nil {
+				dp.detailsGrid.Clear()
+				dp.detailsButtons = nil
+				dp.detailsGrid.SetRows(1)
+				dp.detailsGrid.SetColumns(1)
+				errorTV := tview.NewTextView().SetText(fmt.Sprintf("Error building URLs for %s: %v", name, err)).SetTextColor(DefaultTheme.Destructive)
+				dp.detailsGrid.AddItem(errorTV, 0, 0, 1, 1, 0, 0, false)
+				break
+			}
+
+			dp.currentDetailsContext = env.Context
+
 			nameDirRows := []DetailRow{
-				{Label: "Name", Value: k.Name, IncludeOpen: false},
-				{Label: "Context", Value: k.Context, IncludeOpen: false},
-				{Label: "Directory", Value: k.Directory, IncludeOpen: true},
+				{Label: "Name", Value: env.Name, IncludeOpen: false},
+				{Label: "Context", Value: env.Context, IncludeOpen: false},
+				{
+					Label:       "Applied Config",
+					Value:       "Runtime YAML snapshot",
+					IncludeOpen: true,
+					OnCopy:      dp.copyCurrentAppliedConfig,
+					OnOpen:      dp.openCurrentAppliedConfig,
+				},
 			}
 			nameDirGridCount = len(nameDirRows)
 			dp.createGridRows(dp.nameDirGrid, nameDirRows, &dp.nameDirButtons, "Basic Information")
-			for _, row := range nameDirRows {
-				if row.Label == "Directory" {
-					dp.currentDirectory = row.Value
-					break
-				}
-			}
 
 			rows := []DetailRow{
-				{Label: "GUI", Value: k.GuiUrl, IncludeOpen: true},
-				{Label: "Backoffice", Value: k.BackofficeUrl, IncludeOpen: true},
-				{Label: "API", Value: k.ApiUrl, IncludeOpen: true},
+				{Label: "GUI", Value: urls.GUIURL, IncludeOpen: true},
 			}
+			if urls.BackofficeURL != nil {
+				rows = append(rows, DetailRow{Label: "Backoffice", Value: *urls.BackofficeURL, IncludeOpen: true})
+			}
+			rows = append(rows, DetailRow{Label: "API", Value: urls.APIURL, IncludeOpen: true})
 			detailsGridCount = len(rows)
 			dp.currentDetailsRows = rows
 			dp.createDetailsRows(rows)
@@ -244,6 +369,8 @@ func (dp *DetailsPanel) Update(name, envType string, focus bool) {
 // Clear shows the placeholder text in the details panel.
 func (dp *DetailsPanel) Clear() {
 	if dp.detailsShown {
+		dp.cleanupConfigViewSession()
+
 		dp.details.Clear()
 		dp.details.AddItem(dp.detailsEmpty, 0, 1, true)
 		dp.detailsShown = false
@@ -252,7 +379,7 @@ func (dp *DetailsPanel) Clear() {
 		dp.nameDirButtons = nil
 		dp.currentDetailsName = ""
 		dp.currentDetailsType = ""
-		dp.currentDirectory = ""
+		dp.currentDetailsContext = ""
 	}
 }
 
@@ -267,8 +394,21 @@ func (dp *DetailsPanel) RefreshFiles() {
 func (dp *DetailsPanel) populateIngestedFilesList() {
 	dp.detailsList.Clear()
 	dp.detailsListFlex.Clear()
+	dp.detailsList.SetSelectedFunc(nil)
+	dp.detailsList.SetTitle(" [::b]Ingested Files ")
+	dp.detailsListEmpty.SetTitle(" [::b]Ingested Files ")
 
-	if ingestedFiles, err := db.GetIngestedFilesByEnvironment(dp.currentDetailsType, dp.currentDetailsName); err != nil {
+	if dp.currentDetailsType == string(K8sKey) {
+		dp.detailsListEmpty.SetText("\n" + DefaultTheme.MutedTag("i") + "Tracking is available only for Docker environments")
+		dp.detailsListFlex.AddItem(dp.detailsListEmpty, 0, 1, true)
+		dp.syncIngestedFilesFocus()
+
+		return
+	}
+
+	dp.detailsListEmpty.SetText("\n" + DefaultTheme.MutedTag("i") + "No ingested files yet")
+
+	if ingestedFiles, err := db.GetIngestedFilesByEnvironment(dp.currentDetailsName); err != nil {
 		dp.detailsListEmpty.SetText("\n" + DefaultTheme.DestructiveTag("i") + fmt.Sprintf("Error loading files: %v", err))
 		dp.detailsListFlex.AddItem(dp.detailsListEmpty, 0, 1, true)
 	} else {
@@ -291,6 +431,46 @@ func (dp *DetailsPanel) populateIngestedFilesList() {
 			dp.detailsListFlex.AddItem(dp.detailsListEmpty, 0, 1, true)
 		}
 	}
+
+	dp.syncIngestedFilesFocus()
+}
+
+func (dp *DetailsPanel) focusIngestedFiles() {
+	if dp.detailsListFlex.GetItemCount() > 0 {
+		target := dp.detailsListFlex.GetItem(0)
+		if target != nil {
+			dp.app.tview.SetFocus(target)
+
+			return
+		}
+	}
+
+	dp.app.tview.SetFocus(dp.detailsListFlex)
+}
+
+func (dp *DetailsPanel) syncIngestedFilesFocus() {
+	focus := dp.app.tview.GetFocus()
+	if focus == dp.detailsList || focus == dp.detailsListEmpty || focus == dp.detailsListFlex {
+		dp.focusIngestedFiles()
+	}
+}
+
+func (dp *DetailsPanel) focusActiveEnvList() {
+	if dp.app.envList.IsDockerActive() {
+		if dp.app.envList.docker.GetItemCount() > 0 {
+			dp.app.tview.SetFocus(dp.app.envList.docker)
+		} else {
+			dp.app.tview.SetFocus(dp.app.envList.dockerEmpty)
+		}
+
+		return
+	}
+
+	if dp.app.envList.k8s.GetItemCount() > 0 {
+		dp.app.tview.SetFocus(dp.app.envList.k8s)
+	} else {
+		dp.app.tview.SetFocus(dp.app.envList.k8sEmpty)
+	}
 }
 
 // CycleFocus cycles focus between buttons, grid, and list in the details view.
@@ -304,15 +484,17 @@ func (dp *DetailsPanel) CycleFocus() {
 		case len(dp.detailsButtons) > 0:
 			dp.app.tview.SetFocus(dp.detailsButtons[0])
 		default:
-			dp.app.tview.SetFocus(dp.detailsList)
+			dp.focusIngestedFiles()
 		}
 	case dp.cleanButton:
 		dp.app.tview.SetFocus(dp.deleteButton)
 	case dp.updateButton:
 		dp.app.tview.SetFocus(dp.cleanButton)
-	case dp.populateButton:
+	case dp.renderButton:
 		dp.app.tview.SetFocus(dp.updateButton)
-	case dp.detailsListFlex:
+	case dp.populateButton:
+		dp.app.tview.SetFocus(dp.renderButton)
+	case dp.detailsListFlex, dp.detailsList, dp.detailsListEmpty:
 		dp.app.tview.SetFocus(dp.populateButton)
 	default:
 		// Check if it's a details button
@@ -321,7 +503,7 @@ func (dp *DetailsPanel) CycleFocus() {
 				if i+1 < len(dp.detailsButtons) {
 					dp.app.tview.SetFocus(dp.detailsButtons[i+1])
 				} else {
-					dp.app.tview.SetFocus(dp.detailsListFlex)
+					dp.focusIngestedFiles()
 				}
 				return
 			}
@@ -335,7 +517,7 @@ func (dp *DetailsPanel) CycleFocus() {
 					if len(dp.detailsButtons) > 0 {
 						dp.app.tview.SetFocus(dp.detailsButtons[0])
 					} else {
-						dp.app.tview.SetFocus(dp.detailsList)
+						dp.focusIngestedFiles()
 					}
 				}
 				return
@@ -350,7 +532,7 @@ func (dp *DetailsPanel) CycleFocus() {
 func (dp *DetailsPanel) CycleFocusBackward() {
 	focus := dp.app.tview.GetFocus()
 	switch focus {
-	case dp.detailsList:
+	case dp.detailsList, dp.detailsListEmpty, dp.detailsListFlex:
 		switch {
 		case len(dp.detailsButtons) > 0:
 			dp.app.tview.SetFocus(dp.detailsButtons[len(dp.detailsButtons)-1])
@@ -364,9 +546,11 @@ func (dp *DetailsPanel) CycleFocusBackward() {
 	case dp.cleanButton:
 		dp.app.tview.SetFocus(dp.updateButton)
 	case dp.updateButton:
+		dp.app.tview.SetFocus(dp.renderButton)
+	case dp.renderButton:
 		dp.app.tview.SetFocus(dp.populateButton)
 	case dp.populateButton:
-		dp.app.tview.SetFocus(dp.detailsListFlex)
+		dp.focusIngestedFiles()
 	default:
 		// Check if it's a details button
 		for i, btn := range dp.detailsButtons {
@@ -395,7 +579,7 @@ func (dp *DetailsPanel) CycleFocusBackward() {
 			}
 		}
 		// If not, start at the end
-		dp.app.tview.SetFocus(dp.detailsList)
+		dp.focusIngestedFiles()
 	}
 }
 
@@ -405,19 +589,7 @@ func (dp *DetailsPanel) SetupInput() {
 		switch {
 		case event.Key() == tcell.KeyEsc:
 			dp.Clear()
-			if dp.app.envList.IsDockerActive() {
-				if dp.app.envList.docker.GetItemCount() > 0 {
-					dp.app.tview.SetFocus(dp.app.envList.docker)
-				} else {
-					dp.app.tview.SetFocus(dp.app.envList.dockerEmpty)
-				}
-			} else {
-				if dp.app.envList.k8s.GetItemCount() > 0 {
-					dp.app.tview.SetFocus(dp.app.envList.k8s)
-				} else {
-					dp.app.tview.SetFocus(dp.app.envList.k8sEmpty)
-				}
-			}
+			dp.focusActiveEnvList()
 			return nil
 		case event.Key() == tcell.KeyTab:
 			dp.CycleFocus()
@@ -431,12 +603,13 @@ func (dp *DetailsPanel) SetupInput() {
 			dp.app.showDeleteConfirm()
 			return nil
 		case event.Rune() == 'c':
-			if dp.app.envList.IsDockerActive() {
-				dp.app.showCleanConfirm()
-				return nil
-			}
+			dp.app.showCleanConfirm()
+			return nil
 		case event.Rune() == 'u':
 			dp.app.showUpdateForm()
+			return nil
+		case event.Rune() == 'r':
+			dp.app.showRenderForm()
 			return nil
 		case event.Rune() == 'p':
 			dp.app.showPopulateForm()
@@ -447,12 +620,17 @@ func (dp *DetailsPanel) SetupInput() {
 				return nil
 			}
 		case event.Rune() == 'b':
-			if dp.detailsShown && len(dp.currentDetailsRows) > 1 {
-				dp.openValue(dp.currentDetailsRows[1].Value)
+			if dp.detailsShown {
+				if value, ok := dp.findDetailRowValue("Backoffice"); ok {
+					dp.openValue(value)
+				}
 				return nil
 			}
-			if dp.detailsShown && len(dp.currentDetailsRows) > 2 {
-				dp.openValue(dp.currentDetailsRows[2].Value)
+		case event.Rune() == 'a':
+			if dp.detailsShown {
+				if value, ok := dp.findDetailRowValue("API"); ok {
+					dp.openValue(value)
+				}
 				return nil
 			}
 		case event.Rune() == 'G':
@@ -461,23 +639,17 @@ func (dp *DetailsPanel) SetupInput() {
 				return nil
 			}
 		case event.Rune() == 'B':
-			if dp.detailsShown && len(dp.currentDetailsRows) > 1 {
-				dp.app.copyToClipboardWithFeedback(dp.currentDetailsRows[1].Value, "Copied to clipboard", "Failed to copy to clipboard")
+			if dp.detailsShown {
+				if value, ok := dp.findDetailRowValue("Backoffice"); ok {
+					dp.app.copyToClipboardWithFeedback(value, "Copied to clipboard", "Failed to copy to clipboard")
+				}
 				return nil
 			}
 		case event.Rune() == 'A':
-			if dp.detailsShown && len(dp.currentDetailsRows) > 2 {
-				dp.app.copyToClipboardWithFeedback(dp.currentDetailsRows[2].Value, "Copied to clipboard", "Failed to copy to clipboard")
-				return nil
-			}
-		case event.Rune() == 'e':
-			if dp.detailsShown && dp.currentDirectory != "" {
-				dp.openValue(dp.currentDirectory)
-				return nil
-			}
-		case event.Rune() == 'E':
-			if dp.detailsShown && dp.currentDirectory != "" {
-				dp.app.copyToClipboardWithFeedback(dp.currentDirectory, "Copied to clipboard", "Failed to copy to clipboard")
+			if dp.detailsShown {
+				if value, ok := dp.findDetailRowValue("API"); ok {
+					dp.app.copyToClipboardWithFeedback(value, "Copied to clipboard", "Failed to copy to clipboard")
+				}
 				return nil
 			}
 		case event.Rune() == 'y':
@@ -495,6 +667,24 @@ func (dp *DetailsPanel) SetupInput() {
 		return event
 	}
 	dp.details.SetInputCapture(handler)
+	dp.detailsList.SetInputCapture(handler)
+	dp.detailsListEmpty.SetInputCapture(handler)
+	dp.detailsListFlex.SetInputCapture(handler)
+}
+
+func (dp *DetailsPanel) findDetailRowValue(label string) (string, bool) {
+	for _, row := range dp.currentDetailsRows {
+		if row.Label == label {
+			return row.Value, true
+		}
+	}
+
+	return "", false
+}
+
+func (dp *DetailsPanel) hasDetailRow(label string) bool {
+	_, ok := dp.findDetailRowValue(label)
+	return ok
 }
 
 // setupFocusHandlers configures visual feedback when components gain/lose focus.
@@ -514,24 +704,8 @@ func (dp *DetailsPanel) createDetailsRows(rows []DetailRow) {
 
 // openValue opens the given value (URL, directory, or file) using the appropriate command.
 func (dp *DetailsPanel) openValue(value string) {
-	var cmd string
-	if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") {
-		cmd = dp.app.config.TUI.OpenURLCommand
-	} else {
-		if info, err := os.Stat(value); err == nil && info.IsDir() {
-			cmd = dp.app.config.TUI.OpenDirectoryCommand
-		} else {
-			cmd = dp.app.config.TUI.OpenFileCommand
-		}
-	}
-	if cmd != "" {
-		dp.app.tview.Suspend(func() {
-			if err := common.OpenWithCommand(cmd, value); err != nil {
-				dp.app.ShowError(fmt.Sprintf("Failed to open: %v", err))
-			}
-		})
-	} else {
-		dp.app.ShowError("Failed to open")
+	if err := dp.app.openValue(value); err != nil {
+		dp.app.ShowError(err.Error())
 	}
 }
 
@@ -598,6 +772,20 @@ func (dp *DetailsPanel) createGridRows(grid *tview.Grid, rows []DetailRow, butto
 	}
 
 	for i, row := range rows {
+		copyAction := func() {
+			dp.app.copyToClipboardWithFeedback(row.Value, "Copied to clipboard", "Failed to copy to clipboard")
+		}
+		if row.OnCopy != nil {
+			copyAction = row.OnCopy
+		}
+
+		openAction := func() {
+			dp.openValue(row.Value)
+		}
+		if row.OnOpen != nil {
+			openAction = row.OnOpen
+		}
+
 		labelTV := tview.NewTextView().
 			SetDynamicColors(true).
 			SetText(DefaultTheme.PrimaryTag("b") + row.Label)
@@ -609,9 +797,7 @@ func (dp *DetailsPanel) createGridRows(grid *tview.Grid, rows []DetailRow, butto
 		valueTV.SetBorderPadding(0, 0, 1, 1)
 
 		// add spacing around buttons
-		copyBtn := NewStyledButton("Copy", func() {
-			dp.app.copyToClipboardWithFeedback(row.Value, "Copied to clipboard", "Failed to copy to clipboard")
-		})
+		copyBtn := NewStyledButton("Copy", copyAction)
 
 		// wrap button in a box with padding
 		copyBtnBox := tview.NewFlex().SetDirection(tview.FlexColumn)
@@ -626,9 +812,7 @@ func (dp *DetailsPanel) createGridRows(grid *tview.Grid, rows []DetailRow, butto
 		*buttons = append(*buttons, copyBtn)
 
 		if row.IncludeOpen {
-			openBtn := NewStyledButton("Open", func() {
-				dp.openValue(row.Value)
-			})
+			openBtn := NewStyledButton("Open", openAction)
 
 			// wrap button in a box with padding
 			openBtnBox := tview.NewFlex().SetDirection(tview.FlexColumn)

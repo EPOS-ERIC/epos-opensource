@@ -129,8 +129,6 @@ func postURL(path string, url url.URL) error {
 
 func postRequest(path string, url url.URL, body io.Reader, setPathQuery bool) error {
 	q := url.Query()
-	// TODO: remove securityCode once it's removed from the ingestor
-	q.Set("securityCode", "changeme")
 	q.Set("type", "single")
 	q.Set("model", "EPOS-DCAT-AP-V1")
 	q.Set("mapping", "EDM-TO-DCAT-AP")
