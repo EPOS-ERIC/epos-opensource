@@ -125,6 +125,14 @@ func (e *Config) Validate() error {
 	if e.Protocol != "http" && e.Protocol != "https" {
 		return fmt.Errorf("protocol must be http or https")
 	}
+	if e.TLS.Enabled {
+		if e.Protocol != "https" {
+			return fmt.Errorf("protocol must be https when tls is enabled")
+		}
+		if e.TLS.SecretName == "" {
+			return fmt.Errorf("tls secret_name is required when tls is enabled")
+		}
+	}
 
 	// At least one image is required
 	if e.Images.RabbitmqImage == "" &&

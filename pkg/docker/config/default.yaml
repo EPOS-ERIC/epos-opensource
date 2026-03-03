@@ -6,7 +6,7 @@ protocol: "http"
 
 components:
   platform_gui:
-    # URL path prefix for accessing the platform GUI interface
+    # URL path prefix for accessing the platform GUI interface. Must end with a /
     base_url: "/"
     # Port number where the platform GUI will be accessible
     port: 32000
@@ -40,7 +40,7 @@ components:
 
     gui:
       # URL path prefix for accessing the backoffice interface
-      base_url: "/backoffice"
+      base_url: "/backoffice" # TODO: check if this needs to end with a /
       # Port number where the backoffice GUI will be accessible
       port: 34000
 
@@ -57,7 +57,7 @@ components:
     auth:
       # Enable/disable authentication for the converter service
       enabled: false
-      # Restrict converter access to admin users only
+      # Restrict converter api access to admin users only
       only_admin: false
 
   resources_service:
@@ -96,7 +96,7 @@ components:
 
   rabbitmq:
     # RabbitMQ server hostname or IP address
-    host: "rabbitmq"
+    host: "rabbitmq" # TODO: is this needed at all? yes if we want to allow an external rabbit, no otherwise
     # RabbitMQ authentication username
     username: "rabbitmq-user"
     # RabbitMQ authentication password
@@ -110,7 +110,7 @@ components:
     # Database password for authentication
     password: "changeme"
     # Database server hostname or IP address
-    host: "metadata-database"
+    host: "metadata-database" # TODO: is this needed at all? yes if we want to allow an external db, no otherwise
     # Database server port number
     port: 5432
     # Name of the database to connect to
@@ -158,30 +158,18 @@ monitoring:
   # Monitoring service authentication password
   password: ""
 
+# TODO: add a description of this section instead of one for each image
 images:
-  # Docker image for RabbitMQ message broker
   rabbitmq_image: "rabbitmq:3.13.7-management"
-  # Docker image for the data portal service
   dataportal_image: "ghcr.io/epos-eric/epos-gui:latest"
-  # Docker image for the API gateway service
   gateway_image: "ghcr.io/epos-eric/epos-api-gateway:latest"
-  # Docker image for the metadata database
   metadata_database_image: "ghcr.io/epos-eric/metadata-database/deploy:latest"
-  # Docker image for the resources service
   resources_service_image: "ghcr.io/epos-eric/resources-service:latest"
-  # Docker image for the ingestor service
   ingestor_service_image: "ghcr.io/epos-eric/ingestor-service:latest"
-  # Docker image for the external access service
   external_access_image: "ghcr.io/epos-eric/external-access-service:latest"
-  # Docker image for the converter service
   converter_service_image: "ghcr.io/epos-eric/converter-service-go:latest"
-  # Docker image for the converter routine
   converter_routine_image: "ghcr.io/epos-eric/converter-routine-go:latest"
-  # Docker image for the backoffice service
   backoffice_service_image: "ghcr.io/epos-eric/backoffice-service:latest"
-  # Docker image for the backoffice UI
   backoffice_ui_image: "epos/backoffice-ui:latest"
-  # Docker image for the email sender service
   email_sender_service_image: "ghcr.io/epos-eric/email-sender-service:latest"
-  # Docker image for the sharing service
   sharing_service_image: "ghcr.io/epos-eric/sharing-service:latest"

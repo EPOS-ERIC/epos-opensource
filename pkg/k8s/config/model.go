@@ -7,13 +7,19 @@ type Config struct {
 	Name               string           `yaml:"name"`
 	Domain             string           `yaml:"domain"`
 	Protocol           string           `yaml:"protocol"`
-	TLSEnabled         bool             `yaml:"tls_enabled"`
+	TLS                TLS              `yaml:"tls"`
 	URLPrefixNamespace bool             `yaml:"url_prefix_namespace"`
 	Components         Components       `yaml:"components"`
 	Jobs               Jobs             `yaml:"jobs"`
 	Monitoring         Monitoring       `yaml:"monitoring"`
 	ImagePullSecrets   ImagePullSecrets `yaml:"image_pull_secrets"`
 	Images             common.Images    `yaml:"images"`
+}
+
+// TLS configures ingress TLS behavior.
+type TLS struct {
+	Enabled    bool   `yaml:"enabled"`
+	SecretName string `yaml:"secret_name"`
 }
 
 // PlatformGUI configures the platform GUI endpoint.
@@ -195,10 +201,10 @@ func (c *Config) String() string {
 
 	out := "name=" + c.Name + ", domain=" + c.Domain + ", protocol=" + c.Protocol
 
-	if c.TLSEnabled {
-		out += ", tls_enabled=true"
+	if c.TLS.Enabled {
+		out += ", tls.enabled=true"
 	} else {
-		out += ", tls_enabled=false"
+		out += ", tls.enabled=false"
 	}
 
 	if c.URLPrefixNamespace {

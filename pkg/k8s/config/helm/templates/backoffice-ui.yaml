@@ -72,27 +72,34 @@ metadata:
     {{- include "epos.labels" . | nindent 4 }}
     app.kubernetes.io/component: backoffice-ui
   annotations:
-	{{- if .Values.url_prefix_namespace }}
+    {{- if .Values.url_prefix_namespace }}
     nginx.ingress.kubernetes.io/rewrite-target: /{{ .Release.Namespace }}{{ .Values.components.backoffice.gui.base_url }}
-	{{- else }}
+    {{- else }}
     nginx.ingress.kubernetes.io/rewrite-target: {{ .Values.components.backoffice.gui.base_url }}
-	{{- end }}
+    {{- end }}
 spec:
   ingressClassName: nginx
   rules:
-  - http:
+  - host: {{ .Values.domain }}
+    http:
       paths:
-	  {{- if .Values.url_prefix_namespace }}
+      {{- if .Values.url_prefix_namespace }}
       - path: /{{ .Release.Namespace }}{{ .Values.components.backoffice.gui.base_url }}
-	  {{- else }}
+      {{- else }}
       - path: {{ .Values.components.backoffice.gui.base_url }}
-	  {{- end }}
+      {{- end }}
         pathType: Prefix
         backend:
           service:
             name: backoffice-ui
             port:
               number: 80
+  {{- if .Values.tls.enabled }}
+  tls:
+  - hosts:
+    - {{ .Values.domain }}
+    secretName: {{ .Values.tls.secret_name }}
+  {{- end }}
 ---
 apiVersion: v1
 kind: ConfigMap
