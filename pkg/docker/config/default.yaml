@@ -158,7 +158,8 @@ monitoring:
   # Monitoring service authentication password
   password: ""
 
-# TODO: add a description of this section instead of one for each image
+# Container images used by EPOS services and supporting components.
+# Override tags/repositories to pin versions or use private registries.
 images:
   rabbitmq_image: "rabbitmq:3.13.7-management"
   dataportal_image: "ghcr.io/epos-eric/epos-gui:latest"

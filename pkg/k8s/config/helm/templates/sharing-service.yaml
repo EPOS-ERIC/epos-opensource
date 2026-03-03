@@ -27,7 +27,7 @@ spec:
     spec:
       {{- include "epos.imagePullSecrets" . | nindent 6 }}
       initContainers:
-      {{- include "epos.waitForServiceInitContainer" (dict "name" "metadata-database" "port" 5432) | nindent 6 }}
+      {{- include "epos.waitForServiceInitContainer" (dict "name" "metadata-database" "host" .Values.components.metadata_database.host "port" 5432) | nindent 6 }}
       containers:
       - name: sharing-service
         image: {{ .Values.images.sharing_service_image }}

@@ -112,12 +112,14 @@ components:
     vhost: "changeme"
 
   metadata_database:
+    # Enable/disable deployment of the in-cluster metadata database. If set to false the system will assume you have set up an external database
+    enabled: true
     # Database user for authentication
     user: "metadatauser"
     # Database password for authentication
     password: "changeme"
     # Database server hostname or IP address
-    host: "metadata-database" # TODO: is this needed at all? yes if we want to allow an external db, no otherwise
+    host: "metadata-database"
     # Database server port number
     port: 5432
     # Name of the database to connect to
@@ -171,7 +173,7 @@ jobs:
     backoff_limit: 3
     active_deadline_seconds: 3600
 
-# TODO: say here that this is not yet 100% supported
+# Monitoring support is currently partially implemented
 monitoring:
   # Enable/disable monitoring integration
   enabled: false
@@ -190,7 +192,8 @@ image_pull_secrets:
   registry_password: ""
   registry_email: ""
 
-# TODO: add a description of this section instead of one for each image
+# Container images used by EPOS services and supporting components.
+# Override tags/repositories to pin versions or use private registries.
 images:
   rabbitmq_image: "rabbitmq:3.13.7-management"
   dataportal_image: "ghcr.io/epos-eric/epos-gui:latest"

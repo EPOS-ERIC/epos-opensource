@@ -111,6 +111,7 @@ type Rabbitmq struct {
 
 // MetadataDatabase configures metadata database connection and pooling.
 type MetadataDatabase struct {
+	Enabled                bool   `yaml:"enabled"`
 	User                   string `yaml:"user"`
 	Password               string `yaml:"password"`
 	Host                   string `yaml:"host"`

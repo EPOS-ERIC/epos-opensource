@@ -1,3 +1,4 @@
+{{- if .Values.components.metadata_database.enabled }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -86,8 +87,9 @@ metadata:
     {{- include "epos.labels" . | nindent 4 }}
     app.kubernetes.io/component: metadata-database
 data:
-  POSTGRES_HOST: metadata-database
-  POSTGRES_PORT: "5432"
+  POSTGRES_HOST: {{ .Values.components.metadata_database.host }}
+  POSTGRES_PORT: {{ .Values.components.metadata_database.port | quote }}
   POSTGRES_USER: {{ .Values.components.metadata_database.user }}
   POSTGRES_PASSWORD: {{ .Values.components.metadata_database.password }}
   POSTGRES_DB: {{ .Values.components.metadata_database.db_name }}
+{{- end }}
