@@ -1,6 +1,6 @@
 {{- define "epos.converterServiceConfigData" -}}
 LOG_LEVEL: "INFO"
-BROKER_HOST: rabbitmq
+BROKER_HOST: {{ .Values.components.rabbitmq.host }}
 BROKER_USERNAME: {{ .Values.components.rabbitmq.username }}
 BROKER_PASSWORD: {{ .Values.components.rabbitmq.password }}
 BROKER_VHOST: {{ .Values.components.rabbitmq.vhost }}
@@ -32,7 +32,7 @@ spec:
     spec:
       {{- include "epos.imagePullSecrets" . | nindent 6 }}
       initContainers:
-      {{- include "epos.waitForServiceInitContainer" (dict "name" "rabbitmq" "port" 5672) | nindent 6 }}
+      {{- include "epos.waitForServiceInitContainer" (dict "name" "rabbitmq" "host" .Values.components.rabbitmq.host "port" 5672) | nindent 6 }}
       {{- include "epos.waitForServiceInitContainer" (dict "name" "metadata-database" "port" 5432) | nindent 6 }}
       containers:
       - name: converter-service

@@ -100,8 +100,10 @@ components:
       only_admin: false
 
   rabbitmq:
+    # Enable/disable deployment of the in-cluster RabbitMQ component. If set to false the system will assume you have set up an external rabbitmq broker
+    enabled: true
     # RabbitMQ server hostname or IP address
-    host: "rabbitmq" # TODO: is this needed at all? yes if we want to allow an external rabbit, no otherwise
+    host: "rabbitmq"
     # RabbitMQ authentication username
     username: "rabbitmq-user"
     # RabbitMQ authentication password

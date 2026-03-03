@@ -102,6 +102,7 @@ type SharingService struct {
 
 // Rabbitmq configures RabbitMQ connection details.
 type Rabbitmq struct {
+	Enabled  bool   `yaml:"enabled"`
 	Host     string `yaml:"host"`
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`

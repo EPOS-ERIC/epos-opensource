@@ -4,6 +4,7 @@ RABBITMQ_DEFAULT_USER: {{ .Values.components.rabbitmq.username }}
 RABBITMQ_DEFAULT_VHOST: {{ .Values.components.rabbitmq.vhost }}
 {{- end -}}
 
+{{- if .Values.components.rabbitmq.enabled }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -83,3 +84,4 @@ metadata:
     app.kubernetes.io/component: rabbitmq
 data:
   {{- include "epos.rabbitmqConfigData" . | nindent 2 }}
+{{- end }}

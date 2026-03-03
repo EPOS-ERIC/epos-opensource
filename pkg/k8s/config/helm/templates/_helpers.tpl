@@ -78,7 +78,7 @@ jdbc:postgresql://{{ default .Values.components.metadata_database.host }}:{{ def
   - /bin/sh
   - -c
   - |-
-    until nc -z {{ .name }} {{ .port }}; do
+    until nc -z {{ .host | default .name }} {{ .port }}; do
       sleep 1;
     done
 {{- end -}}
