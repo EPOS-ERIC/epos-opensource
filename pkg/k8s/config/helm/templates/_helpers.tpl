@@ -32,7 +32,7 @@ app.kubernetes.io/name: {{ include "epos.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 
-{{- define "epos.imagePullSecrets" -}}
+{{- define "epos.image_pull_secrets" -}}
 {{- if .Values.image_pull_secrets.enabled }}
 imagePullSecrets:
   - name: epos-registry-secret

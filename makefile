@@ -56,4 +56,7 @@ debug: generate
 run: clean build
 	./$(BIN)
 
-.PHONY: build build-release clean generate fmt lint vet test test-race test-integration test-all install
+helm-lint:
+	helm lint ./pkg/k8s/config/helm
+
+.PHONY: build build-release clean generate fmt lint vet test test-race test-integration test-all install helm-lint

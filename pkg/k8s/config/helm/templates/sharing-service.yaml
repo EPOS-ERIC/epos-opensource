@@ -3,6 +3,7 @@ PERSISTENCE_NAME_SHARING: "EPOSSharing"
 POSTGRESQL_CONNECTION_STRING: "{{ include "epos.postgresqlConnectionString" . }}"
 {{- end -}}
 
+{{- if .Values.components.sharing_service.enabled }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -25,7 +26,7 @@ spec:
       annotations:
         checksum/sharing-service-config: {{ include "epos.sharingServiceConfigData" . | sha256sum }}
     spec:
-      {{- include "epos.imagePullSecrets" . | nindent 6 }}
+      {{- include "epos.image_pull_secrets" . | nindent 6 }}
       initContainers:
       {{- include "epos.waitForServiceInitContainer" (dict "name" "metadata-database" "host" .Values.components.metadata_database.host "port" 5432) | nindent 6 }}
       containers:
@@ -86,3 +87,4 @@ metadata:
     app.kubernetes.io/component: sharing-service
 data:
   {{- include "epos.sharingServiceConfigData" . | nindent 2 }}
+{{- end }}

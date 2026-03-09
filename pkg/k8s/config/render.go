@@ -8,20 +8,20 @@ import (
 )
 
 // Render renders Helm templates using the current configuration values.
-func (e *Config) Render() (map[string]string, error) {
+func (c *Config) Render() (map[string]string, error) {
 	chart, err := GetChart()
 	if err != nil {
 		return nil, fmt.Errorf("load chart from embedded filesystem: %w", err)
 	}
 
-	values, err := e.AsValues()
+	values, err := c.AsValues()
 	if err != nil {
 		return nil, fmt.Errorf("build Helm values: %w", err)
 	}
 
 	renderValues, err := chartutil.ToRenderValues(chart, values.AsMap(), chartutil.ReleaseOptions{
-		Name:      e.Name,
-		Namespace: e.Name,
+		Name:      c.Name,
+		Namespace: c.Name,
 	}, nil)
 	if err != nil {
 		return nil, fmt.Errorf("build Helm render values: %w", err)

@@ -29,7 +29,7 @@ spec:
       annotations:
         checksum/dataportal-config: {{ include "epos.dataportalConfigData" . | sha256sum }}
     spec:
-      {{- include "epos.imagePullSecrets" . | nindent 6 }}
+      {{- include "epos.image_pull_secrets" . | nindent 6 }}
       initContainers:
       {{- include "epos.waitForServiceInitContainer" (dict "name" "gateway" "port" 5000) | nindent 6 }}
       containers:

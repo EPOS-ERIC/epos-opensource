@@ -27,7 +27,7 @@ spec:
       annotations:
         checksum/rabbitmq-config: {{ include "epos.rabbitmqConfigData" . | sha256sum }}
     spec:
-      {{- include "epos.imagePullSecrets" . | nindent 6 }}
+      {{- include "epos.image_pull_secrets" . | nindent 6 }}
       containers:
       - name: rabbitmq
         image: {{ .Values.images.rabbitmq_image }}

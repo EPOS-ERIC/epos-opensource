@@ -19,6 +19,7 @@ spec:
       name: {{ $name }}
     spec:
       restartPolicy: Never
+      {{- include "epos.image_pull_secrets" . | nindent 6 }}
       initContainers:
       {{- include "epos.waitForServiceInitContainer" (dict "name" "ingestor-service" "port" 8080) | nindent 6 }}
       containers:

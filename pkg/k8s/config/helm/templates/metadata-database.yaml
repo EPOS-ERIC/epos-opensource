@@ -19,7 +19,7 @@ spec:
         {{- include "epos.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: metadata-database
     spec:
-      {{- include "epos.imagePullSecrets" . | nindent 6 }}
+      {{- include "epos.image_pull_secrets" . | nindent 6 }}
       containers:
       - name: metadata-database
         image: {{ .Values.images.metadata_database_image }}

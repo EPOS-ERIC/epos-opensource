@@ -28,7 +28,7 @@ spec:
       annotations:
         checksum/backoffice-service-config: {{ include "epos.backofficeServiceConfigData" . | sha256sum }}
     spec:
-      {{- include "epos.imagePullSecrets" . | nindent 6 }}
+      {{- include "epos.image_pull_secrets" . | nindent 6 }}
       initContainers:
       {{- include "epos.waitForServiceInitContainer" (dict "name" "metadata-database" "host" .Values.components.metadata_database.host "port" 5432) | nindent 6 }}
       containers:

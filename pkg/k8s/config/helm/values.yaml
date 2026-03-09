@@ -1,10 +1,8 @@
-# TODO: add descriptions to all fields
-
 # Shared hostname/IP where all services are accessible (e.g., epos.example.com)
 domain: "localhost"
 
 # Protocol for accessing services. Must be http or https. If tls is enabled it must be https
-protocol: "https"
+protocol: "http"
 
 # TLS configuration for ingress resources (dataportal, gateway, and backoffice-ui)
 tls:
@@ -46,7 +44,7 @@ components:
     enabled: false
 
     gui:
-      # URL path prefix for accessing the backoffice interface. Must end with a /
+      # URL path prefix for accessing the backoffice interface. Must start and end with a /
       base_url: "/backoffice/"
 
     service:
@@ -158,13 +156,20 @@ components:
     mail_api_key: "changeme"
 
 jobs:
+  # When false, no job will run.
   enabled: false
+
   init_db:
+    # Enable database restore/initialization job during install/upgrade.
     enabled: true
+    # Full container image (repository + tag) used by the init DB job.
     image: "ghcr.io/epos-eric/metadata-database/restorejob:latest"
+    # Number of retries before the Job is marked failed.
     backoff_limit: 3
-    active_deadline_seconds: 1800
-  # TODO see how to make this work, we should pass a json with the plugins?
+    # Max runtime in seconds before Kubernetes terminates the Job.
+    active_deadline_seconds: 60
+
+  # This is not yet implemented
   plugin_populator:
     enabled: true
     image: "epos/epos-plugin-populator"
@@ -184,27 +189,30 @@ monitoring:
   # Monitoring service authentication password
   password: ""
 
-# TODO: check this
+# Configure this section only when pulling images from a private registry.
 image_pull_secrets:
+  # Enable creation of a Kubernetes imagePullSecret for private registries
   enabled: false
+  # Container registry hostname (for example, ghcr.io or index.docker.io)
   registry_server: ""
+  # Username used to authenticate to the container registry
   registry_username: ""
+  # Password or token used to authenticate to the container registry
   registry_password: ""
-  registry_email: ""
 
 # Container images used by EPOS services and supporting components.
 # Override tags/repositories to pin versions or use private registries.
 images:
-  rabbitmq_image: "rabbitmq:3.13.7-management"
-  dataportal_image: "ghcr.io/epos-eric/epos-gui:latest"
-  gateway_image: "ghcr.io/epos-eric/epos-api-gateway:latest"
-  metadata_database_image: "ghcr.io/epos-eric/metadata-database/deploy:latest"
-  resources_service_image: "ghcr.io/epos-eric/resources-service:latest"
-  ingestor_service_image: "ghcr.io/epos-eric/ingestor-service:latest"
-  external_access_image: "ghcr.io/epos-eric/external-access-service:latest"
-  converter_service_image: "ghcr.io/epos-eric/converter-service-go:latest"
-  converter_routine_image: "ghcr.io/epos-eric/converter-routine-go:latest"
-  backoffice_service_image: "ghcr.io/epos-eric/backoffice-service:latest"
-  backoffice_ui_image: "epos/backoffice-ui:latest"
+  rabbitmq_image:             "rabbitmq:3.13.7-management"
+  dataportal_image:           "ghcr.io/epos-eric/epos-gui:latest"
+  gateway_image:              "ghcr.io/epos-eric/epos-api-gateway:latest"
+  metadata_database_image:    "ghcr.io/epos-eric/metadata-database/deploy:latest"
+  resources_service_image:    "ghcr.io/epos-eric/resources-service:latest"
+  ingestor_service_image:     "ghcr.io/epos-eric/ingestor-service:latest"
+  external_access_image:      "ghcr.io/epos-eric/external-access-service:latest"
+  converter_service_image:    "ghcr.io/epos-eric/converter-service-go:latest"
+  converter_routine_image:    "ghcr.io/epos-eric/converter-routine-go:latest"
+  backoffice_service_image:   "ghcr.io/epos-eric/backoffice-service:latest"
+  backoffice_ui_image:        "epos/backoffice-ui:latest"
   email_sender_service_image: "ghcr.io/epos-eric/email-sender-service:latest"
-  sharing_service_image: "ghcr.io/epos-eric/sharing-service:latest"
+  sharing_service_image:      "ghcr.io/epos-eric/sharing-service:latest"

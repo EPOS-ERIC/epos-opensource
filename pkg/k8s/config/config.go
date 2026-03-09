@@ -1,3 +1,4 @@
+// Package config provides Kubernetes/Helm configuration loading, modeling, and rendering.
 package config
 
 import (
@@ -56,8 +57,8 @@ func LoadConfig(path string) (*Config, error) {
 }
 
 // Save writes the current configuration as YAML to path.
-func (e *Config) Save(path string) error {
-	bytes, err := yaml.Marshal(e)
+func (c *Config) Save(path string) error {
+	bytes, err := yaml.Marshal(c)
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
@@ -70,18 +71,18 @@ func (e *Config) Save(path string) error {
 }
 
 // BuildEnvURLs builds GUI, API, and optional backoffice URLs from the configuration.
-func (e *Config) BuildEnvURLs() (*common.URLs, error) {
+func (c *Config) BuildEnvURLs() (*common.URLs, error) {
 	buildURL := func(paths ...string) (string, error) {
 		base := &url.URL{
-			Scheme: e.Protocol,
-			Host:   e.Domain,
+			Scheme: c.Protocol,
+			Host:   c.Domain,
 		}
 
 		path := base.String()
 
-		if e.URLPrefixNamespace {
+		if c.URLPrefixNamespace {
 			var err error
-			path, err = url.JoinPath(path, e.Name)
+			path, err = url.JoinPath(path, c.Name)
 			if err != nil {
 				return "", fmt.Errorf("error joining namespace to base URL: %w", err)
 			}
@@ -90,12 +91,12 @@ func (e *Config) BuildEnvURLs() (*common.URLs, error) {
 		return url.JoinPath(path, paths...)
 	}
 
-	guiURL, err := buildURL(e.Components.PlatformGUI.BaseURL)
+	guiURL, err := buildURL(c.Components.PlatformGUI.BaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("error building GUI URL: %w", err)
 	}
 
-	apiURL, err := buildURL(e.Components.Gateway.BaseURL, "/ui")
+	apiURL, err := buildURL(c.Components.Gateway.BaseURL, "/ui")
 	if err != nil {
 		return nil, fmt.Errorf("error building API URL: %w", err)
 	}
@@ -105,8 +106,8 @@ func (e *Config) BuildEnvURLs() (*common.URLs, error) {
 		APIURL: apiURL,
 	}
 
-	if e.Components.Backoffice.Enabled {
-		backofficeURL, err := buildURL(e.Components.Backoffice.GUI.BaseURL, "/home")
+	if c.Components.Backoffice.Enabled {
+		backofficeURL, err := buildURL(c.Components.Backoffice.GUI.BaseURL, "/home")
 		if err != nil {
 			return nil, fmt.Errorf("error building Backoffice URL: %w", err)
 		}
@@ -117,197 +118,207 @@ func (e *Config) BuildEnvURLs() (*common.URLs, error) {
 }
 
 // Validate checks whether the configuration contains all required values.
-func (e *Config) Validate() error {
+func (c *Config) Validate() error {
 	// Basic required fields
-	if e.Domain == "" {
+	if c.Domain == "" {
 		return fmt.Errorf("domain is required")
 	}
-	if e.Protocol != "http" && e.Protocol != "https" {
+	if c.Protocol != "http" && c.Protocol != "https" {
 		return fmt.Errorf("protocol must be http or https")
 	}
-	if e.TLS.Enabled {
-		if e.Protocol != "https" {
-			return fmt.Errorf("protocol must be https when tls is enabled")
-		}
-		if e.TLS.SecretName == "" {
+	if c.TLS.Enabled {
+		if c.TLS.SecretName == "" {
 			return fmt.Errorf("tls secret_name is required when tls is enabled")
 		}
 	}
 
 	// At least one image is required
-	if e.Images.RabbitmqImage == "" &&
-		e.Images.DataportalImage == "" &&
-		e.Images.GatewayImage == "" &&
-		e.Images.MetadataDatabaseImage == "" &&
-		e.Images.ResourcesServiceImage == "" &&
-		e.Images.IngestorServiceImage == "" &&
-		e.Images.ExternalAccessImage == "" {
+	if c.Images.RabbitmqImage == "" &&
+		c.Images.DataportalImage == "" &&
+		c.Images.GatewayImage == "" &&
+		c.Images.MetadataDatabaseImage == "" &&
+		c.Images.ResourcesServiceImage == "" &&
+		c.Images.IngestorServiceImage == "" &&
+		c.Images.ExternalAccessImage == "" {
 		return fmt.Errorf("at least one image is required")
 	}
 
 	// Platform GUI validation
-	if e.Components.PlatformGUI.BaseURL == "" {
+	if c.Components.PlatformGUI.BaseURL == "" {
 		return fmt.Errorf("platform gui base url is required")
 	}
-	if !strings.HasPrefix(e.Components.PlatformGUI.BaseURL, "/") {
+	if !strings.HasPrefix(c.Components.PlatformGUI.BaseURL, "/") {
 		return fmt.Errorf("platform gui base url must start with /")
 	}
-	if !strings.HasSuffix(e.Components.PlatformGUI.BaseURL, "/") {
+	if !strings.HasSuffix(c.Components.PlatformGUI.BaseURL, "/") {
 		return fmt.Errorf("platform gui base url must end with /")
 	}
 
 	// Gateway validation
-	if e.Components.Gateway.BaseURL == "" {
+	if c.Components.Gateway.BaseURL == "" {
 		return fmt.Errorf("gateway base url is required")
 	}
-	if !strings.HasPrefix(e.Components.Gateway.BaseURL, "/") {
+	if !strings.HasPrefix(c.Components.Gateway.BaseURL, "/") {
 		return fmt.Errorf("gateway base url must start with /")
 	}
-	if !strings.HasSuffix(e.Components.Gateway.BaseURL, "/api/v1") &&
-		!strings.HasSuffix(e.Components.Gateway.BaseURL, "/api/v1/") {
+	if !strings.HasSuffix(c.Components.Gateway.BaseURL, "/api/v1") &&
+		!strings.HasSuffix(c.Components.Gateway.BaseURL, "/api/v1/") {
 		return fmt.Errorf("gateway base url must end with /api/v1 or /api/v1/")
 	}
 
 	// AAI validation
-	if e.Components.Gateway.Aai.Enabled {
-		if e.Components.Gateway.Aai.ServiceEndpoint == "" {
+	if c.Components.Gateway.Aai.Enabled {
+		if c.Components.Gateway.Aai.ServiceEndpoint == "" {
 			return fmt.Errorf("aai service endpoint is required when aai is enabled")
 		}
-		if e.Components.Gateway.Aai.SecurityKey == "" {
+		if c.Components.Gateway.Aai.SecurityKey == "" {
 			return fmt.Errorf("aai security key is required when aai is enabled")
 		}
 	}
 
 	// Backoffice validation
-	if e.Components.Backoffice.Enabled {
-		if e.Components.Backoffice.GUI.BaseURL == "" {
+	if c.Components.Backoffice.Enabled {
+		if c.Components.Backoffice.GUI.BaseURL == "" {
 			return fmt.Errorf("backoffice base url is required when backoffice is enabled")
 		}
-		if !strings.HasPrefix(e.Components.Backoffice.GUI.BaseURL, "/") {
+		if !strings.HasPrefix(c.Components.Backoffice.GUI.BaseURL, "/") {
 			return fmt.Errorf("backoffice base url must start with /")
 		}
-		if !strings.HasSuffix(e.Components.Backoffice.GUI.BaseURL, "/") {
+		if !strings.HasSuffix(c.Components.Backoffice.GUI.BaseURL, "/") {
 			return fmt.Errorf("backoffice base url must end with /")
 		}
-		if e.Images.BackofficeServiceImage == "" {
+		if c.Images.BackofficeServiceImage == "" {
 			return fmt.Errorf("backoffice service image is required when backoffice is enabled")
 		}
-		if e.Images.BackofficeUIImage == "" {
+		if c.Images.BackofficeUIImage == "" {
 			return fmt.Errorf("backoffice ui image is required when backoffice is enabled")
 		}
 	}
 
 	// Converter validation
-	if e.Components.Converter.Enabled {
-		if e.Images.ConverterServiceImage == "" {
+	if c.Components.Converter.Enabled {
+		if c.Images.ConverterServiceImage == "" {
 			return fmt.Errorf("converter service image is required when converter is enabled")
 		}
-		if e.Images.ConverterRoutineImage == "" {
+		if c.Images.ConverterRoutineImage == "" {
 			return fmt.Errorf("converter routine image is required when converter is enabled")
 		}
 	}
 
 	// Sharing service validation
-	if e.Components.SharingService.Enabled {
-		if e.Images.SharingServiceImage == "" {
+	if c.Components.SharingService.Enabled {
+		if c.Images.SharingServiceImage == "" {
 			return fmt.Errorf("sharing service image is required when sharing service is enabled")
 		}
 	}
 
 	// Resources service validation
-	if e.Components.ResourcesService.CacheTTL <= 0 {
+	if c.Components.ResourcesService.CacheTTL <= 0 {
 		return fmt.Errorf("resources service cache ttl must be greater than 0")
 	}
 
 	// RabbitMQ validation
-	if e.Components.Rabbitmq.Host == "" {
+	if c.Components.Rabbitmq.Host == "" {
 		return fmt.Errorf("rabbitmq host is required")
 	}
-	if e.Components.Rabbitmq.Username == "" {
+	if c.Components.Rabbitmq.Username == "" {
 		return fmt.Errorf("rabbitmq username is required")
 	}
-	if e.Components.Rabbitmq.Password == "" {
+	if c.Components.Rabbitmq.Password == "" {
 		return fmt.Errorf("rabbitmq password is required")
 	}
-	if e.Components.Rabbitmq.Vhost == "" {
+	if c.Components.Rabbitmq.Vhost == "" {
 		return fmt.Errorf("rabbitmq vhost is required")
 	}
 
 	// Metadata database validation
-	if e.Components.MetadataDatabase.User == "" {
+	if c.Components.MetadataDatabase.User == "" {
 		return fmt.Errorf("metadata database user is required")
 	}
-	if e.Components.MetadataDatabase.Password == "" {
+	if c.Components.MetadataDatabase.Password == "" {
 		return fmt.Errorf("metadata database password is required")
 	}
-	if e.Components.MetadataDatabase.Host == "" {
+	if c.Components.MetadataDatabase.Host == "" {
 		return fmt.Errorf("metadata database host is required")
 	}
-	if e.Components.MetadataDatabase.Port == 0 {
+	if c.Components.MetadataDatabase.Port == 0 {
 		return fmt.Errorf("metadata database port is required")
 	}
-	if e.Components.MetadataDatabase.Port < 1 || e.Components.MetadataDatabase.Port > 65535 {
+	if c.Components.MetadataDatabase.Port < 1 || c.Components.MetadataDatabase.Port > 65535 {
 		return fmt.Errorf("metadata database port must be between 1 and 65535")
 	}
-	if e.Components.MetadataDatabase.DBName == "" {
+	if c.Components.MetadataDatabase.DBName == "" {
 		return fmt.Errorf("metadata database db_name is required")
 	}
-	if e.Components.MetadataDatabase.ConnectionPoolInitSize <= 0 {
+	if c.Components.MetadataDatabase.ConnectionPoolInitSize <= 0 {
 		return fmt.Errorf("metadata database connection_pool_init_size must be greater than 0")
 	}
-	if e.Components.MetadataDatabase.ConnectionPoolMinSize <= 0 {
+	if c.Components.MetadataDatabase.ConnectionPoolMinSize <= 0 {
 		return fmt.Errorf("metadata database connection_pool_min_size must be greater than 0")
 	}
-	if e.Components.MetadataDatabase.ConnectionPoolMaxSize <= 0 {
+	if c.Components.MetadataDatabase.ConnectionPoolMaxSize <= 0 {
 		return fmt.Errorf("metadata database connection_pool_max_size must be greater than 0")
 	}
-	if e.Components.MetadataDatabase.ConnectionPoolInitSize > e.Components.MetadataDatabase.ConnectionPoolMinSize {
+	if c.Components.MetadataDatabase.ConnectionPoolInitSize > c.Components.MetadataDatabase.ConnectionPoolMinSize {
 		return fmt.Errorf("metadata database connection_pool_init_size must be <= connection_pool_min_size")
 	}
-	if e.Components.MetadataDatabase.ConnectionPoolMinSize > e.Components.MetadataDatabase.ConnectionPoolMaxSize {
+	if c.Components.MetadataDatabase.ConnectionPoolMinSize > c.Components.MetadataDatabase.ConnectionPoolMaxSize {
 		return fmt.Errorf("metadata database connection_pool_min_size must be <= connection_pool_max_size")
 	}
 
 	// Email sender service validation
-	if e.Components.EmailSenderService.Enabled {
-		if e.Components.EmailSenderService.EnvironmentType != "development" &&
-			e.Components.EmailSenderService.EnvironmentType != "production" &&
-			e.Components.EmailSenderService.EnvironmentType != "staging" {
+	if c.Components.EmailSenderService.Enabled {
+		if c.Components.EmailSenderService.EnvironmentType != "development" &&
+			c.Components.EmailSenderService.EnvironmentType != "production" &&
+			c.Components.EmailSenderService.EnvironmentType != "staging" {
 			return fmt.Errorf("email sender service environment_type must be development, production, or staging")
 		}
-		if e.Components.EmailSenderService.Sender == "" {
+		if c.Components.EmailSenderService.Sender == "" {
 			return fmt.Errorf("email sender service sender is required when email sender is enabled")
 		}
-		if e.Components.EmailSenderService.SenderName == "" {
+		if c.Components.EmailSenderService.SenderName == "" {
 			return fmt.Errorf("email sender service sender_name is required when email sender is enabled")
 		}
-		if e.Components.EmailSenderService.MailType != "API" {
+		if c.Components.EmailSenderService.MailType != "API" {
 			return fmt.Errorf("email sender service mail_type must be API")
 		}
-		if e.Components.EmailSenderService.SenderDomain == "" {
+		if c.Components.EmailSenderService.SenderDomain == "" {
 			return fmt.Errorf("email sender service sender_domain is required when email sender is enabled")
 		}
-		if e.Components.EmailSenderService.MailAPIURL == "" {
+		if c.Components.EmailSenderService.MailAPIURL == "" {
 			return fmt.Errorf("email sender service mail_api_url is required when email sender is enabled")
 		}
-		if e.Components.EmailSenderService.MailAPIKey == "" {
+		if c.Components.EmailSenderService.MailAPIKey == "" {
 			return fmt.Errorf("email sender service mail_api_key is required when email sender is enabled")
 		}
-		if e.Images.EmailSenderServiceImage == "" {
+		if c.Images.EmailSenderServiceImage == "" {
 			return fmt.Errorf("email sender service image is required when email sender is enabled")
 		}
 	}
 
 	// Monitoring validation
-	if e.Monitoring.Enabled {
-		if e.Monitoring.URL == "" {
+	if c.Monitoring.Enabled {
+		if c.Monitoring.URL == "" {
 			return fmt.Errorf("monitoring url is required when monitoring is enabled")
 		}
-		if e.Monitoring.User == "" {
+		if c.Monitoring.User == "" {
 			return fmt.Errorf("monitoring user is required when monitoring is enabled")
 		}
-		if e.Monitoring.Password == "" {
+		if c.Monitoring.Password == "" {
 			return fmt.Errorf("monitoring password is required when monitoring is enabled")
+		}
+	}
+
+	// Image pull secrets validation
+	if c.ImagePullSecrets.Enabled {
+		if c.ImagePullSecrets.RegistryServer == "" {
+			return fmt.Errorf("image pull secrets registry_server is required when image pull secrets is enabled")
+		}
+		if c.ImagePullSecrets.RegistryUsername == "" {
+			return fmt.Errorf("image pull secrets registry_username is required when image pull secrets is enabled")
+		}
+		if c.ImagePullSecrets.RegistryPassword == "" {
+			return fmt.Errorf("image pull secrets registry_password is required when image pull secrets is enabled")
 		}
 	}
 
@@ -315,8 +326,8 @@ func (e *Config) Validate() error {
 }
 
 // AsValues converts Config into Helm chart values.
-func (e *Config) AsValues() (*chartutil.Values, error) {
-	configYAML, err := yaml.Marshal(e)
+func (c *Config) AsValues() (*chartutil.Values, error) {
+	configYAML, err := yaml.Marshal(c)
 	if err != nil {
 		return nil, fmt.Errorf("marshal env config to YAML: %w", err)
 	}

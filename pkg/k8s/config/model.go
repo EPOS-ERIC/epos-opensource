@@ -192,7 +192,6 @@ type ImagePullSecrets struct {
 	RegistryServer   string `yaml:"registry_server"`
 	RegistryUsername string `yaml:"registry_username"`
 	RegistryPassword string `yaml:"registry_password"`
-	RegistryEmail    string `yaml:"registry_email"`
 }
 
 // String returns a concise string representation of key Config fields.
