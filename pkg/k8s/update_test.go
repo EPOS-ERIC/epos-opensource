@@ -25,7 +25,7 @@ func TestUpdateOpts_Validate(t *testing.T) {
 			name:        "Reset with custom config returns error",
 			opts:        UpdateOpts{OldEnvName: "test", Reset: true, NewConfig: &config.Config{}},
 			wantErr:     true,
-			errContains: "reset and new config are mutually exclusive",
+			errContains: "cannot specify custom config when Reset is true",
 		},
 		{
 			name:        "Custom config name must match target environment name",

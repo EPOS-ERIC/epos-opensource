@@ -42,18 +42,6 @@ func Update(opts UpdateOpts) (*Env, error) {
 		return nil, fmt.Errorf("invalid parameters for update command: %w", err)
 	}
 
-	if opts.NewConfig == nil && opts.Reset {
-		display.Info("Reset flag enabled: using default config")
-
-		opts.NewConfig = config.GetDefaultConfig()
-	}
-
-	if opts.NewConfig != nil && opts.NewConfig.Name == "" {
-		opts.NewConfig.Name = opts.OldEnvName
-
-		display.Debug("new config name not set, using old name: %s", opts.NewConfig.Name)
-	}
-
 	if opts.NewConfig == nil && !opts.Reset {
 		display.Debug("new config not provided, using current environment config")
 
@@ -172,11 +160,23 @@ func (u *UpdateOpts) Validate() error {
 		return fmt.Errorf("invalid timeout: %w", err)
 	}
 
+	if u.Reset {
+		if u.NewConfig != nil {
+			return fmt.Errorf("cannot specify custom config when Reset is true")
+		} else {
+			display.Info("Reset flag enabled: using default config")
+
+			u.NewConfig = config.GetDefaultConfig()
+		}
+	}
+
 	u.Timeout = resolvedTimeout
 
 	if u.NewConfig != nil {
-		if u.Reset {
-			return fmt.Errorf("reset and new config are mutually exclusive")
+		if u.NewConfig.Name == "" {
+			u.NewConfig.Name = u.OldEnvName
+
+			display.Debug("new config name not set, using old name: %s", u.OldEnvName)
 		}
 
 		if u.NewConfig.Name != "" && u.NewConfig.Name != u.OldEnvName {

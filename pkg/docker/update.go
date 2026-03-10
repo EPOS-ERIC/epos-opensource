@@ -9,6 +9,7 @@ import (
 	"github.com/EPOS-ERIC/epos-opensource/db"
 	"github.com/EPOS-ERIC/epos-opensource/display"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/config"
+	"github.com/EPOS-ERIC/epos-opensource/validate"
 )
 
 // UpdateOpts defines inputs for Update.
@@ -40,22 +41,10 @@ func Update(opts UpdateOpts) (*Env, error) {
 
 	oldConfig := oldEnv.EnvConfig
 
-	if opts.Reset {
-		display.Info("Reset flag enabled: using default config")
-
-		opts.NewConfig = config.GetDefaultConfig()
-	}
-
 	if opts.NewConfig == nil {
 		display.Debug("new config not provided, using current environment config")
 
 		opts.NewConfig = &oldConfig
-	}
-
-	if opts.NewConfig.Name == "" {
-		opts.NewConfig.Name = oldConfig.Name
-
-		display.Debug("new config name not set, using old name: %s", opts.NewConfig.Name)
 	}
 
 	display.Step("Updating environment: %s", opts.OldEnvName)
@@ -168,11 +157,27 @@ func (u *UpdateOpts) Validate() error {
 		return fmt.Errorf("name is required")
 	}
 
-	if u.Reset && u.NewConfig != nil {
-		return fmt.Errorf("cannot specify custom config when Reset is true")
+	if err := validate.Name(u.OldEnvName); err != nil {
+		return fmt.Errorf("'%s' is an invalid name for an environment: %w", u.OldEnvName, err)
+	}
+
+	if u.Reset {
+		if u.NewConfig != nil {
+			return fmt.Errorf("cannot specify custom config when Reset is true")
+		} else {
+			display.Info("Reset flag enabled: using default config")
+
+			u.NewConfig = config.GetDefaultConfig()
+		}
 	}
 
 	if u.NewConfig != nil {
+		if u.NewConfig.Name == "" {
+			u.NewConfig.Name = u.OldEnvName
+
+			display.Debug("new config name not set, using old name: %s", u.OldEnvName)
+		}
+
 		if u.NewConfig.Name != "" && u.NewConfig.Name != u.OldEnvName {
 			return fmt.Errorf("config name %q must match environment name %q", u.NewConfig.Name, u.OldEnvName)
 		}
