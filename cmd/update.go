@@ -76,8 +76,24 @@ var updateCmd = &cobra.Command{
 		}
 
 		if currentVer.Major() < latestVer.Major() {
-			// TODO add an url to the release page to manually check for the breaking changes
 			display.Warn("Major version upgrade detected (%s -> %s). This may include breaking changes.", current, tag)
+
+			if release.Body != nil {
+				breakingChanges, found := extractBreakingChangesSection(*release.Body)
+				if found {
+					display.Warn("The following section is marked as BREAKING CHANGES by the release author:")
+					_, _ = fmt.Fprintf(display.Stdout, "\n%s\n\n", breakingChanges)
+				} else {
+					display.Warn("No '# Breaking Change(s)' section was found in the release notes.")
+				}
+			} else {
+				display.Warn("Release notes are not available for this release.")
+			}
+
+			if release.HTMLURL != nil && *release.HTMLURL != "" {
+				display.Info("Review full release notes: %s", *release.HTMLURL)
+			}
+
 			confirmed, err := common.Confirm("Are you sure you want to continue? (y/n):")
 			if err != nil {
 				display.Error("Failed to read confirmation: %v", err)
@@ -189,4 +205,69 @@ var updateCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(updateCmd)
+}
+
+func extractBreakingChangesSection(body string) (string, bool) {
+	body = strings.ReplaceAll(body, "\r\n", "\n")
+	lines := strings.Split(body, "\n")
+
+	start := -1
+	for i, line := range lines {
+		if isBreakingChangesHeading(line) {
+			start = i + 1
+			break
+		}
+	}
+
+	if start == -1 {
+		return "", false
+	}
+
+	end := len(lines)
+	for i := start; i < len(lines); i++ {
+		if isMarkdownHeading(lines[i]) {
+			end = i
+			break
+		}
+	}
+
+	section := strings.TrimSpace(strings.Join(lines[start:end], "\n"))
+	if section == "" {
+		return "", false
+	}
+
+	return section, true
+}
+
+func isBreakingChangesHeading(line string) bool {
+	trimmed := strings.TrimSpace(line)
+	if !strings.HasPrefix(trimmed, "#") {
+		return false
+	}
+
+	idx := 0
+	for idx < len(trimmed) && trimmed[idx] == '#' {
+		idx++
+	}
+
+	heading := strings.TrimSpace(trimmed[idx:])
+	return strings.EqualFold(heading, "breaking change") || strings.EqualFold(heading, "breaking changes")
+}
+
+func isMarkdownHeading(line string) bool {
+	trimmed := strings.TrimSpace(line)
+	if !strings.HasPrefix(trimmed, "#") {
+		return false
+	}
+
+	idx := 0
+	for idx < len(trimmed) && trimmed[idx] == '#' {
+		idx++
+	}
+
+	if idx == 0 {
+		return false
+	}
+
+	return strings.TrimSpace(trimmed[idx:]) != ""
 }
