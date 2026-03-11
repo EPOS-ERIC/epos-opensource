@@ -100,3 +100,14 @@ func TestDockerEnvConfig_Render(t *testing.T) {
 		})
 	}
 }
+
+func TestDockerEnvConfig_Render_EmailSenderAuth(t *testing.T) {
+	cfg := NewTestConfig(t, "test-email-auth").WithEmailSender(true).Build()
+	cfg.Components.EmailSenderService.Auth = config.Auth{
+		Enabled:   true,
+		OnlyAdmin: true,
+	}
+
+	got := MustRender(t, cfg)
+	ContentContains(t, got[".env"], ".env", []string{"LOAD_EMAIL_SENDER_API=true:true"})
+}

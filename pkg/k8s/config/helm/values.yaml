@@ -132,6 +132,11 @@ components:
   email_sender_service:
     # Enable/disable the email sender service
     enabled: false
+    auth:
+      # Enable/disable authentication for the email sender service
+      enabled: false
+      # Restrict email sender service access to admin users only
+      only_admin: false
     # Environment type. Must be development, production, or staging
     environment_type: "development"
     # Identifier for the email sender

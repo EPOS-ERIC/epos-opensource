@@ -125,6 +125,7 @@ type MetadataDatabase struct {
 // EmailSenderService configures email sender service settings.
 type EmailSenderService struct {
 	Enabled         bool   `yaml:"enabled"`
+	Auth            Auth   `yaml:"auth"`
 	EnvironmentType string `yaml:"environment_type"`
 	Sender          string `yaml:"sender"`
 	SenderName      string `yaml:"sender_name"`

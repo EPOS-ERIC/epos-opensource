@@ -118,6 +118,7 @@ func (b *TestConfigBuilder) Build() *config.EnvConfig {
 			},
 			EmailSenderService: config.EmailSenderService{
 				Enabled:         b.emailEnabled,
+				Auth:            config.Auth{Enabled: false, OnlyAdmin: false},
 				EnvironmentType: "development",
 				Sender:          "data-portal",
 				SenderName:      "EPOS Platform Opensource",
