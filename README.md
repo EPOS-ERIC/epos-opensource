@@ -54,7 +54,7 @@ epos-opensource docker populate myenv /path/to/ttl/files
 
 ## What is EPOS Open Source CLI?
 
-A command-line tool to easily deploy and manage EPOS Platform environments on your computer or in the cloud, using either Docker Compose or K8s.
+A command-line tool to deploy and manage EPOS Platform environments on your computer or in a cluster, using Docker Compose (rendered from Go templates) or K8s (deployed from an embedded Helm chart).
 
 ## Usage Requirements
 
@@ -116,15 +116,17 @@ The CLI is organized into two main commands: `docker` and `k8s`. Each has its ow
 
 ### Docker Commands
 
-| Command    | Description                                                     |
-| :--------- | :-------------------------------------------------------------- |
-| `deploy`   | Create a new environment using Docker Compose.                  |
-| `populate` | Ingest TTL files from directories or files into an environment. |
-| `clean`    | Clean the data of an environment.                               |
-| `delete`   | Stop and remove Docker Compose environments.                    |
-| `export`   | Export the default environment files to a directory.            |
-| `list`     | List installed Docker environments.                             |
-| `update`   | Recreate an environment with new settings.                      |
+| Command    | Description                                                         |
+| :--------- | :------------------------------------------------------------------ |
+| `deploy`   | Create a new environment using Docker Compose.                      |
+| `populate` | Ingest TTL files from directories or files into an environment.     |
+| `clean`    | Clean the data of an environment.                                   |
+| `delete`   | Stop and remove Docker Compose environments.                        |
+| `export`   | Export default Docker config (`docker-config.yaml`) to a directory. |
+| `get`      | Get the currently applied Docker environment configuration.         |
+| `list`     | List installed Docker environments.                                 |
+| `render`   | Render `.env` and `docker-compose.yaml` from configuration.         |
+| `update`   | Recreate an environment with new settings.                          |
 
 **Example:**
 
@@ -143,9 +145,11 @@ epos-opensource docker populate my-test /path/to/my/data
 | `deploy`   | Create and deploy a new K8s environment in a dedicated namespace. |
 | `populate` | Ingest TTL files from directories or files into an environment.   |
 | `clean`    | Clean the data of an environment.                                 |
-| `delete`   | Removes K8s environmentas and all their namespaces.               |
-| `export`   | Export default environment files and manifests.                   |
+| `delete`   | Remove K8s environments and all their namespaces.                 |
+| `export`   | Export default K8s config (`k8s-config.yaml`) to a directory.     |
+| `get`      | Get the currently applied K8s environment configuration.          |
 | `list`     | List installed K8s environments.                                  |
+| `render`   | Render Kubernetes manifests from embedded Helm templates.         |
 | `update`   | Update and redeploy an existing K8s environment.                  |
 
 **Example:**
@@ -168,14 +172,43 @@ epos-opensource docker --help
 epos-opensource k8s deploy --help
 ```
 
+### Config-First Workflow
+
+Use this flow when you want to customize environments before deployment:
+
+```shell
+# 1) Export default config templates
+epos-opensource docker export ./out
+epos-opensource k8s export ./out
+
+# 2) Edit generated files
+# - ./out/docker-config.yaml
+# - ./out/k8s-config.yaml
+
+# 3) Render output without deploying
+epos-opensource docker render my-docker -c ./out/docker-config.yaml -o ./rendered/docker
+epos-opensource k8s render my-k8s -c ./out/k8s-config.yaml -o ./rendered/k8s
+
+# 4) Deploy using your config
+epos-opensource docker deploy my-docker --config ./out/docker-config.yaml
+epos-opensource k8s deploy my-k8s --config ./out/k8s-config.yaml
+```
+
+Use `get` to inspect and export the currently applied config:
+
+```shell
+epos-opensource docker get my-docker --output ./applied-docker.yaml
+epos-opensource k8s get my-k8s --output ./applied-k8s.yaml
+```
+
 ---
 
 ## Troubleshooting & Tips
 
 - **Docker/K8s not found:** Make sure Docker and/or kubectl are installed and running.
 - **Environment/Directory already exists:** Use a new name, or delete the old environment first.
-- **Problems with `.ttl` files:** Make sure the directory exists and contains valid `.ttl` files and that their path are valid (no spaces, weird symbols, ...).
-- **Environment not found/Does not exists:** Make sure to be running the commands as the same user, the cli uses an user level sqlite database to store the environment information.
+- **Problems with `.ttl` files:** Make sure the directory exists and contains valid `.ttl` files and that their paths are valid (no spaces, weird symbols, ...).
+- **Environment not found/Does not exist:** Make sure you run commands as the same user. The CLI uses a user-level SQLite database to store environment information.
 
 If you get stuck, run with `--help` for more info, or feel free to [open an issue](https://github.com/EPOS-ERIC/epos-opensource/issues).
 

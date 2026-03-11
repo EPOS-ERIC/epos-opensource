@@ -1,13 +1,13 @@
 package tui
 
 import (
-	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore"
-	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 )
 
 // showDeleteConfirm displays a confirmation dialog for deleting a Docker or K8s environment.
 func (a *App) showDeleteConfirm() {
-	envName, isDocker := a.envList.GetSelected()
+	envName, isDocker, k8sContext := a.envList.GetSelected()
 
 	if envName == "" {
 		return
@@ -15,7 +15,11 @@ func (a *App) showDeleteConfirm() {
 
 	message := "This will permanently remove all containers, volumes, and associated resources.\n\n"
 	if !isDocker {
-		message = "This will permanently remove the namespace and all associated K8s resources.\n\n"
+		message = "This will permanently remove the namespace and all associated K8s resources"
+		if k8sContext != "" {
+			message += " in context '" + k8sContext + "'"
+		}
+		message += ".\n\n"
 	}
 	message += DefaultTheme.DestructiveTag("b") + "This action cannot be undone." + "[-]"
 
@@ -30,7 +34,7 @@ func (a *App) showDeleteConfirm() {
 		Destructive:        true,
 		ConfirmDestructive: true,
 		OnConfirm: func() {
-			a.showDeleteProgress(envName, isDocker)
+			a.showDeleteProgress(envName, isDocker, k8sContext)
 		},
 		OnCancel: func() {
 			a.ResetToHome(ResetOptions{
@@ -42,19 +46,20 @@ func (a *App) showDeleteConfirm() {
 }
 
 // showDeleteProgress displays the deletion progress with live output.
-func (a *App) showDeleteProgress(envName string, isDocker bool) {
+func (a *App) showDeleteProgress(envName string, isDocker bool, context string) {
 	a.RunBackgroundTask(TaskOptions{
 		Operation: "Delete",
 		EnvName:   envName,
 		IsDocker:  isDocker,
 		Task: func() (string, error) {
 			if isDocker {
-				return "", dockercore.Delete(dockercore.DeleteOpts{
+				return "", docker.Delete(docker.DeleteOpts{
 					Name: []string{envName},
 				})
 			}
-			return "", k8score.Delete(k8score.DeleteOpts{
-				Name: []string{envName},
+			return "", k8s.Delete(k8s.DeleteOpts{
+				Name:    []string{envName},
+				Context: context,
 			})
 		},
 	})

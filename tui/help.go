@@ -45,6 +45,10 @@ func (a *App) showHelp() {
 		groupedHints = map[string][]string{"Generic": {"?: show this help", "q: quit application"}}
 	}
 
+	if (prevContext == DetailsDockerKey || prevContext == DetailsK8sKey) && a.detailsPanel != nil && !a.detailsPanel.hasDetailRow("Backoffice") {
+		groupedHints = filterBackofficeHelpHints(groupedHints)
+	}
+
 	var content strings.Builder
 	maxWidth := 0
 	lineCount := 0
@@ -161,4 +165,22 @@ func (a *App) showHelp() {
 	a.pages.AddPage("help", CenterPrimitiveFixed(container, width, height), true, true)
 	a.currentPage = "help"
 	a.tview.SetFocus(container)
+}
+
+func filterBackofficeHelpHints(groupedHints map[string][]string) map[string][]string {
+	browserHints, exists := groupedHints["Browser"]
+	if !exists {
+		return groupedHints
+	}
+
+	filtered := make([]string, 0, len(browserHints))
+	for _, hint := range browserHints {
+		if strings.Contains(strings.ToLower(hint), "backoffice") {
+			continue
+		}
+		filtered = append(filtered, hint)
+	}
+
+	groupedHints["Browser"] = filtered
+	return groupedHints
 }

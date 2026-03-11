@@ -9,32 +9,21 @@ import (
 )
 
 type Docker struct {
-	Name           string
-	Directory      string
-	ApiUrl         string
-	GuiUrl         string
-	BackofficeUrl  string
-	ApiPort        int64
-	GuiPort        int64
-	BackofficePort int64
+	Name       string
+	ConfigYaml string
+}
+
+type ImageUpdateCache struct {
+	ImageRef        string
+	RemoteDigest    string
+	RemoteCreatedAt *time.Time
+	FetchedAt       *time.Time
 }
 
 type IngestedFile struct {
-	EnvironmentType string
 	EnvironmentName string
 	FilePath        string
 	IngestedAt      *time.Time
-}
-
-type K8s struct {
-	Name          string
-	Directory     string
-	Context       string
-	ApiUrl        string
-	GuiUrl        string
-	BackofficeUrl string
-	Protocol      string
-	TlsEnabled    bool
 }
 
 type LatestReleaseCache struct {

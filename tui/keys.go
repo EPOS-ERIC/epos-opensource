@@ -19,6 +19,7 @@ const (
 	HelpKey          ScreenKey = "help"
 	DeployFormKey    ScreenKey = "deploy-form"
 	UpdateFormKey    ScreenKey = "update-form"
+	RenderFormKey    ScreenKey = "render-form"
 )
 
 const (
@@ -33,6 +34,7 @@ const (
 	HelpFooter       FooterText = "[Help]"
 	UpdateFooter     FooterText = "[Update Environment]"
 	NewFooter        FooterText = "[New Environment]"
+	RenderFooter     FooterText = "[Render Environment]"
 )
 
 // getDetailsKey returns the appropriate details screen key based on environment type.

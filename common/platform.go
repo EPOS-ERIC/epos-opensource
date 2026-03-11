@@ -125,16 +125,10 @@ func OpenWithCommand(command, target string) error {
 	}
 
 	cmd := exec.Command(args[0], args[1:]...)
-
-	// Use PTY for interactive commands on non-Windows systems
-	if runtime.GOOS == darwinOS || runtime.GOOS == linuxOS {
-		return runInPty(cmd)
-	}
-
-	// Fallback for Windows and other OSes
-	if err := cmd.Run(); err != nil {
+	if err := runWithTerminal(cmd); err != nil {
 		log.Printf("error executing custom open command: %v", err)
 		return err
 	}
+
 	return nil
 }

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score"
 	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +15,7 @@ var PopulateCmd = &cobra.Command{
 	Long: `Populate an existing environment with all *.ttl files found in the specified directories (recursively),
 or ingest the files directly if individual file paths are provided.
 Multiple directories and/or files can be provided and will be processed in order.
-NOTE: To execute the population it will try to use port-forwarding to the cluster. If that fails it will retry using the external API.`,
+NOTE: Population uses port-forwarding to the cluster ingestor service. If port-forwarding fails, the command returns an error.`,
 	ValidArgsFunction: validArgsFunction,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if populateExamples {
@@ -35,7 +35,8 @@ NOTE: To execute the population it will try to use port-forwarding to the cluste
 		name := args[0]
 		ttlPaths := args[1:]
 
-		k, err := k8score.Populate(k8score.PopulateOpts{
+		env, err := k8s.Populate(k8s.PopulateOpts{
+			Context:          context,
 			TTLDirs:          ttlPaths,
 			Name:             name,
 			Parallel:         parallel,
@@ -46,11 +47,18 @@ NOTE: To execute the population it will try to use port-forwarding to the cluste
 			os.Exit(1)
 		}
 
-		display.Urls(k.GuiUrl, k.ApiUrl, k.BackofficeUrl, fmt.Sprintf("epos-opensource k8s populate %s", name))
+		URLs, err := env.BuildEnvURLs()
+		if err != nil {
+			display.Error("Failed to build environment URLs: %v", err)
+			os.Exit(1)
+		}
+
+		display.URLs(URLs.GUIURL, URLs.APIURL, fmt.Sprintf("epos-opensource k8s populate %s", name), URLs.BackofficeURL)
 	},
 }
 
 func init() {
 	PopulateCmd.Flags().IntVarP(&parallel, "parallel", "p", 1, "Number of parallel uploads to perform when ingesting TTL files")
 	PopulateCmd.Flags().BoolVar(&populateExamples, "example", false, "Populate the environment with example data")
+	PopulateCmd.Flags().StringVar(&context, "context", "", "Kubectl context to use. Uses current context if not set")
 }

@@ -1,15 +1,13 @@
 package k8s
 
+import "time"
+
 var (
-	envFile          string
-	path             string
-	manifestsDir     string
+	configFilePath   string
 	context          string
-	secure           bool
-	host             string
+	timeout          time.Duration
 	parallel         int
 	populateExamples bool
 	deleteForce      bool
 	cleanForce       bool
-	tlsManifest      bool
 )
