@@ -43,7 +43,7 @@ spec:
     spec:
       {{- include "epos.image_pull_secrets" . | nindent 6 }}
       initContainers:
-      {{- include "epos.waitForServiceInitContainer" (dict "name" "metadata-database" "host" .Values.components.metadata_database.host "port" 5432) | nindent 6 }}
+      {{- include "epos.waitForServiceInitContainer" (dict "name" "metadata-database" "host" .Values.components.metadata_database.host "port" .Values.components.metadata_database.port) | nindent 6 }}
       containers:
       - name: email-sender-service
         image: {{ .Values.images.email_sender_service_image }}
