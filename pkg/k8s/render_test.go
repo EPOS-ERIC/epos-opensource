@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"sort"
 	"strings"
 	"testing"
 
@@ -81,4 +82,116 @@ func TestRenderOpts_Validate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRenderOpts_ConfigRender_OptionalComponents(t *testing.T) {
+	tests := []struct {
+		name          string
+		envName       string
+		mutate        func(cfg *config.Config)
+		wantGateway   []string
+		wantTemplates map[string]string
+	}{
+		{
+			name:    "email sender enabled renders email sender chart and gateway flag",
+			envName: "test-email-sender",
+			mutate: func(cfg *config.Config) {
+				cfg.Components.EmailSenderService.Enabled = true
+				cfg.Components.EmailSenderService.Auth = config.Auth{
+					Enabled:   true,
+					OnlyAdmin: true,
+				}
+			},
+			wantGateway: []string{`LOAD_EMAIL_SENDER_API: "true:true"`},
+			wantTemplates: map[string]string{
+				"templates/email-sender-service.yaml": "name: email-sender-service",
+			},
+		},
+		{
+			name:    "sharing enabled renders sharing chart and gateway flag",
+			envName: "test-sharing",
+			mutate: func(cfg *config.Config) {
+				cfg.Components.SharingService.Enabled = true
+			},
+			wantGateway: []string{`LOAD_SHARING_API: "false:false"`},
+			wantTemplates: map[string]string{
+				"templates/sharing-service.yaml": "name: sharing-service",
+			},
+		},
+		{
+			name:    "backoffice enabled renders backoffice chart and gateway flag",
+			envName: "test-backoffice",
+			mutate: func(cfg *config.Config) {
+				cfg.Components.Backoffice.Enabled = true
+			},
+			wantGateway: []string{`LOAD_BACKOFFICE_API: "false:false"`},
+			wantTemplates: map[string]string{
+				"templates/backoffice-service.yaml": "name: backoffice-service",
+			},
+		},
+		{
+			name:    "converter enabled renders converter charts and gateway flag",
+			envName: "test-converter",
+			mutate: func(cfg *config.Config) {
+				cfg.Components.Converter.Enabled = true
+			},
+			wantGateway: []string{`LOAD_CONVERTER_API: "false:false"`},
+			wantTemplates: map[string]string{
+				"templates/converter-service.yaml": "name: converter-service",
+				"templates/converter-routine.yaml": "name: converter-routine",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := config.GetDefaultConfig()
+			cfg.Name = tt.envName
+			tt.mutate(cfg)
+
+			opts := RenderOpts{Config: cfg}
+			if err := opts.Validate(); err != nil {
+				t.Fatalf("Validate() returned error: %v", err)
+			}
+
+			files, err := opts.Config.Render()
+			if err != nil {
+				t.Fatalf("Config.Render() returned error: %v", err)
+			}
+
+			gatewayManifest := mustGetRenderedFileBySuffix(t, files, "templates/gateway.yaml")
+			for _, want := range tt.wantGateway {
+				if !strings.Contains(gatewayManifest, want) {
+					t.Fatalf("gateway manifest missing expected content %q", want)
+				}
+			}
+
+			for suffix, want := range tt.wantTemplates {
+				manifest := mustGetRenderedFileBySuffix(t, files, suffix)
+				if !strings.Contains(manifest, want) {
+					t.Fatalf("rendered file %q missing expected content %q", suffix, want)
+				}
+			}
+		})
+	}
+}
+
+func mustGetRenderedFileBySuffix(t *testing.T, files map[string]string, suffix string) string {
+	t.Helper()
+
+	for path, content := range files {
+		if strings.HasSuffix(path, suffix) {
+			return content
+		}
+	}
+
+	keys := make([]string, 0, len(files))
+	for path := range files {
+		keys = append(keys, path)
+	}
+	sort.Strings(keys)
+
+	t.Fatalf("rendered file with suffix %q not found; got files: %v", suffix, keys)
+
+	return ""
 }

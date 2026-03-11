@@ -15,12 +15,20 @@ func TestDockerEnvConfig_Render(t *testing.T) {
 		notContains  map[string][]string
 	}{
 		{
-			name:    "default config renders both files successfully",
-			config:  NewTestConfig(t, "test-env").Build(),
+			name: "embedded default config renders core services with optional components disabled",
+			config: func() *config.EnvConfig {
+				cfg := config.GetDefaultConfig()
+				cfg.Name = "default-env"
+				return cfg
+			}(),
 			wantErr: false,
 			wantContains: map[string][]string{
-				".env":                {"ENV_NAME=test-env", "DATAPORTAL_PORT=32000", "GATEWAY_PORT=33000"},
+				".env":                {"ENV_NAME=default-env", "DATAPORTAL_PORT=32000", "GATEWAY_PORT=33000"},
 				"docker-compose.yaml": {"dataportal:", "gateway:", "rabbitmq:", "metadata-database:"},
+			},
+			notContains: map[string][]string{
+				".env":                {"LOAD_BACKOFFICE_API=", "LOAD_CONVERTER_API=", "LOAD_EMAIL_SENDER_API=", "LOAD_SHARING_API="},
+				"docker-compose.yaml": {"backoffice-ui:", "backoffice-service:", "converter-service:", "converter-routine:", "email-sender-service:", "sharing-service:"},
 			},
 		},
 		{
@@ -60,8 +68,8 @@ func TestDockerEnvConfig_Render(t *testing.T) {
 			},
 		},
 		{
-			name:    "sharing service appears in compose",
-			config:  NewTestConfig(t, "test-sharing").Build(),
+			name:    "sharing enabled includes sharing service in compose",
+			config:  NewTestConfig(t, "test-sharing").WithSharing(true).Build(),
 			wantErr: false,
 			wantContains: map[string][]string{
 				"docker-compose.yaml": {"sharing-service:"},
