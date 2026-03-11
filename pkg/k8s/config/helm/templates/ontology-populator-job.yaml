@@ -5,7 +5,15 @@ kind: Job
 metadata:
   name: {{ $name }}
   annotations:
-    "helm.sh/hook": post-install
+	{{- /*
+	Always run ontology population on install.
+	On upgrade, run it only when init-db is enabled.
+	*/ -}}
+    {{- if and .Values.jobs.enabled .Values.jobs.init_db.enabled}}
+    "helm.sh/hook": "post-install,post-upgrade"
+    {{- else }}
+    "helm.sh/hook": "post-install"
+    {{- end }}
     "helm.sh/hook-weight": "-1"
     "helm.sh/hook-delete-policy": before-hook-creation
   labels:

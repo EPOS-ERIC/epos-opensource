@@ -64,11 +64,12 @@ spec:
           timeoutSeconds: 5
           failureThreshold: 5
         volumeMounts:
-        - name: converter-data
-          mountPath: /data
+        - name: converter-plugins
+          mountPath: /opt/converter/plugins
       volumes:
-      - name: converter-data
-        emptyDir: {}
+      - name: converter-plugins
+        persistentVolumeClaim:
+          claimName: converter-plugins
       {{- include "epos.nodeSelector" . | nindent 6 }}
       {{- include "epos.tolerations" . | nindent 6 }}
       {{- include "epos.affinity" . | nindent 6 }}

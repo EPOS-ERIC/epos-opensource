@@ -11,7 +11,7 @@ data:
   DOMAIN: {{ .Values.domain | quote }}
   GATEWAY_URL: {{ printf "%s://%s:5000" .Values.protocol .Values.domain | quote }}
   METADATA_DB_HOST: {{ .Values.components.metadata_database.host }}
-  METADATA_DB_PORT: {{ .Values.components.metadata_database.port }}
+  METADATA_DB_PORT: {{ .Values.components.metadata_database.port | quote }}
   METADATA_DB_NAME: {{ .Values.components.metadata_database.db_name }}
   METADATA_DB_USER: {{ .Values.components.metadata_database.user }}
   METADATA_DB_PASSWORD: {{ .Values.components.metadata_database.password }}
