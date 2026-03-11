@@ -15,7 +15,7 @@ var PopulateCmd = &cobra.Command{
 	Long: `Populate an existing environment with all *.ttl files found in the specified directories (recursively),
 or ingest the files directly if individual file paths are provided.
 Multiple directories and/or files can be provided and will be processed in order.
-NOTE: To execute the population it will try to use port-forwarding to the cluster. If that fails it will retry using the external API.`,
+NOTE: Population uses port-forwarding to the cluster ingestor service. If port-forwarding fails, the command returns an error.`,
 	ValidArgsFunction: validArgsFunction,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if populateExamples {
