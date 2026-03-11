@@ -132,15 +132,27 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	// At least one image is required
-	if c.Images.RabbitmqImage == "" &&
-		c.Images.DataportalImage == "" &&
-		c.Images.GatewayImage == "" &&
-		c.Images.MetadataDatabaseImage == "" &&
-		c.Images.ResourcesServiceImage == "" &&
-		c.Images.IngestorServiceImage == "" &&
-		c.Images.ExternalAccessImage == "" {
-		return fmt.Errorf("at least one image is required")
+	// Required images
+	if c.Images.DataportalImage == "" {
+		return fmt.Errorf("dataportal image is required")
+	}
+	if c.Images.GatewayImage == "" {
+		return fmt.Errorf("gateway image is required")
+	}
+	if c.Images.ResourcesServiceImage == "" {
+		return fmt.Errorf("resources service image is required")
+	}
+	if c.Images.IngestorServiceImage == "" {
+		return fmt.Errorf("ingestor service image is required")
+	}
+	if c.Images.ExternalAccessImage == "" {
+		return fmt.Errorf("external access image is required")
+	}
+	if c.Components.Rabbitmq.Enabled && c.Images.RabbitmqImage == "" {
+		return fmt.Errorf("rabbitmq image is required when rabbitmq is enabled")
+	}
+	if c.Components.MetadataDatabase.Enabled && c.Images.MetadataDatabaseImage == "" {
+		return fmt.Errorf("metadata database image is required when metadata database is enabled")
 	}
 
 	// Platform GUI validation

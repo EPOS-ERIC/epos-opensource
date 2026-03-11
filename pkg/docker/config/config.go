@@ -214,15 +214,27 @@ func (e *EnvConfig) Validate() error {
 		return fmt.Errorf("protocol must be http or https")
 	}
 
-	// At least one image is required
-	if e.Images.RabbitmqImage == "" &&
-		e.Images.DataportalImage == "" &&
-		e.Images.GatewayImage == "" &&
-		e.Images.MetadataDatabaseImage == "" &&
-		e.Images.ResourcesServiceImage == "" &&
-		e.Images.IngestorServiceImage == "" &&
-		e.Images.ExternalAccessImage == "" {
-		return fmt.Errorf("at least one image is required")
+	// Required core images
+	if e.Images.RabbitmqImage == "" {
+		return fmt.Errorf("rabbitmq image is required")
+	}
+	if e.Images.DataportalImage == "" {
+		return fmt.Errorf("dataportal image is required")
+	}
+	if e.Images.GatewayImage == "" {
+		return fmt.Errorf("gateway image is required")
+	}
+	if e.Images.MetadataDatabaseImage == "" {
+		return fmt.Errorf("metadata database image is required")
+	}
+	if e.Images.ResourcesServiceImage == "" {
+		return fmt.Errorf("resources service image is required")
+	}
+	if e.Images.IngestorServiceImage == "" {
+		return fmt.Errorf("ingestor service image is required")
+	}
+	if e.Images.ExternalAccessImage == "" {
+		return fmt.Errorf("external access image is required")
 	}
 
 	// Platform GUI validation
