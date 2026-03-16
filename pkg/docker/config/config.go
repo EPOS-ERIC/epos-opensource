@@ -1,3 +1,4 @@
+// Package config provides Docker environment configuration loading, modeling, validation, and rendering.
 package config
 
 import (
