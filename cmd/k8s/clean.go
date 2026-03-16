@@ -58,5 +58,5 @@ This action is irreversible.`,
 func init() {
 	CleanCmd.Flags().BoolVarP(&cleanForce, "force", "f", false, "Force clean without confirmation prompt")
 	CleanCmd.Flags().StringVar(&context, "context", "", "Kubectl context to use. Uses current context if not set")
-	CleanCmd.Flags().DurationVar(&timeout, "timeout", 0, "Operation timeout (e.g. 30s, 5m). Uses default when not set")
+	CleanCmd.Flags().DurationVar(&timeout, "timeout", 0, "Operation timeout (e.g. 30s, 5m). Uses default when not set (5m)")
 }

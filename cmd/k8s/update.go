@@ -58,5 +58,5 @@ func init() {
 	UpdateCmd.Flags().BoolVarP(&reset, "reset", "r", false, "Reset .env and manifests to embedded versions")
 	UpdateCmd.Flags().StringVar(&configFilePath, "config", "", "Path to YAML configuration file")
 	UpdateCmd.Flags().StringVar(&context, "context", "", "Kubectl context to use. Uses current context if not set")
-	UpdateCmd.Flags().DurationVar(&timeout, "timeout", 0, "Operation timeout (e.g. 30s, 5m). Uses default when not set")
+	UpdateCmd.Flags().DurationVar(&timeout, "timeout", 0, "Operation timeout (e.g. 30s, 5m). Uses default when not set (5m)")
 }
