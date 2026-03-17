@@ -13,9 +13,9 @@ import (
 )
 
 var DeployCmd = &cobra.Command{
-	Use:   "deploy [env-name]",
-	Short: "Create and deploy a new K8s environment in a dedicated namespace.",
-	Long:  "Sets up a new K8s environment in a fresh namespace, applying all required manifests and configuration. Fails if the namespace already exists.",
+	Use:   "deploy <env-name>",
+	Short: "Deploy a new environment.",
+	Long:  "Deploy a new environment. Creates a new namespace and deploys the EPOS services to it. Uses the default configuration unless --config is set.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
@@ -53,7 +53,7 @@ var DeployCmd = &cobra.Command{
 }
 
 func init() {
-	DeployCmd.Flags().StringVar(&context, "context", "", "Kubectl context to use. Uses current context if not set")
+	DeployCmd.Flags().StringVar(&context, "context", "", "kubectl context to use (default: current context)")
 	DeployCmd.Flags().StringVar(&configFilePath, "config", "", "Path to YAML configuration file")
-	DeployCmd.Flags().DurationVar(&timeout, "timeout", 0, "Operation timeout (e.g. 30s, 5m). Uses default when not set (5m)")
+	DeployCmd.Flags().DurationVar(&timeout, "timeout", 0, "Operation timeout (default: 5m)")
 }

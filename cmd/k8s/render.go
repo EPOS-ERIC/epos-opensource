@@ -12,12 +12,9 @@ var renderOutputPath string
 
 var RenderCmd = &cobra.Command{
 	Use:   "render [env-name]",
-	Short: "Render Kubernetes environment configuration files",
-	Long: `Render Kubernetes environment configuration files from defaults or a YAML config.
-
-The command renders Helm chart files from YAML configuration and creates
-the environment directory with rendered Kubernetes manifest files.`,
-	Args: cobra.MaximumNArgs(1),
+	Short: "Render Kubernetes manifests from config.",
+	Long:  "Render Kubernetes manifests from config. Generates manifest files locally from the default configuration or a file passed with --config. Writes the rendered files to the current directory or to --output.",
+	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := ""
 		if len(args) > 0 && args[0] != "" {
@@ -50,5 +47,5 @@ the environment directory with rendered Kubernetes manifest files.`,
 
 func init() {
 	RenderCmd.Flags().StringVarP(&configFilePath, "config", "c", "", "Path to YAML configuration file")
-	RenderCmd.Flags().StringVarP(&renderOutputPath, "output", "o", "", "Output directory for environment files")
+	RenderCmd.Flags().StringVarP(&renderOutputPath, "output", "o", "", "Directory for rendered manifests")
 }

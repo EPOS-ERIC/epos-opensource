@@ -12,9 +12,9 @@ import (
 )
 
 var DeployCmd = &cobra.Command{
-	Use:   "deploy [env-name]",
-	Short: "Create a new environment using Docker Compose.",
-	Long:  "Deploy a new Docker Compose environment with the specified name.",
+	Use:   "deploy <env-name>",
+	Short: "Deploy a new environment.",
+	Long:  "Deploy a new environment. Starts a new local Docker Compose environment with the given name. Uses the default configuration unless --config is set.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
@@ -53,6 +53,6 @@ var DeployCmd = &cobra.Command{
 }
 
 func init() {
-	DeployCmd.Flags().BoolVarP(&pullImages, "update-images", "u", false, "Download Docker images before starting")
+	DeployCmd.Flags().BoolVarP(&pullImages, "update-images", "u", false, "Pull Docker images before starting")
 	DeployCmd.Flags().StringVar(&configFilePath, "config", "", "Path to YAML configuration file")
 }

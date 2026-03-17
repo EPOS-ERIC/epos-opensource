@@ -12,8 +12,9 @@ import (
 var dockerGetOutputPath string
 
 var GetCmd = &cobra.Command{
-	Use:               "get [env-name]",
-	Short:             "Get the currently applied Docker environment configuration.",
+	Use:               "get <env-name>",
+	Short:             "Print an environment's applied config.",
+	Long:              "Print an environment's applied config. Reads the configuration currently stored for the deployed environment. Writes the YAML to stdout or to the path passed with --output.",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: validArgsFunction,
 	Run: func(cmd *cobra.Command, args []string) {

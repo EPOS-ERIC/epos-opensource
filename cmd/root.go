@@ -24,9 +24,7 @@ var debug bool
 var rootCmd = &cobra.Command{
 	Use:   "epos-opensource",
 	Short: "Manage EPOS environments and utilities.",
-	Long: `epos-opensource provides commands for managing local EPOS environments
-using Docker Compose or K8s. Use the "docker" and "k8s" command
-groups to deploy, populate, update, or delete an environment.`,
+	Long:  "Manage EPOS environments and utilities. Use the docker and k8s command groups to work with local Docker Compose and Kubernetes environments. Run the CLI without a command to open the terminal UI.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		display.EnableDebug = debug
 

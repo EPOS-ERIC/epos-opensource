@@ -13,9 +13,9 @@ import (
 )
 
 var DeleteCmd = &cobra.Command{
-	Use:               "delete [env-name...]",
-	Short:             "Stop and remove Docker Compose environments.",
-	Long:              "Deletes Docker Compose environments with the given names. This action is irreversible.",
+	Use:               "delete <env-name>...",
+	Short:             "Delete one or more environments.",
+	Long:              "Delete one or more environments. Removes the Docker Compose environment, including its containers, volumes, and tracked metadata. Prompts for confirmation unless --force is set.",
 	Args:              cobra.MinimumNArgs(1),
 	ValidArgsFunction: validArgsFunction,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -47,5 +47,5 @@ var DeleteCmd = &cobra.Command{
 }
 
 func init() {
-	DeleteCmd.Flags().BoolVarP(&deleteForce, "force", "f", false, "Force delete without confirmation prompt")
+	DeleteCmd.Flags().BoolVarP(&deleteForce, "force", "f", false, "Skip the confirmation prompt")
 }

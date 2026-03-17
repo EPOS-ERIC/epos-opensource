@@ -12,7 +12,8 @@ import (
 
 var ListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List installed K8s environments.",
+	Short: "List EPOS environments.",
+	Long:  "List EPOS environments. By default this command checks all available kubectl contexts. Use --context to limit the results to a single context.",
 	Run: func(cmd *cobra.Command, args []string) {
 		contexts := []string{}
 		if context == "" {
@@ -59,5 +60,5 @@ var ListCmd = &cobra.Command{
 }
 
 func init() {
-	ListCmd.Flags().StringVar(&context, "context", "", "Kubectl context to use. Uses current context if not set")
+	ListCmd.Flags().StringVar(&context, "context", "", "Only list environments from this kubectl context")
 }

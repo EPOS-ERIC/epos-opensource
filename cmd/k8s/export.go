@@ -10,9 +10,9 @@ import (
 )
 
 var ExportCmd = &cobra.Command{
-	Use:   "export [path]",
-	Short: "Export the default K8s config to a directory.",
-	Long:  "Export the default K8s configuration file (k8s-config.yaml) to the specified directory.",
+	Use:   "export <path>",
+	Short: "Write the default K8s config template.",
+	Long:  "Write the default K8s config template. Exports a starter k8s-config.yaml file to the target directory.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		path := args[0]

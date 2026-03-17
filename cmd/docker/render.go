@@ -13,12 +13,9 @@ var renderOutputPath string
 
 var RenderCmd = &cobra.Command{
 	Use:   "render [env-name]",
-	Short: "Render Docker environment configuration files",
-	Long: `Render .env and docker-compose.yaml files from YAML configuration.
-
-The command loads a YAML configuration file, renders the templates, and creates
-the environment directory with .env and docker-compose.yaml files.`,
-	Args: cobra.MaximumNArgs(1),
+	Short: "Render Docker runtime files from config.",
+	Long:  "Render Docker runtime files from config. Generates .env and docker-compose.yaml locally from the default configuration or a file passed with --config. Writes the rendered files to the current directory or to --output.",
+	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := ""
 		if len(args) > 0 && args[0] != "" {
@@ -57,5 +54,5 @@ the environment directory with .env and docker-compose.yaml files.`,
 
 func init() {
 	RenderCmd.Flags().StringVarP(&configFilePath, "config", "c", "", "Path to YAML configuration file")
-	RenderCmd.Flags().StringVarP(&renderOutputPath, "output", "o", "", "Output directory for environment files")
+	RenderCmd.Flags().StringVarP(&renderOutputPath, "output", "o", "", "Directory for rendered files")
 }

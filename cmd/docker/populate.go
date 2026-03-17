@@ -10,11 +10,9 @@ import (
 )
 
 var PopulateCmd = &cobra.Command{
-	Use:   "populate [env-name] [ttl-paths...]",
-	Short: "Ingest TTL files or example data into an environment.",
-	Long: `Populate an existing environment with all *.ttl files found in the specified directories (recursively),
-or ingest the files directly if individual file paths are provided.
-Multiple directories and/or files can be provided and will be processed in order.`,
+	Use:               "populate <env-name> [ttl-paths...]",
+	Short:             "Load TTL data into an environment.",
+	Long:              "Load TTL data into an environment. Imports .ttl files from the given files or directories, or loads bundled example data with --example. Pass at least one TTL path unless --example is set.",
 	ValidArgsFunction: validArgsFunction,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if populateExamples {
@@ -56,6 +54,6 @@ Multiple directories and/or files can be provided and will be processed in order
 }
 
 func init() {
-	PopulateCmd.Flags().IntVarP(&parallel, "parallel", "p", 1, "Number of parallel uploads to perform when ingesting TTL files")
-	PopulateCmd.Flags().BoolVar(&populateExamples, "example", false, "Populate the environment with example data")
+	PopulateCmd.Flags().IntVarP(&parallel, "parallel", "p", 1, "Parallel TTL uploads (1-20)")
+	PopulateCmd.Flags().BoolVar(&populateExamples, "example", false, "Load bundled example data")
 }

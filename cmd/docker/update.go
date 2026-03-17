@@ -17,9 +17,9 @@ var (
 )
 
 var UpdateCmd = &cobra.Command{
-	Use:   "update [env-name]",
-	Short: "Recreate an environment with new settings.",
-	Long:  "Re-deploy an existing Docker Compose environment after modifying its configuration.",
+	Use:   "update <env-name>",
+	Short: "Update an existing environment.",
+	Long:  "Update an existing environment. Updates the deployed environment using the current applied configuration or a file passed with --config. Use --reset to start from the default configuration, --force to recreate containers, or --update-images to pull images before starting.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
@@ -57,8 +57,8 @@ var UpdateCmd = &cobra.Command{
 }
 
 func init() {
-	UpdateCmd.Flags().BoolVarP(&force, "force", "f", false, "Remove the current containers before redeploying")
-	UpdateCmd.Flags().BoolVarP(&pullImages, "update-images", "u", false, "Download Docker images before starting")
-	UpdateCmd.Flags().BoolVar(&reset, "reset", false, "Reset the environment config to the embedded defaults")
+	UpdateCmd.Flags().BoolVarP(&force, "force", "f", false, "Recreate the environment by removing current containers first")
+	UpdateCmd.Flags().BoolVarP(&pullImages, "update-images", "u", false, "Pull Docker images before starting")
+	UpdateCmd.Flags().BoolVar(&reset, "reset", false, "Use the embedded default config")
 	UpdateCmd.Flags().StringVar(&configFilePath, "config", "", "Path to YAML configuration file")
 }

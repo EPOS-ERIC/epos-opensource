@@ -13,8 +13,9 @@ import (
 var k8sGetOutputPath string
 
 var GetCmd = &cobra.Command{
-	Use:               "get [env-name]",
-	Short:             "Get the currently applied K8s environment configuration.",
+	Use:               "get <env-name>",
+	Short:             "Print an environment's applied config.",
+	Long:              "Print an environment's applied config. Reads the configuration currently applied to the deployed environment. Writes the YAML to stdout or to the path passed with --output.",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: validArgsFunction,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -51,6 +52,6 @@ var GetCmd = &cobra.Command{
 }
 
 func init() {
-	GetCmd.Flags().StringVar(&context, "context", "", "Kubectl context to use. Uses current context if not set")
+	GetCmd.Flags().StringVar(&context, "context", "", "kubectl context to use (default: current context)")
 	GetCmd.Flags().StringVar(&k8sGetOutputPath, "output", "", "Write the applied configuration YAML to a file")
 }

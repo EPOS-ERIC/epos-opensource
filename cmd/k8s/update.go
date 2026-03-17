@@ -16,9 +16,9 @@ var (
 )
 
 var UpdateCmd = &cobra.Command{
-	Use:               "update [env-name]",
-	Short:             "Update and redeploy an existing K8s environment.",
-	Long:              "Recreates the specified environment with updated configuration or manifests. Optionally deletes and recreates the namespace if --force is used. Ensures rollback if the update fails.",
+	Use:               "update <env-name>",
+	Short:             "Update an existing environment.",
+	Long:              "Update an existing environment. Updates the deployed environment using the current applied configuration or a file passed with --config. Use --reset to start from the default configuration or --force to delete and recreate the environment.",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: validArgsFunction,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -54,9 +54,9 @@ var UpdateCmd = &cobra.Command{
 }
 
 func init() {
-	UpdateCmd.Flags().BoolVarP(&force, "force", "f", false, "Delete and recreate the namespace and all resources before redeploying.")
-	UpdateCmd.Flags().BoolVarP(&reset, "reset", "r", false, "Reset .env and manifests to embedded versions")
+	UpdateCmd.Flags().BoolVarP(&force, "force", "f", false, "Reinstall from scratch by deleting the namespace first")
+	UpdateCmd.Flags().BoolVarP(&reset, "reset", "r", false, "Use the embedded default config")
 	UpdateCmd.Flags().StringVar(&configFilePath, "config", "", "Path to YAML configuration file")
-	UpdateCmd.Flags().StringVar(&context, "context", "", "Kubectl context to use. Uses current context if not set")
-	UpdateCmd.Flags().DurationVar(&timeout, "timeout", 0, "Operation timeout (e.g. 30s, 5m). Uses default when not set (5m)")
+	UpdateCmd.Flags().StringVar(&context, "context", "", "kubectl context to use (default: current context)")
+	UpdateCmd.Flags().DurationVar(&timeout, "timeout", 0, "Operation timeout (default: 5m)")
 }

@@ -8,8 +8,8 @@ import (
 
 var k8sCmd = &cobra.Command{
 	Use:   "k8s",
-	Short: "Manage K8s environments.",
-	Long:  "All K8s commands use the current kubectl context configured on your system.",
+	Short: "Manage EPOS environments on Kubernetes.",
+	Long:  "Manage EPOS environments on Kubernetes. Most commands use the current kubectl context by default. The list command checks all contexts unless --context is set.",
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = cmd.Help()
 	},

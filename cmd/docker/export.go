@@ -10,9 +10,9 @@ import (
 )
 
 var ExportCmd = &cobra.Command{
-	Use:   "export [path]",
-	Short: "Export the default Docker config to a directory.",
-	Long:  "Export the default Docker configuration file (docker-config.yaml) to the specified directory.",
+	Use:   "export <path>",
+	Short: "Write the default Docker config template.",
+	Long:  "Write the default Docker config template. Exports a starter docker-config.yaml file to the target directory.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		path := args[0]

@@ -12,11 +12,9 @@ import (
 )
 
 var CleanCmd = &cobra.Command{
-	Use:   "clean [env-name]",
-	Short: "Clean the data of an environment.",
-	Long: `Clean the data of an environment without redeploying. 
-After clean all custom data populated in the environment will be lost. 
-This action is irreversible.`,
+	Use:               "clean <env-name>",
+	Short:             "Reset an environment's data.",
+	Long:              "Reset an environment's data. Runs cleanup jobs without redeploying and deletes populated data in the environment. Prompts for confirmation unless --force is set.",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: validArgsFunction,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -56,7 +54,7 @@ This action is irreversible.`,
 }
 
 func init() {
-	CleanCmd.Flags().BoolVarP(&cleanForce, "force", "f", false, "Force clean without confirmation prompt")
-	CleanCmd.Flags().StringVar(&context, "context", "", "Kubectl context to use. Uses current context if not set")
-	CleanCmd.Flags().DurationVar(&timeout, "timeout", 0, "Operation timeout (e.g. 30s, 5m). Uses default when not set (5m)")
+	CleanCmd.Flags().BoolVarP(&cleanForce, "force", "f", false, "Skip the confirmation prompt")
+	CleanCmd.Flags().StringVar(&context, "context", "", "kubectl context to use (default: current context)")
+	CleanCmd.Flags().DurationVar(&timeout, "timeout", 0, "Operation timeout (default: 5m)")
 }
