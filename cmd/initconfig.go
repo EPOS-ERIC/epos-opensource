@@ -10,9 +10,8 @@ import (
 // initConfigCmd represents the init-config command
 var initConfigCmd = &cobra.Command{
 	Use:   "init-config",
-	Short: "Initialize the default configuration file",
-	Long: `Creates the default configuration file at the standard location if it doesn't exist.
-This allows users to customize settings like open commands for URLs, directories, and files.`,
+	Short: "Create or replace the default user config file.",
+	Long:  "Create or replace the default user config file. Writes epos-opensource.yaml to the standard config path for your platform. Use it to customize TUI settings and file or URL open commands.",
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := config.DefaultConfig()
 		err := config.SaveConfig(cfg)

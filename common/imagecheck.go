@@ -9,14 +9,32 @@ import (
 	"sync"
 	"time"
 
+	"github.com/EPOS-ERIC/epos-opensource/db"
 	"github.com/EPOS-ERIC/epos-opensource/display"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
-	"github.com/joho/godotenv"
 	"golang.org/x/sync/errgroup"
 )
 
 var ErrImageMissing = errors.New("image not found locally")
+
+const imageUpdateCacheTTL = 12 * time.Hour
+
+type Images struct {
+	RabbitmqImage           string `yaml:"rabbitmq_image"`
+	DataportalImage         string `yaml:"dataportal_image"`
+	GatewayImage            string `yaml:"gateway_image"`
+	MetadataDatabaseImage   string `yaml:"metadata_database_image"`
+	ResourcesServiceImage   string `yaml:"resources_service_image"`
+	IngestorServiceImage    string `yaml:"ingestor_service_image"`
+	ExternalAccessImage     string `yaml:"external_access_image"`
+	ConverterServiceImage   string `yaml:"converter_service_image"`
+	ConverterRoutineImage   string `yaml:"converter_routine_image"`
+	BackofficeServiceImage  string `yaml:"backoffice_service_image"`
+	BackofficeUIImage       string `yaml:"backoffice_ui_image"`
+	EmailSenderServiceImage string `yaml:"email_sender_service_image"`
+	SharingServiceImage     string `yaml:"sharing_service_image"`
+}
 
 func imageHasUpdate(ctx context.Context, imageRef string) (bool, *time.Time, error) {
 	if imageRef == "" {
@@ -41,6 +59,13 @@ func imageHasUpdate(ctx context.Context, imageRef string) (bool, *time.Time, err
 
 	localDigest := parts[1]
 
+	cached, err := db.GetImageUpdateCache(ctx, imageRef)
+	if err == nil && cached != nil && cached.FetchedAt != nil && time.Since(*cached.FetchedAt) < imageUpdateCacheTTL {
+		if localDigest == cached.RemoteDigest {
+			return false, nil, nil
+		}
+	}
+
 	ref, err := name.ParseReference(imageRef)
 	if err != nil {
 		return false, nil, fmt.Errorf("invalid image reference: %w", err)
@@ -55,6 +80,7 @@ func imageHasUpdate(ctx context.Context, imageRef string) (bool, *time.Time, err
 
 	hasUpdate := localDigest != remoteDigest
 	if !hasUpdate {
+		_ = db.UpsertImageUpdateCache(ctx, imageRef, remoteDigest, nil, time.Now())
 		return false, nil, nil
 	}
 
@@ -68,21 +94,14 @@ func imageHasUpdate(ctx context.Context, imageRef string) (bool, *time.Time, err
 		return true, nil, fmt.Errorf("failed to get remote image config: %w", err)
 	}
 
+	_ = db.UpsertImageUpdateCache(ctx, imageRef, remoteDigest, &cf.Created.Time, time.Now())
+
 	return true, &cf.Created.Time, nil
 }
 
-func CheckEnvForUpdates(envFile string) ([]display.ImageUpdateInfo, error) {
-	if envFile == "" {
-		return nil, fmt.Errorf("invalid env file: %q", envFile)
-	}
-
+func CheckEnvForUpdates(images map[string]string) ([]display.ImageUpdateInfo, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
-	env, err := godotenv.Read(envFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read .env file at %s: %w", envFile, err)
-	}
 
 	updates := []display.ImageUpdateInfo{}
 	g, ctx := errgroup.WithContext(ctx)
@@ -90,12 +109,7 @@ func CheckEnvForUpdates(envFile string) ([]display.ImageUpdateInfo, error) {
 
 	g.SetLimit(13)
 
-	for v, k := range env {
-		if !strings.HasSuffix(v, "_IMAGE") {
-			continue
-		}
-
-		varName, imageRef := v, k
+	for varName, imageRef := range images {
 		g.Go(func() error {
 			hasUpdate, lastUpdate, err := imageHasUpdate(ctx, imageRef)
 			if err != nil {

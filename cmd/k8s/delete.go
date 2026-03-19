@@ -4,17 +4,17 @@ import (
 	"os"
 	"strings"
 
-	"github.com/EPOS-ERIC/epos-opensource/cmd/k8s/k8score"
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 
 	"github.com/spf13/cobra"
 )
 
 var DeleteCmd = &cobra.Command{
-	Use:               "delete [env-name...]",
-	Short:             "Removes K8s environments and all their namespaces.",
-	Long:              "Deletes the K8s environments by removing the namespaces and all of their associated resources. This action is irreversible.",
+	Use:               "delete <env-name>...",
+	Short:             "Delete one or more environments.",
+	Long:              "Delete one or more environments. Removes the environment namespace and all associated resources. Prompts for confirmation unless --force is set.",
 	Args:              cobra.MinimumNArgs(1),
 	ValidArgsFunction: validArgsFunction,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -35,8 +35,10 @@ var DeleteCmd = &cobra.Command{
 			}
 		}
 
-		err := k8score.Delete(k8score.DeleteOpts{
-			Name: name,
+		err := k8s.Delete(k8s.DeleteOpts{
+			Name:    name,
+			Context: context,
+			Timeout: timeout,
 		})
 		if err != nil {
 			display.Error("%v", err)
@@ -46,5 +48,7 @@ var DeleteCmd = &cobra.Command{
 }
 
 func init() {
-	DeleteCmd.Flags().BoolVarP(&deleteForce, "force", "f", false, "Force delete without confirmation prompt")
+	DeleteCmd.Flags().BoolVarP(&deleteForce, "force", "f", false, "Skip the confirmation prompt")
+	DeleteCmd.Flags().StringVar(&context, "context", "", "kubectl context to use (default: current context)")
+	DeleteCmd.Flags().DurationVar(&timeout, "timeout", 0, "Operation timeout (default: 5m)")
 }

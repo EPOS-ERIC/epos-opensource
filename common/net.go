@@ -16,18 +16,6 @@ func FindFreePort() (int, error) {
 	return addr.Port, nil
 }
 
-func GetLocalIP() (string, error) {
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	if err != nil {
-		return "", fmt.Errorf("error dialing udp: %w", err)
-	}
-	defer conn.Close()
-
-	localAddress := conn.LocalAddr().(*net.UDPAddr)
-
-	return localAddress.IP.String(), nil
-}
-
 func IsPortFree(port int) (bool, error) {
 	if port <= 0 || port > 65535 {
 		return false, fmt.Errorf("invalid port %d: port must be between 1 and 65535", port)

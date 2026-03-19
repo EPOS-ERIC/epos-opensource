@@ -4,19 +4,17 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/EPOS-ERIC/epos-opensource/cmd/docker/dockercore"
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/display"
+	"github.com/EPOS-ERIC/epos-opensource/pkg/docker"
 
 	"github.com/spf13/cobra"
 )
 
 var CleanCmd = &cobra.Command{
-	Use:   "clean [env-name]",
-	Short: "Clean the data of an environment.",
-	Long: `Clean the data of an environment without redeploying. 
-After clean all custom data populated in the environment will be lost. 
-This action is irreversible.`,
+	Use:               "clean <env-name>",
+	Short:             "Reset an environment's data.",
+	Long:              "Reset an environment's data. Removes database data and ingested file records, then restarts the environment and repopulates base ontologies. Prompts for confirmation unless --force is set.",
 	Args:              cobra.ExactArgs(1),
 	ValidArgsFunction: validArgsFunction,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -35,7 +33,7 @@ This action is irreversible.`,
 			}
 		}
 
-		docker, err := dockercore.Clean(dockercore.CleanOpts{
+		env, err := docker.Clean(docker.CleanOpts{
 			Name: name,
 		})
 		if err != nil {
@@ -43,10 +41,16 @@ This action is irreversible.`,
 			os.Exit(1)
 		}
 
-		display.Urls(docker.GuiUrl, docker.ApiUrl, docker.BackofficeUrl, fmt.Sprintf("epos-opensource docker clean %s", name))
+		urls, err := env.BuildEnvURLs()
+		if err != nil {
+			display.Error("failed to build environment URLs: %v", err)
+			os.Exit(1)
+		}
+
+		display.URLs(urls.GUIURL, urls.APIURL, fmt.Sprintf("epos-opensource docker clean %s", name), urls.BackofficeURL)
 	},
 }
 
 func init() {
-	CleanCmd.Flags().BoolVarP(&cleanForce, "force", "f", false, "Force clean without confirmation prompt")
+	CleanCmd.Flags().BoolVarP(&cleanForce, "force", "f", false, "Skip the confirmation prompt")
 }
