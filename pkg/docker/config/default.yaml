@@ -176,6 +176,6 @@ images:
   converter_service_image: "ghcr.io/epos-eric/converter-service-go:latest"
   converter_routine_image: "ghcr.io/epos-eric/converter-routine-go:latest"
   backoffice_service_image: "ghcr.io/epos-eric/backoffice-service:latest"
-  backoffice_ui_image: "epos/backoffice-ui:latest"
+  backoffice_ui_image: "ghcr.io/epos-eric/epos-backoffice-gui:latest"
   email_sender_service_image: "ghcr.io/epos-eric/email-sender-service:latest"
   sharing_service_image: "ghcr.io/epos-eric/sharing-service:latest"
