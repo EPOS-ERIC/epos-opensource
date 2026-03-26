@@ -71,10 +71,17 @@ type Backoffice struct {
 	Service Service `yaml:"service"`
 }
 
+// SecurityContext configures optional pod security context settings.
+type SecurityContext struct {
+	Enabled bool `yaml:"enabled"`
+	FSGroup int  `yaml:"fs_group"`
+}
+
 // Converter configures the converter service.
 type Converter struct {
-	Enabled bool `yaml:"enabled"`
-	Auth    Auth `yaml:"auth"`
+	Enabled         bool            `yaml:"enabled"`
+	SecurityContext SecurityContext `yaml:"security_context"`
+	Auth            Auth            `yaml:"auth"`
 }
 
 // ResourcesService configures the resources service.

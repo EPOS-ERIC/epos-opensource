@@ -57,6 +57,12 @@ components:
   converter:
     # Enable/disable the converter service
     enabled: false
+    security_context:
+      # Enable/disable a pod-level securityContext for converter pods.
+      enabled: false
+      # Group ID applied to mounted volumes so converter containers can read/write shared files.
+      # Used only when security_context.enabled is true.
+      fs_group: 1001
     auth:
       # Enable/disable authentication for the converter service
       enabled: false

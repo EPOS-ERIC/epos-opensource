@@ -29,6 +29,10 @@ spec:
       {{- include "epos.image_pull_secrets" . | nindent 6 }}
       initContainers:
       {{- include "epos.waitForServiceInitContainer" (dict "name" "metadata-database" "host" .Values.components.metadata_database.host "port" .Values.components.metadata_database.port) | nindent 6 }}
+	  {{- if .Values.components.converter.security_context.enabled }}
+      securityContext:
+        fsGroup: {{ .Values.components.converter.security_context.fs_group }}
+	  {{- end}}
       containers:
       - name: converter-routine
         image: {{ .Values.images.converter_routine_image }}
