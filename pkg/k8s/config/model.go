@@ -31,7 +31,6 @@ type PlatformGUI struct {
 type Aai struct {
 	Enabled         bool   `yaml:"enabled"`
 	ServiceEndpoint string `yaml:"service_endpoint"`
-	SecurityKey     string `yaml:"security_key"`
 }
 
 // SwaggerPage configures API documentation metadata.
@@ -188,10 +187,11 @@ type Components struct {
 
 // Monitoring configures optional monitoring integration.
 type Monitoring struct {
-	Enabled  bool   `yaml:"enabled"`
-	URL      string `yaml:"url"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
+	Enabled     bool   `yaml:"enabled"`
+	URL         string `yaml:"url"`
+	User        string `yaml:"user"`
+	Password    string `yaml:"password"`
+	SecurityKey string `yaml:"security_key"`
 }
 
 // ImagePullSecrets configures optional private registry pull secret generation.
