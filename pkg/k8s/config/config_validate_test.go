@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestConfigValidate_ImageRequirements(t *testing.T) {
+func TestConfigValidate_Requirements(t *testing.T) {
 	tests := []struct {
 		name        string
 		mutate      func(cfg *Config)
@@ -86,6 +86,51 @@ func TestConfigValidate_ImageRequirements(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "aai service endpoint is required when aai is enabled",
+			mutate: func(cfg *Config) {
+				enableAAI(cfg)
+				cfg.Components.Gateway.Aai.ServiceEndpoint = ""
+			},
+			wantErr:     true,
+			errContains: "aai service endpoint is required when aai is enabled",
+		},
+		{
+			name: "monitoring url is required when monitoring is enabled",
+			mutate: func(cfg *Config) {
+				enableMonitoring(cfg)
+				cfg.Monitoring.URL = ""
+			},
+			wantErr:     true,
+			errContains: "monitoring url is required when monitoring is enabled",
+		},
+		{
+			name: "monitoring user is required when monitoring is enabled",
+			mutate: func(cfg *Config) {
+				enableMonitoring(cfg)
+				cfg.Monitoring.User = ""
+			},
+			wantErr:     true,
+			errContains: "monitoring user is required when monitoring is enabled",
+		},
+		{
+			name: "monitoring password is required when monitoring is enabled",
+			mutate: func(cfg *Config) {
+				enableMonitoring(cfg)
+				cfg.Monitoring.Password = ""
+			},
+			wantErr:     true,
+			errContains: "monitoring password is required when monitoring is enabled",
+		},
+		{
+			name: "monitoring security key is required when monitoring is enabled",
+			mutate: func(cfg *Config) {
+				enableMonitoring(cfg)
+				cfg.Monitoring.SecurityKey = ""
+			},
+			wantErr:     true,
+			errContains: "monitoring security key is required when monitoring is enabled",
+		},
 	}
 
 	for _, tt := range tests {
@@ -119,4 +164,17 @@ func TestConfigValidate_DefaultConfigIsValid(t *testing.T) {
 	if err := cfg.Validate(); err != nil {
 		t.Fatalf("Validate() error = %v, want nil", err)
 	}
+}
+
+func enableAAI(cfg *Config) {
+	cfg.Components.Gateway.Aai.Enabled = true
+	cfg.Components.Gateway.Aai.ServiceEndpoint = "https://aai.example.com"
+}
+
+func enableMonitoring(cfg *Config) {
+	cfg.Monitoring.Enabled = true
+	cfg.Monitoring.URL = "https://monitoring.example.com"
+	cfg.Monitoring.User = "monitor-user"
+	cfg.Monitoring.Password = "monitor-password"
+	cfg.Monitoring.SecurityKey = "test-security-key"
 }

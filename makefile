@@ -8,7 +8,9 @@ PREFIX ?= /usr/local
 LDFLAGS=-s -w -X github.com/EPOS-ERIC/epos-opensource/common.Version=$(VERSION)
 BUILDFLAGS=-trimpath
 
-.DEFAULT_GOAL := build
+.DEFAULT_GOAL := check
+
+check: lint helm-lint test 
 
 build: generate
 	CGO_ENABLED=0 go build $(BUILDFLAGS) -ldflags "$(LDFLAGS)" -o $(BIN) .
