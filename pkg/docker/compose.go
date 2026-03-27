@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -88,23 +89,49 @@ func composeCommand(bundle *composeBundle, projectName string, args ...string) *
 	return cmd
 }
 
-// pullEnvImages pulls docker images for the environment with custom messages
-// TODO make this take just the image struct and pull those, not using the env file
-func pullEnvImages(cfg *config.EnvConfig) error {
-	display.Step("Pulling images for environment: %s", cfg.Name)
+func pullImage(image common.NamedImage) error {
+	if _, err := command.RunCommand(exec.Command("docker", "pull", image.Ref), false); err != nil {
+		return fmt.Errorf("pull image %q failed: %w", image.Ref, err)
+	}
 
-	err := withComposeBundle(cfg, func(bundle *composeBundle) error {
-		if _, err := command.RunCommand(composeCommand(bundle, cfg.Name, "pull"), false); err != nil {
-			return fmt.Errorf("pull images failed: %w", err)
+	return nil
+}
+
+func syncImage(image common.NamedImage, pullAll bool) error {
+	if image.Ref == "" {
+		return nil
+	}
+
+	existsLocally, err := common.ImageExistsLocally(context.Background(), image.Ref)
+	if err != nil {
+		return fmt.Errorf("inspect local image %q failed: %w", image.Ref, err)
+	}
+
+	if !pullAll && existsLocally {
+		return nil
+	}
+
+	if err := pullImage(image); err != nil {
+		if existsLocally {
+			display.Warn("Failed to pull image %s, using local image instead: %v", image.Ref, err)
+			return nil
 		}
 
-		return nil
-	})
-	if err != nil {
 		return err
 	}
 
-	display.Done("Images pulled for environment: %s", cfg.Name)
+	return nil
+}
+
+func syncEnvImages(cfg *config.EnvConfig, pullAll bool) error {
+	display.Step("Preparing Docker images")
+	for _, image := range cfg.ActiveImages() {
+		if err := syncImage(image, pullAll); err != nil {
+			return err
+		}
+	}
+
+	display.Done("Docker images ready for environment: %s", cfg.Name)
 
 	return nil
 }
@@ -115,7 +142,7 @@ func pullEnvImages(cfg *config.EnvConfig) error {
 func deployStack(removeOrphans bool, cfg *config.EnvConfig) error {
 	display.Step("Deploying stack")
 
-	args := []string{"up", "-d"}
+	args := []string{"up", "-d", "--pull", "never"}
 	if removeOrphans {
 		args = append(args, "--remove-orphans")
 	}

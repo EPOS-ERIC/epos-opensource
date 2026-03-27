@@ -92,14 +92,12 @@ func Update(opts UpdateOpts) (*Env, error) {
 		display.Done("Stopped environment: %s", oldConfig.Name)
 	}
 
-	// If pullImages is set before deploying pull the images for the updated env
-	if opts.PullImages {
-		display.Debug("pulling images before stack deployment")
+	// Prepare the required images before deploying the updated env.
+	display.Debug("preparing images before stack deployment")
 
-		if err := pullEnvImages(opts.NewConfig); err != nil {
-			display.Error("Pulling images failed: %v", err)
-			return handleFailure("pulling images failed: %w", err)
-		}
+	if err := syncEnvImages(opts.NewConfig, opts.PullImages); err != nil {
+		display.Error("Preparing Docker images failed: %v", err)
+		return handleFailure("preparing docker images failed: %w", err)
 	}
 
 	// Deploy the updated compose

@@ -1,7 +1,6 @@
 services:
   dataportal:
     image: ${DATAPORTAL_IMAGE}
-    platform: linux/amd64
     ports:
       - "${DATAPORTAL_PORT}:80"
     container_name: ${ENV_NAME:-epos-platform}-data-portal
@@ -18,7 +17,6 @@ services:
 {{- if .Components.Backoffice.Enabled}}
   backoffice-ui:
     image: ${BACKOFFICE_UI_IMAGE}
-    platform: linux/amd64
     ports:
       - "${BACKOFFICE_PORT:-34000}:80"
     container_name: ${ENV_NAME:-epos-platform}-backoffice-ui
@@ -34,7 +32,6 @@ services:
 
   backoffice-service:
     image: ${BACKOFFICE_SERVICE_IMAGE}
-    platform: linux/amd64
     container_name: ${ENV_NAME:-epos-platform}-backoffice-service
     networks:
       - epos_network
@@ -58,7 +55,6 @@ services:
 
   gateway:
     image: ${GATEWAY_IMAGE}
-    platform: linux/amd64
     container_name: ${ENV_NAME:-epos-platform}-gateway
     ports:
       - "${GATEWAY_PORT:-33000}:5000"
@@ -130,7 +126,6 @@ services:
 
   resources-service:
     image: ${RESOURCES_SERVICE_IMAGE}
-    platform: linux/amd64
     container_name: ${ENV_NAME:-epos-platform}-resources-service
     networks:
       - epos_network
@@ -159,6 +154,7 @@ services:
 {{- end}}
 
       - CACHE_TTL
+      - CACHE_FACETS
 
       - POSTGRESQL_CONNECTION_STRING
       - PERSISTENCE_NAME
@@ -181,7 +177,6 @@ services:
 
   ingestor-service:
     image: ${INGESTOR_SERVICE_IMAGE}
-    platform: linux/amd64
     container_name: ${ENV_NAME:-epos-platform}-ingestor-service
     networks:
       - epos_network
@@ -207,7 +202,6 @@ services:
 
   external-access-service:
     image: ${EXTERNAL_ACCESS_IMAGE}
-    platform: linux/amd64
     container_name: ${ENV_NAME:-epos-platform}-external-access-service
     networks:
       - epos_network
@@ -239,7 +233,6 @@ services:
 {{- if .Components.Converter.Enabled}}
   converter-service:
     image: ${CONVERTER_SERVICE_IMAGE}
-    platform: linux/amd64
     container_name: ${ENV_NAME:-epos-platform}-converter-service
     volumes:
       - converter:/opt/converter/plugins
@@ -272,7 +265,6 @@ services:
 
   converter-routine:
     image: ${CONVERTER_ROUTINE_IMAGE}
-    platform: linux/amd64
     container_name: ${ENV_NAME:-epos-platform}-converter-routine
     volumes:
       - converter:/opt/converter/plugins
@@ -301,7 +293,6 @@ services:
 {{- if .Components.EmailSenderService.Enabled}}
   email-sender-service:
     image: ${EMAIL_SENDER_SERVICE_IMAGE}
-    platform: linux/amd64
     container_name: ${ENV_NAME:-epos-platform}-email-sender-service
     networks:
       - epos_network
@@ -340,7 +331,6 @@ services:
 {{- if .Components.SharingService.Enabled}}
   sharing-service:
     image: ${SHARING_SERVICE_IMAGE}
-    platform: linux/amd64
     container_name: ${ENV_NAME:-epos-platform}-sharing-service
     networks:
       - epos_network
@@ -363,7 +353,6 @@ services:
   metadata-database:
     restart: always
     image: ${METADATA_DATABASE_IMAGE}
-    platform: linux/amd64
     container_name: ${ENV_NAME:-epos-platform}-metadata-database
     environment:
       - POSTGRES_USER

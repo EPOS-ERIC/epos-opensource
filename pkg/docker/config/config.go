@@ -121,35 +121,7 @@ func (e *EnvConfig) BuildEnvURLs() (*common.URLs, error) {
 
 // CheckForUpdates checks configured container images for newer tags.
 func (e *EnvConfig) CheckForUpdates() ([]display.ImageUpdateInfo, error) {
-	imgs := map[string]string{
-		"Rabbitmq":                e.Images.RabbitmqImage,
-		"Platform UI":             e.Images.DataportalImage,
-		"Gateway":                 e.Images.GatewayImage,
-		"Metadata Database":       e.Images.MetadataDatabaseImage,
-		"Resources Service":       e.Images.ResourcesServiceImage,
-		"Ingestor Service":        e.Images.IngestorServiceImage,
-		"External Access Service": e.Images.ExternalAccessImage,
-	}
-
-	if e.Components.Converter.Enabled {
-		imgs["Converter Service"] = e.Images.ConverterServiceImage
-		imgs["Converter Routine"] = e.Images.ConverterRoutineImage
-	}
-
-	if e.Components.Backoffice.Enabled {
-		imgs["Backoffice Service"] = e.Images.BackofficeServiceImage
-		imgs["Backoffice UI"] = e.Images.BackofficeUIImage
-	}
-
-	if e.Components.EmailSenderService.Enabled {
-		imgs["Email Sender Service"] = e.Images.EmailSenderServiceImage
-	}
-
-	if e.Components.SharingService.Enabled {
-		imgs["Sharing Service"] = e.Images.SharingServiceImage
-	}
-
-	updates, err := common.CheckEnvForUpdates(imgs)
+	updates, err := common.CheckImagesForUpdates(e.ActiveImages())
 	if err != nil {
 		return nil, fmt.Errorf("error checking for updates: %w", err)
 	}
@@ -315,6 +287,9 @@ func (e *EnvConfig) Validate() error {
 	// Resources service validation
 	if e.Components.ResourcesService.CacheTTL <= 0 {
 		return fmt.Errorf("resources service cache ttl must be greater than 0")
+	}
+	if e.Components.ResourcesService.CacheFacets <= 0 {
+		return fmt.Errorf("resources service cache facets must be greater than 0")
 	}
 
 	// RabbitMQ validation

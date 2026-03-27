@@ -20,6 +20,11 @@ var ErrImageMissing = errors.New("image not found locally")
 
 const imageUpdateCacheTTL = 12 * time.Hour
 
+type NamedImage struct {
+	Name string
+	Ref  string
+}
+
 type Images struct {
 	RabbitmqImage           string `yaml:"rabbitmq_image"`
 	DataportalImage         string `yaml:"dataportal_image"`
@@ -36,20 +41,54 @@ type Images struct {
 	SharingServiceImage     string `yaml:"sharing_service_image"`
 }
 
-func imageHasUpdate(ctx context.Context, imageRef string) (bool, *time.Time, error) {
+func ImageExistsLocally(ctx context.Context, imageRef string) (bool, error) {
 	if imageRef == "" {
-		return false, nil, fmt.Errorf("invalid image reference: %q", imageRef)
+		return false, fmt.Errorf("invalid image reference: %q", imageRef)
+	}
+
+	cmd := exec.CommandContext(ctx, "docker", "image", "inspect", imageRef)
+	if err := cmd.Run(); err != nil {
+		if _, ok := errors.AsType[*exec.ExitError](err); ok {
+			return false, nil
+		}
+
+		return false, fmt.Errorf("failed to inspect local image %q: %w", imageRef, err)
+	}
+
+	return true, nil
+}
+
+func localImageDigest(ctx context.Context, imageRef string) (string, error) {
+	if imageRef == "" {
+		return "", fmt.Errorf("invalid image reference: %q", imageRef)
 	}
 
 	cmd := exec.CommandContext(ctx, "docker", "inspect", "--format={{index .RepoDigests 0}}", imageRef)
 	output, err := cmd.Output()
 	if err != nil {
-		return false, nil, ErrImageMissing
+		if _, ok := errors.AsType[*exec.ExitError](err); ok {
+			return "", ErrImageMissing
+		}
+
+		return "", fmt.Errorf("failed to inspect local image %q: %w", imageRef, err)
 	}
 
 	digest := strings.TrimSpace(string(output))
-	if digest == "" {
-		return false, nil, fmt.Errorf("no digest found for image")
+	if digest == "" || digest == "<no value>" {
+		return "", fmt.Errorf("no digest found for image %q", imageRef)
+	}
+
+	return digest, nil
+}
+
+func imageHasUpdate(ctx context.Context, imageRef string) (bool, *time.Time, error) {
+	if imageRef == "" {
+		return false, nil, fmt.Errorf("invalid image reference: %q", imageRef)
+	}
+
+	digest, err := localImageDigest(ctx, imageRef)
+	if err != nil {
+		return false, nil, err
 	}
 
 	parts := strings.Split(digest, "@")
@@ -99,25 +138,42 @@ func imageHasUpdate(ctx context.Context, imageRef string) (bool, *time.Time, err
 	return true, &cf.Created.Time, nil
 }
 
-func CheckEnvForUpdates(images map[string]string) ([]display.ImageUpdateInfo, error) {
+func checkImageForUpdate(ctx context.Context, image NamedImage) (*display.ImageUpdateInfo, error) {
+	hasUpdate, lastUpdate, err := imageHasUpdate(ctx, image.Ref)
+	if err != nil {
+		return nil, err
+	}
+	if !hasUpdate {
+		return nil, nil
+	}
+
+	return &display.ImageUpdateInfo{Name: image.Name, LastUpdate: *lastUpdate}, nil
+}
+
+func CheckImagesForUpdates(images []NamedImage) ([]display.ImageUpdateInfo, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	updates := []display.ImageUpdateInfo{}
+	if len(images) == 0 {
+		return updates, nil
+	}
+
 	g, ctx := errgroup.WithContext(ctx)
 	var mu sync.Mutex
 
-	g.SetLimit(13)
+	g.SetLimit(len(images))
 
-	for varName, imageRef := range images {
+	for _, image := range images {
 		g.Go(func() error {
-			hasUpdate, lastUpdate, err := imageHasUpdate(ctx, imageRef)
+			update, err := checkImageForUpdate(ctx, image)
 			if err != nil {
-				return fmt.Errorf("failed to check image update for %s: %w", varName, err)
+				display.Debug("skipping image update check for %s (%s): %v", image.Name, image.Ref, err)
+				return nil
 			}
-			if hasUpdate {
+			if update != nil {
 				mu.Lock()
-				updates = append(updates, display.ImageUpdateInfo{Name: varName, LastUpdate: *lastUpdate})
+				updates = append(updates, *update)
 				mu.Unlock()
 			}
 			return nil

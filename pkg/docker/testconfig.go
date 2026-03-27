@@ -26,8 +26,9 @@ func newTestConfig(t *testing.T, name string) *config.EnvConfig {
 				Auth:    config.Auth{Enabled: false, OnlyAdmin: false},
 			},
 			ResourcesService: config.ResourcesService{
-				Auth:     config.Auth{Enabled: false, OnlyAdmin: false},
-				CacheTTL: 5000,
+				Auth:        config.Auth{Enabled: false, OnlyAdmin: false},
+				CacheTTL:    5000,
+				CacheFacets: 5000,
 			},
 			IngestorService: config.IngestorService{
 				Auth: config.Auth{Enabled: false, OnlyAdmin: false},

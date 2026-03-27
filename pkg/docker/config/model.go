@@ -72,8 +72,9 @@ type Converter struct {
 
 // ResourcesService configures the resources service.
 type ResourcesService struct {
-	Auth     Auth `yaml:"auth"`
-	CacheTTL int  `yaml:"cache_ttl"`
+	Auth        Auth `yaml:"auth"`
+	CacheTTL    int  `yaml:"cache_ttl"`
+	CacheFacets int  `yaml:"cache_facets"`
 }
 
 // IngestorService configures the ingestor service.
@@ -151,6 +152,43 @@ type Monitoring struct {
 	URL      string `yaml:"url"`
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
+}
+
+// ActiveImages returns the ordered list of configured images required by enabled services.
+func (e *EnvConfig) ActiveImages() []common.NamedImage {
+	images := []common.NamedImage{
+		{Name: "Rabbitmq", Ref: e.Images.RabbitmqImage},
+		{Name: "Platform UI", Ref: e.Images.DataportalImage},
+		{Name: "Gateway", Ref: e.Images.GatewayImage},
+		{Name: "Metadata Database", Ref: e.Images.MetadataDatabaseImage},
+		{Name: "Resources Service", Ref: e.Images.ResourcesServiceImage},
+		{Name: "Ingestor Service", Ref: e.Images.IngestorServiceImage},
+		{Name: "External Access Service", Ref: e.Images.ExternalAccessImage},
+	}
+
+	if e.Components.Converter.Enabled {
+		images = append(images,
+			common.NamedImage{Name: "Converter Service", Ref: e.Images.ConverterServiceImage},
+			common.NamedImage{Name: "Converter Routine", Ref: e.Images.ConverterRoutineImage},
+		)
+	}
+
+	if e.Components.Backoffice.Enabled {
+		images = append(images,
+			common.NamedImage{Name: "Backoffice Service", Ref: e.Images.BackofficeServiceImage},
+			common.NamedImage{Name: "Backoffice UI", Ref: e.Images.BackofficeUIImage},
+		)
+	}
+
+	if e.Components.EmailSenderService.Enabled {
+		images = append(images, common.NamedImage{Name: "Email Sender Service", Ref: e.Images.EmailSenderServiceImage})
+	}
+
+	if e.Components.SharingService.Enabled {
+		images = append(images, common.NamedImage{Name: "Sharing Service", Ref: e.Images.SharingServiceImage})
+	}
+
+	return images
 }
 
 // UsingDefaultPorts reports whether configured ports still match defaults.

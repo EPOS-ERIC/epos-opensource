@@ -52,13 +52,11 @@ func Deploy(opts DeployOpts) (*Env, error) {
 		return nil, fmt.Errorf(msg, mainErr)
 	}
 
-	if opts.PullImages {
-		display.Debug("pulling images before stack deployment")
+	display.Debug("preparing images before stack deployment")
 
-		if err := pullEnvImages(opts.Config); err != nil {
-			display.Error("Pulling images failed: %v", err)
-			return handleFailure("pulling images failed: %w", err)
-		}
+	if err := syncEnvImages(opts.Config, opts.PullImages); err != nil {
+		display.Error("Preparing Docker images failed: %v", err)
+		return handleFailure("preparing docker images failed: %w", err)
 	}
 
 	stackDeployed = true

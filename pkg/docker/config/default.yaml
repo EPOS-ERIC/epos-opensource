@@ -68,6 +68,7 @@ components:
       only_admin: false
     # Cache TTL in milliseconds for database data when making searches
     cache_ttl: 50000
+    cache_facets: 5000
 
   ingestor_service:
     auth:
