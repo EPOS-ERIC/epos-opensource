@@ -62,6 +62,13 @@ func TestEnvConfigValidate_RequiresCoreImages(t *testing.T) {
 			},
 			errContains: "external access image is required",
 		},
+		{
+			name: "metadata database published port must be within range when set",
+			mutate: func(cfg *config.EnvConfig) {
+				cfg.Components.MetadataDatabase.PublishedPort = 70000
+			},
+			errContains: "metadata database published_port must be between 1 and 65535 when set",
+		},
 	}
 
 	for _, tt := range tests {
@@ -84,6 +91,15 @@ func TestEnvConfigValidate_RequiresCoreImages(t *testing.T) {
 func TestEnvConfigValidate_DefaultConfigIsValidWithName(t *testing.T) {
 	cfg := config.GetDefaultConfig()
 	cfg.Name = "default-env"
+
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("Validate() error = %v, want nil", err)
+	}
+}
+
+func TestEnvConfigValidate_MetadataDatabasePublishedPortIsOptional(t *testing.T) {
+	cfg := NewTestConfig(t, "test-env").Build()
+	cfg.Components.MetadataDatabase.PublishedPort = 35432
 
 	if err := cfg.Validate(); err != nil {
 		t.Fatalf("Validate() error = %v, want nil", err)

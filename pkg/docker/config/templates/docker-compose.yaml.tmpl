@@ -356,6 +356,10 @@ services:
   metadata-database:
     restart: always
     image: ${METADATA_DATABASE_IMAGE}
+    {{- if gt .Components.MetadataDatabase.PublishedPort 0 }}
+    ports:
+      - "${METADATA_DATABASE_PUBLISHED_PORT}:5432"
+    {{- end }}
     container_name: ${ENV_NAME:-epos-platform}-metadata-database
     environment:
       - POSTGRES_USER

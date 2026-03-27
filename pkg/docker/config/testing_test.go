@@ -86,8 +86,9 @@ func (b *TestConfigBuilder) Build() *config.EnvConfig {
 				Auth:    config.Auth{Enabled: false, OnlyAdmin: false},
 			},
 			ResourcesService: config.ResourcesService{
-				Auth:     config.Auth{Enabled: false, OnlyAdmin: false},
-				CacheTTL: 5000,
+				Auth:        config.Auth{Enabled: false, OnlyAdmin: false},
+				CacheTTL:    5000,
+				CacheFacets: 5000,
 			},
 			IngestorService: config.IngestorService{
 				Auth: config.Auth{Enabled: false, OnlyAdmin: false},
@@ -111,6 +112,7 @@ func (b *TestConfigBuilder) Build() *config.EnvConfig {
 				Password:               "changeme",
 				Host:                   "metadata-database",
 				Port:                   5432,
+				PublishedPort:          0,
 				DBName:                 "cerif",
 				ConnectionPoolInitSize: 5,
 				ConnectionPoolMinSize:  5,

@@ -107,6 +107,7 @@ type MetadataDatabase struct {
 	Password               string `yaml:"password"`
 	Host                   string `yaml:"host"`
 	Port                   int    `yaml:"port"`
+	PublishedPort          int    `yaml:"published_port"`
 	DBName                 string `yaml:"db_name"`
 	ConnectionPoolInitSize int    `yaml:"connection_pool_init_size"`
 	ConnectionPoolMinSize  int    `yaml:"connection_pool_min_size"`
