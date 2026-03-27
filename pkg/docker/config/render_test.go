@@ -75,6 +75,19 @@ func TestDockerEnvConfig_Render(t *testing.T) {
 				"docker-compose.yaml": {"sharing-service:"},
 			},
 		},
+		{
+			name: "metadata database published port is rendered when configured",
+			config: func() *config.EnvConfig {
+				cfg := NewTestConfig(t, "test-db-port").Build()
+				cfg.Components.MetadataDatabase.PublishedPort = 35432
+				return cfg
+			}(),
+			wantErr: false,
+			wantContains: map[string][]string{
+				".env":                {"METADATA_DATABASE_PUBLISHED_PORT=35432"},
+				"docker-compose.yaml": {"\"${METADATA_DATABASE_PUBLISHED_PORT}:5432\""},
+			},
+		},
 	}
 
 	for _, tt := range tests {

@@ -52,6 +52,7 @@ func newTestConfig(t *testing.T, name string) *config.EnvConfig {
 				Password:               "changeme",
 				Host:                   "metadata-database",
 				Port:                   5432,
+				PublishedPort:          0,
 				DBName:                 "cerif",
 				ConnectionPoolInitSize: 5,
 				ConnectionPoolMinSize:  5,

@@ -112,6 +112,8 @@ components:
     host: "metadata-database" # TODO: is this needed at all? yes if we want to allow an external db, no otherwise
     # Database server port number
     port: 5432
+    # Host port to publish the metadata database on. Optional. Omit or set 0 to keep it internal-only
+    published_port: 0
     # Name of the database to connect to
     db_name: "cerif"
     # Initial size of the database connection pool

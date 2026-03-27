@@ -319,6 +319,9 @@ func (e *EnvConfig) Validate() error {
 	if e.Components.MetadataDatabase.Port < 1 || e.Components.MetadataDatabase.Port > 65535 {
 		return fmt.Errorf("metadata database port must be between 1 and 65535")
 	}
+	if e.Components.MetadataDatabase.PublishedPort < 0 || e.Components.MetadataDatabase.PublishedPort > 65535 {
+		return fmt.Errorf("metadata database published_port must be between 1 and 65535 when set")
+	}
 	if e.Components.MetadataDatabase.DBName == "" {
 		return fmt.Errorf("metadata database db_name is required")
 	}
