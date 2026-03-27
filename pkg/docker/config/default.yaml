@@ -20,8 +20,6 @@ components:
       enabled: false
       # AAI service endpoint URL (required when AAI is enabled)
       service_endpoint: ""
-      # Security key for AAI authentication (required when AAI is enabled)
-      security_key: ""
 
     # Base URL path for the API gateway. Must start with / and end with /api/v1
     base_url: "/api/v1"
@@ -163,6 +161,8 @@ monitoring:
   user: ""
   # Monitoring service authentication password
   password: ""
+  # Security key for AAI authentication
+  security_key: ""
 
 # Container images used by EPOS services and supporting components.
 # Override tags/repositories to pin versions or use private registries.

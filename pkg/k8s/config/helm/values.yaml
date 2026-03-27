@@ -25,8 +25,6 @@ components:
       enabled: false
       # AAI service endpoint URL (required when AAI is enabled)
       service_endpoint: ""
-      # Security key for AAI authentication (required when AAI is enabled)
-      security_key: ""
 
     # Base URL path for the API gateway. Must start with / and end with /api/v1
     base_url: "/api/v1/" # it needs to end with /api/v1
@@ -199,6 +197,8 @@ monitoring:
   user: ""
   # Monitoring service authentication password
   password: ""
+  # Security key for AAI authentication
+  security_key: ""
 
 # Configure this section only when pulling images from a private registry.
 image_pull_secrets:

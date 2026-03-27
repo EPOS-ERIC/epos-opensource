@@ -243,9 +243,6 @@ func (e *EnvConfig) Validate() error {
 		if e.Components.Gateway.Aai.ServiceEndpoint == "" {
 			return fmt.Errorf("aai service endpoint is required when aai is enabled")
 		}
-		if e.Components.Gateway.Aai.SecurityKey == "" {
-			return fmt.Errorf("aai security key is required when aai is enabled")
-		}
 	}
 
 	// Backoffice validation
@@ -381,6 +378,9 @@ func (e *EnvConfig) Validate() error {
 		}
 		if e.Monitoring.Password == "" {
 			return fmt.Errorf("monitoring password is required when monitoring is enabled")
+		}
+		if e.Monitoring.SecurityKey == "" {
+			return fmt.Errorf("monitoring security key is required when monitoring is enabled")
 		}
 	}
 

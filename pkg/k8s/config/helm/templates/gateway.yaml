@@ -14,11 +14,16 @@ LOAD_CONVERTER_API: "{{ .Values.components.converter.auth.enabled }}:{{ .Values.
 {{- if .Values.components.email_sender_service.enabled}}
 LOAD_EMAIL_SENDER_API: "{{ .Values.components.email_sender_service.auth.enabled }}:{{ .Values.components.email_sender_service.auth.only_admin }}"
 {{- end}}
+
 IS_AAI_ENABLED: "{{ .Values.components.gateway.aai.enabled }}"
-SECURITY_KEY: "{{ .Values.components.gateway.aai.security_key }}"
 AAI_SERVICE_ENDPOINT: "{{ .Values.components.gateway.aai.service_endpoint }}"
+
 {{- if .Values.url_prefix_namespace }}
 BASECONTEXT: "/{{ .Release.Namespace }}"
+{{- end }}
+
+{{- if .Values.monitoring.enabled }}
+SECURITY_KEY: "{{ .Values.monitoring.security_key }}"
 {{- end }}
 {{- end -}}
 
