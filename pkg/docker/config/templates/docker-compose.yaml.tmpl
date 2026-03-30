@@ -145,7 +145,7 @@ services:
       - APICONTEXT=/api/v1
 
       - APIHOST=${PROTOCOL}://${HOST}:${GATEWAY_PORT:-33000}/
-      - PERSISTENCE_NAME="EPOSDataModel"
+      - PERSISTENCE_NAME=EPOSDataModel
 
 	{{- if .Monitoring.Enabled}}
       - MONITORING=true
@@ -318,7 +318,7 @@ services:
       - MAIL_API_URL
       - MAIL_API_KEY
 
-      - PERSISTENCE_NAME="EPOSDataModel"
+      - PERSISTENCE_NAME=EPOSDataModel
     healthcheck:
       test: "curl --fail --silent http://localhost:8080/api/email-sender-service/v1/actuator/health | grep UP || exit 1"
       interval: 15s
