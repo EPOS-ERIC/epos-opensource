@@ -54,7 +54,7 @@ var CleanCmd = &cobra.Command{
 }
 
 func init() {
+	addContextFlag(CleanCmd)
 	CleanCmd.Flags().BoolVarP(&cleanForce, "force", "f", false, "Skip the confirmation prompt")
-	CleanCmd.Flags().StringVar(&context, "context", "", "kubectl context to use (default: current context)")
 	CleanCmd.Flags().DurationVar(&timeout, "timeout", 0, "Operation timeout (default: 5m)")
 }

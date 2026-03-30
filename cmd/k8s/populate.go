@@ -55,7 +55,7 @@ var PopulateCmd = &cobra.Command{
 }
 
 func init() {
+	addContextFlag(PopulateCmd)
 	PopulateCmd.Flags().IntVarP(&parallel, "parallel", "p", 1, "Parallel TTL uploads (1-20)")
 	PopulateCmd.Flags().BoolVar(&populateExamples, "example", false, "Load bundled example data")
-	PopulateCmd.Flags().StringVar(&context, "context", "", "kubectl context to use (default: current context)")
 }

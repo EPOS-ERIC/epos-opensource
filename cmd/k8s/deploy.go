@@ -53,7 +53,7 @@ var DeployCmd = &cobra.Command{
 }
 
 func init() {
-	DeployCmd.Flags().StringVar(&context, "context", "", "kubectl context to use (default: current context)")
+	addContextFlag(DeployCmd)
 	DeployCmd.Flags().StringVar(&configFilePath, "config", "", "Path to YAML configuration file")
 	DeployCmd.Flags().DurationVar(&timeout, "timeout", 0, "Operation timeout (default: 5m)")
 }
