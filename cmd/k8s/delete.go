@@ -49,6 +49,6 @@ var DeleteCmd = &cobra.Command{
 
 func init() {
 	DeleteCmd.Flags().BoolVarP(&deleteForce, "force", "f", false, "Skip the confirmation prompt")
-	DeleteCmd.Flags().StringVar(&context, "context", "", "kubectl context to use (default: current context)")
+	addContextFlag(DeleteCmd)
 	DeleteCmd.Flags().DurationVar(&timeout, "timeout", 0, "Operation timeout (default: 5m)")
 }

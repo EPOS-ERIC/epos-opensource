@@ -60,5 +60,5 @@ var ListCmd = &cobra.Command{
 }
 
 func init() {
-	ListCmd.Flags().StringVar(&context, "context", "", "Only list environments from this kubectl context")
+	addContextFlag(ListCmd)
 }

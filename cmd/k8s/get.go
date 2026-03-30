@@ -52,6 +52,6 @@ var GetCmd = &cobra.Command{
 }
 
 func init() {
-	GetCmd.Flags().StringVar(&context, "context", "", "kubectl context to use (default: current context)")
+	addContextFlag(GetCmd)
 	GetCmd.Flags().StringVar(&k8sGetOutputPath, "output", "", "Write the applied configuration YAML to a file")
 }

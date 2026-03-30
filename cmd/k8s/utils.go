@@ -3,6 +3,7 @@ package k8s
 import (
 	"fmt"
 
+	"github.com/EPOS-ERIC/epos-opensource/cmd/internal/completion"
 	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s/config"
@@ -24,7 +25,7 @@ func loadConfigIfProvided(configPath string) (*config.Config, error) {
 }
 
 func validArgsFunction(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	return common.SharedValidArgsFunction(cmd, args, toComplete, func() ([]string, error) {
+	return completion.SharedValidArgs(cmd, args, toComplete, func() ([]string, error) {
 		envs, err := k8s.List(context)
 		if err != nil {
 			return nil, err
@@ -37,4 +38,16 @@ func validArgsFunction(cmd *cobra.Command, args []string, toComplete string) ([]
 
 		return names, nil
 	})
+}
+
+func addContextFlag(cmd *cobra.Command) {
+	cmd.Flags().StringVar(&context, "context", "", "kubectl context to use (default: current context)")
+
+	kubeContextCompletion := func(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return completion.SharedValuesCompletion(toComplete, common.GetKubeContexts)
+	}
+
+	if err := cmd.RegisterFlagCompletionFunc("context", kubeContextCompletion); err != nil {
+		panic(fmt.Errorf("failed to register context completion for %s: %w", cmd.Name(), err))
+	}
 }

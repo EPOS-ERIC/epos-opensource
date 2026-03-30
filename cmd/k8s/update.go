@@ -54,9 +54,9 @@ var UpdateCmd = &cobra.Command{
 }
 
 func init() {
+	addContextFlag(UpdateCmd)
 	UpdateCmd.Flags().BoolVarP(&force, "force", "f", false, "Reinstall from scratch by deleting the namespace first")
 	UpdateCmd.Flags().BoolVarP(&reset, "reset", "r", false, "Use the embedded default config")
 	UpdateCmd.Flags().StringVar(&configFilePath, "config", "", "Path to YAML configuration file")
-	UpdateCmd.Flags().StringVar(&context, "context", "", "kubectl context to use (default: current context)")
 	UpdateCmd.Flags().DurationVar(&timeout, "timeout", 0, "Operation timeout (default: 5m)")
 }
