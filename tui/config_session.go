@@ -73,17 +73,9 @@ func (a *App) openConfigEditor(path string) error {
 		return fmt.Errorf("config file path is required")
 	}
 
-	editorCmd := strings.TrimSpace(os.Getenv("EDITOR"))
-	if editorCmd == "" {
-		editorCmd = strings.TrimSpace(a.config.TUI.OpenFileCommand)
-	}
-
-	if editorCmd == "" {
-		return fmt.Errorf("no editor command configured")
-	}
-
-	if !strings.Contains(editorCmd, "%s") {
-		editorCmd += " %s"
+	editorCmd, err := resolveConfigEditorCommand(a.config.TUI.OpenFileCommand)
+	if err != nil {
+		return err
 	}
 
 	var openErr error
@@ -95,4 +87,17 @@ func (a *App) openConfigEditor(path string) error {
 	}
 
 	return nil
+}
+
+func resolveConfigEditorCommand(openFileCommand string) (string, error) {
+	editorCmd := strings.TrimSpace(openFileCommand)
+	if editorCmd == "" {
+		return "", fmt.Errorf("no editor command configured")
+	}
+
+	if !strings.Contains(editorCmd, "%s") {
+		editorCmd += " %s"
+	}
+
+	return editorCmd, nil
 }
