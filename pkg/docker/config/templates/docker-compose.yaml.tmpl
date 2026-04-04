@@ -109,6 +109,10 @@ services:
       sharing-service:
         condition: service_healthy
 	{{- end}}
+	{{- if .Components.AAIService.Enabled}}
+      aai-service:
+        condition: service_healthy
+	{{- end}}
 
   rabbitmq:
     image: ${RABBITMQ_IMAGE}
