@@ -48,6 +48,7 @@ func TestConfigRender(t *testing.T) {
 					"MONITORING_USER:",
 					"MONITORING_PWD:",
 				},
+				"templates/aai-service.yaml":          {"name: aai-service"},
 				"templates/backoffice-service.yaml":   {"name: backoffice-service"},
 				"templates/backoffice-ui.yaml":        {"name: backoffice-ui"},
 				"templates/converter-service.yaml":    {"name: converter-service"},
@@ -104,6 +105,49 @@ func TestConfigRender(t *testing.T) {
 			wantContains: map[string][]string{
 				"templates/gateway.yaml":              {`LOAD_EMAIL_SENDER_API: "true:true"`},
 				"templates/email-sender-service.yaml": {"name: email-sender-service"},
+			},
+		},
+		{
+			name: "embedded aai enabled renders manifest and gateway settings",
+			mutate: func(cfg *config.Config) {
+				cfg.Name = "test-aai"
+				cfg.Components.Gateway.AAI.Enabled = true
+				cfg.Components.AAIService.Enabled = true
+			},
+			wantContains: map[string][]string{
+				"templates/gateway.yaml": {
+					`IS_AAI_ENABLED: "true"`,
+					`AAI_SERVICE_ENDPOINT: "http://aai-service:8080/oauth2/userinfo"`,
+					"wait-for-aai-service",
+				},
+				"templates/aai-service.yaml": {
+					"name: aai-service",
+					`INITIAL_ADMIN_NAME: "EPOS"`,
+					`INITIAL_ADMIN_SURNAME: "User"`,
+					`INITIAL_ADMIN_EMAIL: "epos@epos.eu"`,
+					`INITIAL_ADMIN_PASSWORD: "epos"`,
+					`APP_CORS_ALLOW_ORIGIN: "http://localhost/test-aai/backoffice/"`,
+				},
+				"templates/pvc.yaml": {"name: aai"},
+			},
+		},
+		{
+			name: "embedded aai disabled supports external endpoint without manifest",
+			mutate: func(cfg *config.Config) {
+				cfg.Name = "test-external-aai"
+				cfg.Components.Gateway.AAI.Enabled = true
+				cfg.Components.Gateway.AAI.ServiceEndpoint = "https://auth.example.com/oauth2/userinfo"
+			},
+			wantContains: map[string][]string{
+				"templates/gateway.yaml": {
+					`IS_AAI_ENABLED: "true"`,
+					`AAI_SERVICE_ENDPOINT: "https://auth.example.com/oauth2/userinfo"`,
+				},
+			},
+			notContains: map[string][]string{
+				"templates/gateway.yaml":     {"wait-for-aai-service"},
+				"templates/aai-service.yaml": {"name: aai-service"},
+				"templates/pvc.yaml":         {"name: aai"},
 			},
 		},
 		{
