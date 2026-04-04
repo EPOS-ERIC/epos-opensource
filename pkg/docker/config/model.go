@@ -18,8 +18,8 @@ type PlatformGUI struct {
 	Port    int    `yaml:"port"`
 }
 
-// Aai configures AAI integration for gateway services.
-type Aai struct {
+// AAI configures AAI integration for gateway services.
+type AAI struct {
 	Enabled         bool   `yaml:"enabled"`
 	ServiceEndpoint string `yaml:"service_endpoint"`
 }
@@ -33,7 +33,7 @@ type SwaggerPage struct {
 
 // Gateway configures gateway URLs, port, and auth integrations.
 type Gateway struct {
-	Aai         Aai         `yaml:"aai"`
+	AAI         AAI         `yaml:"aai"`
 	BaseURL     string      `yaml:"base_url"`
 	SwaggerPage SwaggerPage `yaml:"swagger_page"`
 	Port        int         `yaml:"port"`
@@ -131,6 +131,15 @@ type EmailSenderService struct {
 	MailAPIKey      string `yaml:"mail_api_key"`
 }
 
+type AAIService struct {
+	Enabled  bool   `yaml:"enabled"`
+	Port     int    `yaml:"port"`
+	Name     string `yaml:"name"`
+	Surname  string `yaml:"surname"`
+	Email    string `yaml:"email"`
+	Password string `yaml:"password"`
+}
+
 // Components groups all service-level component settings.
 type Components struct {
 	PlatformGUI           PlatformGUI           `yaml:"platform_gui"`
@@ -144,6 +153,7 @@ type Components struct {
 	Rabbitmq              Rabbitmq              `yaml:"rabbitmq"`
 	MetadataDatabase      MetadataDatabase      `yaml:"metadata_database"`
 	EmailSenderService    EmailSenderService    `yaml:"email_sender_service"`
+	AAIService            AAIService            `yaml:"aai_service"`
 }
 
 // Monitoring configures optional monitoring integration.
@@ -187,6 +197,10 @@ func (e *EnvConfig) ActiveImages() []common.NamedImage {
 
 	if e.Components.SharingService.Enabled {
 		images = append(images, common.NamedImage{Name: "Sharing Service", Ref: e.Images.SharingServiceImage})
+	}
+
+	if e.Components.AAIService.Enabled {
+		images = append(images, common.NamedImage{Name: "AAI Service", Ref: e.Images.AAIServiceImage})
 	}
 
 	return images

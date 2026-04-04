@@ -129,6 +129,14 @@ func (e *EnvConfig) CheckForUpdates() ([]display.ImageUpdateInfo, error) {
 	return updates, nil
 }
 
+func validateAuthDependsOnGatewayAAI(serviceName string, auth Auth, gatewayAAIEnabled bool) error {
+	if auth.Enabled && !gatewayAAIEnabled {
+		return fmt.Errorf("%s auth requires gateway aai to be enabled", serviceName)
+	}
+
+	return nil
+}
+
 // EnsurePortsFree verifies default service ports are available and auto-selects free ones when needed.
 func (e *EnvConfig) EnsurePortsFree() error {
 	if !e.UsingDefaultPorts() {
@@ -239,14 +247,61 @@ func (e *EnvConfig) Validate() error {
 	}
 
 	// AAI validation
-	if e.Components.Gateway.Aai.Enabled {
-		if e.Components.Gateway.Aai.ServiceEndpoint == "" {
+	if e.Components.AAIService.Enabled {
+		if !e.Components.Gateway.AAI.Enabled {
+			return fmt.Errorf("aai service is enabled but aai in the gateway is disabled")
+		}
+		if e.Components.AAIService.Port == 0 {
+			return fmt.Errorf("aai service port is required when aai service is enabled")
+		}
+		if e.Components.AAIService.Port < 1 || e.Components.AAIService.Port > 65535 {
+			return fmt.Errorf("aai service port must be between 1 and 65535")
+		}
+		if e.Components.AAIService.Name == "" {
+			return fmt.Errorf("aai service name is required when aai service is enabled")
+		}
+		if e.Components.AAIService.Surname == "" {
+			return fmt.Errorf("aai service surname is required when aai service is enabled")
+		}
+		if e.Components.AAIService.Email == "" {
+			return fmt.Errorf("aai service email is required when aai service is enabled")
+		}
+		if e.Components.AAIService.Password == "" {
+			return fmt.Errorf("aai service password is required when aai service is enabled")
+		}
+		if e.Images.AAIServiceImage == "" {
+			return fmt.Errorf("aai service image is required when aai service is enabled")
+		}
+	}
+	if e.Components.Gateway.AAI.Enabled {
+		if e.Components.Gateway.AAI.ServiceEndpoint == "" {
 			return fmt.Errorf("aai service endpoint is required when aai is enabled")
+		}
+	}
+
+	authValidations := []struct {
+		serviceName string
+		auth        Auth
+	}{
+		{serviceName: "backoffice service", auth: e.Components.Backoffice.Service.Auth},
+		{serviceName: "converter service", auth: e.Components.Converter.Auth},
+		{serviceName: "resources service", auth: e.Components.ResourcesService.Auth},
+		{serviceName: "ingestor service", auth: e.Components.IngestorService.Auth},
+		{serviceName: "external access service", auth: e.Components.ExternalAccessService.Auth},
+		{serviceName: "sharing service", auth: e.Components.SharingService.Auth},
+		{serviceName: "email sender service", auth: e.Components.EmailSenderService.Auth},
+	}
+	for _, validation := range authValidations {
+		if err := validateAuthDependsOnGatewayAAI(validation.serviceName, validation.auth, e.Components.Gateway.AAI.Enabled); err != nil {
+			return err
 		}
 	}
 
 	// Backoffice validation
 	if e.Components.Backoffice.Enabled {
+		if !e.Components.Backoffice.Service.Auth.Enabled {
+			return fmt.Errorf("backoffice service auth must be enabled when backoffice is enabled")
+		}
 		if e.Components.Backoffice.GUI.BaseURL == "" {
 			return fmt.Errorf("backoffice base url is required when backoffice is enabled")
 		}

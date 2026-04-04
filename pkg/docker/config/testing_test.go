@@ -75,11 +75,15 @@ func (b *TestConfigBuilder) Build() *config.EnvConfig {
 			Gateway: config.Gateway{
 				BaseURL: "/api/v1",
 				Port:    b.gatewayPort,
+				AAI: config.AAI{
+					Enabled:         false,
+					ServiceEndpoint: "http://aai-service:8080/oauth2/userinfo",
+				},
 			},
 			Backoffice: config.Backoffice{
 				Enabled: b.backofficeEnabled,
 				GUI:     config.GUI{BaseURL: "/backoffice", Port: 34000},
-				Service: config.Service{Auth: config.Auth{Enabled: false, OnlyAdmin: false}},
+				Service: config.Service{Auth: config.Auth{Enabled: b.backofficeEnabled, OnlyAdmin: false}},
 			},
 			Converter: config.Converter{
 				Enabled: b.converterEnabled,
@@ -133,6 +137,14 @@ func (b *TestConfigBuilder) Build() *config.EnvConfig {
 				MailAPIURL:      "https://api.example.email/",
 				MailAPIKey:      "changeme",
 			},
+			AAIService: config.AAIService{
+				Enabled:  false,
+				Port:     35000,
+				Name:     "EPOS",
+				Surname:  "User",
+				Email:    "epos@epos.eu",
+				Password: "epos",
+			},
 		},
 		Monitoring: config.Monitoring{
 			Enabled: false,
@@ -151,6 +163,7 @@ func (b *TestConfigBuilder) Build() *config.EnvConfig {
 			BackofficeUIImage:       "epos/backoffice-ui:latest",
 			EmailSenderServiceImage: "ghcr.io/epos-eric/email-sender-service:latest",
 			SharingServiceImage:     "ghcr.io/epos-eric/sharing-service:latest",
+			AAIServiceImage:         "ghcr.io/epos-eric/oss-aai-service:latest",
 		},
 	}
 }

@@ -76,6 +76,48 @@ func TestDockerEnvConfig_Render(t *testing.T) {
 			},
 		},
 		{
+			name: "embedded aai enabled includes aai service and env vars",
+			config: func() *config.EnvConfig {
+				cfg := NewTestConfig(t, "test-aai").Build()
+				cfg.Components.Gateway.AAI.Enabled = true
+				cfg.Components.AAIService.Enabled = true
+				return cfg
+			}(),
+			wantErr: false,
+			wantContains: map[string][]string{
+				".env": {
+					"IS_AAI_ENABLED=true",
+					"AAI_SERVICE_ENDPOINT=http://aai-service:8080/oauth2/userinfo",
+					"ADMIN_NAME=EPOS",
+					"ADMIN_SURNAME=User",
+					"ADMIN_EMAIL=epos@epos.eu",
+					"ADMIN_PASSWORD=epos",
+					"AAI_SERVICE_PORT=35000",
+				},
+				"docker-compose.yaml": {"aai-service:", "${AAI_SERVICE_PORT}:8080"},
+			},
+		},
+		{
+			name: "embedded aai disabled excludes service specific env vars and compose service",
+			config: func() *config.EnvConfig {
+				cfg := NewTestConfig(t, "test-external-aai").Build()
+				cfg.Components.Gateway.AAI.Enabled = true
+				cfg.Components.Gateway.AAI.ServiceEndpoint = "https://auth.example.com/oauth2/userinfo"
+				return cfg
+			}(),
+			wantErr: false,
+			wantContains: map[string][]string{
+				".env": {
+					"IS_AAI_ENABLED=true",
+					"AAI_SERVICE_ENDPOINT=https://auth.example.com/oauth2/userinfo",
+				},
+			},
+			notContains: map[string][]string{
+				".env":                {"ADMIN_NAME=", "ADMIN_SURNAME=", "ADMIN_EMAIL=", "ADMIN_PASSWORD=", "AAI_SERVICE_PORT="},
+				"docker-compose.yaml": {"aai-service:"},
+			},
+		},
+		{
 			name: "metadata database published port is rendered when configured",
 			config: func() *config.EnvConfig {
 				cfg := NewTestConfig(t, "test-db-port").Build()
