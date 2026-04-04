@@ -5,6 +5,8 @@ import (
 	"testing"
 )
 
+const externalAAIUserinfoEndpoint = "https://auth.example.com/oauth2/userinfo"
+
 func TestConfigValidate_Requirements(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -246,7 +248,7 @@ func TestConfigValidate_AAI(t *testing.T) {
 func TestConfigValidate_GatewayAAIWithExternalEndpointIsValid(t *testing.T) {
 	cfg := GetDefaultConfig()
 	cfg.Components.Gateway.AAI.Enabled = true
-	cfg.Components.Gateway.AAI.ServiceEndpoint = "https://auth.example.com/oauth2/userinfo"
+	cfg.Components.Gateway.AAI.ServiceEndpoint = externalAAIUserinfoEndpoint
 	cfg.Components.AAIService.Enabled = false
 
 	if err := cfg.Validate(); err != nil {
@@ -346,7 +348,7 @@ func TestConfigValidate_ServiceAuthRequiresGatewayAAI(t *testing.T) {
 func TestConfigValidate_ServiceAuthIsValidWithGatewayAAI(t *testing.T) {
 	cfg := GetDefaultConfig()
 	cfg.Components.Gateway.AAI.Enabled = true
-	cfg.Components.Gateway.AAI.ServiceEndpoint = "https://auth.example.com/oauth2/userinfo"
+	cfg.Components.Gateway.AAI.ServiceEndpoint = externalAAIUserinfoEndpoint
 	cfg.Components.ResourcesService.Auth.Enabled = true
 
 	if err := cfg.Validate(); err != nil {

@@ -102,14 +102,14 @@ func TestDockerEnvConfig_Render(t *testing.T) {
 			config: func() *config.EnvConfig {
 				cfg := NewTestConfig(t, "test-external-aai").Build()
 				cfg.Components.Gateway.AAI.Enabled = true
-				cfg.Components.Gateway.AAI.ServiceEndpoint = "https://auth.example.com/oauth2/userinfo"
+				cfg.Components.Gateway.AAI.ServiceEndpoint = externalAAIUserinfoEndpoint
 				return cfg
 			}(),
 			wantErr: false,
 			wantContains: map[string][]string{
 				".env": {
 					"IS_AAI_ENABLED=true",
-					"AAI_SERVICE_ENDPOINT=https://auth.example.com/oauth2/userinfo",
+					"AAI_SERVICE_ENDPOINT=" + externalAAIUserinfoEndpoint,
 				},
 			},
 			notContains: map[string][]string{

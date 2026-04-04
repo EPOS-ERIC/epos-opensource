@@ -7,6 +7,8 @@ import (
 	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/config"
 )
 
+const externalAAIUserinfoEndpoint = "https://auth.example.com/oauth2/userinfo"
+
 func TestEnvConfigValidate_RequiresCoreImages(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -212,7 +214,7 @@ func TestEnvConfigValidate_AAI(t *testing.T) {
 func TestEnvConfigValidate_GatewayAAIWithExternalEndpointIsValid(t *testing.T) {
 	cfg := NewTestConfig(t, "test-env").Build()
 	cfg.Components.Gateway.AAI.Enabled = true
-	cfg.Components.Gateway.AAI.ServiceEndpoint = "https://auth.example.com/oauth2/userinfo"
+	cfg.Components.Gateway.AAI.ServiceEndpoint = externalAAIUserinfoEndpoint
 	cfg.Components.AAIService.Enabled = false
 
 	if err := cfg.Validate(); err != nil {
@@ -311,7 +313,7 @@ func TestEnvConfigValidate_ServiceAuthRequiresGatewayAAI(t *testing.T) {
 func TestEnvConfigValidate_ServiceAuthIsValidWithGatewayAAI(t *testing.T) {
 	cfg := NewTestConfig(t, "test-env").Build()
 	cfg.Components.Gateway.AAI.Enabled = true
-	cfg.Components.Gateway.AAI.ServiceEndpoint = "https://auth.example.com/oauth2/userinfo"
+	cfg.Components.Gateway.AAI.ServiceEndpoint = externalAAIUserinfoEndpoint
 	cfg.Components.ResourcesService.Auth.Enabled = true
 
 	if err := cfg.Validate(); err != nil {

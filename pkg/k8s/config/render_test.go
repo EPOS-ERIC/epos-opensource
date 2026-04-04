@@ -8,6 +8,8 @@ import (
 	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s/config"
 )
 
+const externalAAIUserinfoEndpoint = "https://auth.example.com/oauth2/userinfo"
+
 func TestConfigRender(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -136,12 +138,12 @@ func TestConfigRender(t *testing.T) {
 			mutate: func(cfg *config.Config) {
 				cfg.Name = "test-external-aai"
 				cfg.Components.Gateway.AAI.Enabled = true
-				cfg.Components.Gateway.AAI.ServiceEndpoint = "https://auth.example.com/oauth2/userinfo"
+				cfg.Components.Gateway.AAI.ServiceEndpoint = externalAAIUserinfoEndpoint
 			},
 			wantContains: map[string][]string{
 				"templates/gateway.yaml": {
 					`IS_AAI_ENABLED: "true"`,
-					`AAI_SERVICE_ENDPOINT: "https://auth.example.com/oauth2/userinfo"`,
+					`AAI_SERVICE_ENDPOINT: "` + externalAAIUserinfoEndpoint + `"`,
 				},
 			},
 			notContains: map[string][]string{
