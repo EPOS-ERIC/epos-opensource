@@ -7,7 +7,9 @@ import (
 	"github.com/EPOS-ERIC/epos-opensource/pkg/docker/config"
 )
 
-const externalAAIUserinfoEndpoint = "https://auth.example.com/oauth2/userinfo"
+const (
+	externalAAIUserinfoEndpoint = "https://auth.example.com/oauth2/userinfo"
+)
 
 func TestEnvConfigValidate_RequiresCoreImages(t *testing.T) {
 	tests := []struct {
@@ -233,6 +235,17 @@ func TestEnvConfigValidate_BackofficeRequiresAuth(t *testing.T) {
 
 	if !strings.Contains(err.Error(), "backoffice service auth must be enabled when backoffice is enabled") {
 		t.Fatalf("Validate() error = %q, want substring %q", err.Error(), "backoffice service auth must be enabled when backoffice is enabled")
+	}
+}
+
+func TestEnvConfigValidate_BackofficeWithoutEmbeddedAAIIsValid(t *testing.T) {
+	cfg := NewTestConfig(t, "test-env").WithBackoffice(true).Build()
+	cfg.Components.Gateway.AAI.Enabled = true
+	cfg.Components.Gateway.AAI.ServiceEndpoint = externalAAIUserinfoEndpoint
+	cfg.Components.AAIService.Enabled = false
+
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("Validate() error = %v, want nil", err)
 	}
 }
 

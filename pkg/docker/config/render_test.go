@@ -41,6 +41,20 @@ func TestDockerEnvConfig_Render(t *testing.T) {
 			},
 		},
 		{
+			name: "backoffice uses embedded aai auth root url by default",
+			config: func() *config.EnvConfig {
+				cfg := NewTestConfig(t, "test-bo-aai").WithBackoffice(true).Build()
+				cfg.Components.Gateway.AAI.Enabled = true
+				cfg.Components.AAIService.Enabled = true
+				return cfg
+			}(),
+			wantErr: false,
+			wantContains: map[string][]string{
+				".env":                {"AUTH_ROOT_URL=http://localhost:35000"},
+				"docker-compose.yaml": {"dataportal:", "backoffice-ui:", "AUTH_ROOT_URL=${AUTH_ROOT_URL}"},
+			},
+		},
+		{
 			name:    "backoffice disabled excludes backoffice from compose",
 			config:  NewTestConfig(t, "test-no-bo").Build(),
 			wantErr: false,

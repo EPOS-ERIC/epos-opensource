@@ -10,6 +10,7 @@ services:
     environment:
       - BASE_URL=${DATAPORTAL_PATH}
       - API_HOST=http://gateway:5000/api
+      - AUTH_ROOT_URL
     depends_on:
       gateway:
         condition: service_healthy
@@ -26,6 +27,7 @@ services:
     environment:
       - BASE_URL=${BACKOFFICE_PATH}
       - API_HOST=http://gateway:5000/api
+      - AUTH_ROOT_URL
     depends_on:
       gateway:
         condition: service_healthy
@@ -401,7 +403,13 @@ services:
       - INITIAL_ADMIN_SURNAME=${ADMIN_SURNAME}
       - INITIAL_ADMIN_EMAIL=${ADMIN_EMAIL}
       - INITIAL_ADMIN_PASSWORD=${ADMIN_PASSWORD}
-      - APP_CORS_ALLOW_ORIGIN={{.Protocol}}://{{.Domain}}:{{.Components.Backoffice.GUI.Port}}
+      - APP_CORS_ALLOW_ORIGIN=*
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 {{- end}}
 
 volumes:
