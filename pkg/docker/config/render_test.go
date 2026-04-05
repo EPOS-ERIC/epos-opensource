@@ -51,7 +51,7 @@ func TestDockerEnvConfig_Render(t *testing.T) {
 			wantErr: false,
 			wantContains: map[string][]string{
 				".env":                {"AUTH_ROOT_URL=http://localhost:35000"},
-				"docker-compose.yaml": {"dataportal:", "backoffice-ui:", "AUTH_ROOT_URL=${AUTH_ROOT_URL}"},
+				"docker-compose.yaml": {"dataportal:", "backoffice-ui:", "- AUTH_ROOT_URL"},
 			},
 		},
 		{
