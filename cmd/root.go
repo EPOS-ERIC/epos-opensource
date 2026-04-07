@@ -76,7 +76,7 @@ var rootCmd = &cobra.Command{
 	// If no subcommand is provided, show help.
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
-			if err := tui.Run(); err != nil {
+			if err := tui.Run(debug); err != nil {
 				fmt.Printf("Alas, there's been an error: %v", err)
 				os.Exit(1)
 			}

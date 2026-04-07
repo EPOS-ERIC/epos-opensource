@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -110,13 +111,13 @@ type ModalFormOptions struct {
 }
 
 // Run starts the TUI application.
-func Run() error {
+func Run(debug bool) error {
 	app := &App{}
-	app.init()
+	app.init(debug)
 	return app.run()
 }
 
-func (a *App) init() {
+func (a *App) init(debug bool) {
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Printf("config error: %v, using defaults", err)
@@ -160,9 +161,15 @@ func (a *App) init() {
 	command.Stdout = a.outputWriter
 
 	// Keep Kubernetes library logs from writing directly into the terminal while the TUI is active.
-	rest.SetDefaultWarningHandler(rest.NewWarningWriter(a.outputWriter, rest.WarningWriterOptions{Color: false}))
-	klog.LogToStderr(false)
-	klog.SetOutput(a.outputWriter)
+	if debug {
+		rest.SetDefaultWarningHandler(rest.NewWarningWriter(log.Writer(), rest.WarningWriterOptions{Color: false}))
+		klog.LogToStderr(false)
+		klog.SetOutput(log.Writer())
+	} else {
+		rest.SetDefaultWarningHandler(rest.NewWarningWriter(io.Discard, rest.WarningWriterOptions{Color: false}))
+		klog.LogToStderr(false)
+		klog.SetOutput(io.Discard)
+	}
 
 	a.envList = NewEnvList(a)
 	a.detailsPanel = NewDetailsPanel(a)
