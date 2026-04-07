@@ -10,6 +10,7 @@ services:
     environment:
       - BASE_URL=${DATAPORTAL_PATH}
       - API_HOST=http://gateway:5000/api
+      - AUTH_ROOT_URL
     depends_on:
       gateway:
         condition: service_healthy
@@ -26,6 +27,7 @@ services:
     environment:
       - BASE_URL=${BACKOFFICE_PATH}
       - API_HOST=http://gateway:5000/api
+      - AUTH_ROOT_URL
     depends_on:
       gateway:
         condition: service_healthy
@@ -107,6 +109,10 @@ services:
 	{{- end}}
 	{{- if .Components.SharingService.Enabled}}
       sharing-service:
+        condition: service_healthy
+	{{- end}}
+	{{- if .Components.AAIService.Enabled}}
+      aai-service:
         condition: service_healthy
 	{{- end}}
 
@@ -376,9 +382,40 @@ services:
     networks:
       - epos_network
 
+{{- if .Components.AAIService.Enabled}}
+  aai-service:
+    image: ${AAI_SERVICE_IMAGE}
+    container_name: ${ENV_NAME:-epos-platform}-aai-service
+    ports:
+      - "${AAI_SERVICE_PORT}:8080"
+    volumes:
+      - aai:/app/data
+    networks:
+      - epos_network
+    restart: always
+    environment:
+	  {{- if eq .Protocol "https"}}
+      - APP_SECURE_COOKIES=true
+	  {{- else}}
+      - APP_SECURE_COOKIES=false
+	  {{- end}}
+      - INITIAL_ADMIN_NAME=${ADMIN_NAME}
+      - INITIAL_ADMIN_SURNAME=${ADMIN_SURNAME}
+      - INITIAL_ADMIN_EMAIL=${ADMIN_EMAIL}
+      - INITIAL_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - APP_CORS_ALLOW_ORIGIN=*
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+{{- end}}
+
 volumes:
   converter:
   psqldata:
+  aai:
 
 networks:
   epos_network:

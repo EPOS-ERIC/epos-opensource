@@ -39,6 +39,7 @@ type Images struct {
 	BackofficeUIImage       string `yaml:"backoffice_ui_image"`
 	EmailSenderServiceImage string `yaml:"email_sender_service_image"`
 	SharingServiceImage     string `yaml:"sharing_service_image"`
+	AAIServiceImage         string `yaml:"aai_service_image"`
 }
 
 func ImageExistsLocally(ctx context.Context, imageRef string) (bool, error) {

@@ -21,10 +21,13 @@ components:
 
   gateway:
     aai:
-      # Enable/disable AAI (Authentication and Authorization Infrastructure) integration
+      # Enable/disable AAI (Authentication and Authorization Infrastructure) integration in the gateway.
+      # When enabled, the gateway will call the configured userinfo endpoint to validate authenticated requests.
+      # This can point to the embedded aai_service below or to an external provider.
       enabled: false
-      # AAI service endpoint URL (required when AAI is enabled)
-      service_endpoint: ""
+      # Userinfo endpoint used by the gateway when AAI is enabled.
+      # Use the embedded service default below for local auth, or replace it with an external provider endpoint.
+      service_endpoint: "http://aai-service:8080/oauth2/userinfo"
 
     # Base URL path for the API gateway. Must start with / and end with /api/v1
     base_url: "/api/v1/" # it needs to end with /api/v1
@@ -164,6 +167,17 @@ components:
     # API key for authenticating with the email service
     mail_api_key: "changeme"
 
+  aai_service:
+    # Enable/disable the embedded local AAI service container.
+    # This is optional: the gateway can use an external AAI provider with this disabled.
+    # If you enable this service, gateway.aai.enabled must also be enabled.
+    enabled: false
+    # Initial admin user seeded into the embedded AAI service on first startup
+    name: "EPOS"
+    surname: "User"
+    email: "epos@epos.eu"
+    password: "epos"
+
 jobs:
   # When false, no job will run.
   enabled: false
@@ -227,3 +241,4 @@ images:
   backoffice_ui_image:        "ghcr.io/epos-eric/epos-backoffice-gui:latest"
   email_sender_service_image: "ghcr.io/epos-eric/email-sender-service:latest"
   sharing_service_image:      "ghcr.io/epos-eric/sharing-service:latest"
+  aai_service_image:          "ghcr.io/epos-eric/oss-aai-service:latest"

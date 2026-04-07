@@ -67,6 +67,9 @@ spec:
       {{- if .Values.components.backoffice.enabled }}
       {{- include "epos.waitForServiceInitContainer" (dict "name" "backoffice-service" "port" 8080) | nindent 6 }}
       {{- end }}
+      {{- if .Values.components.aai_service.enabled }}
+      {{- include "epos.waitForServiceInitContainer" (dict "name" "aai-service" "port" 8080) | nindent 6 }}
+      {{- end }}
       containers:
       - name: gateway
         image: {{ .Values.images.gateway_image }}

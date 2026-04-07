@@ -5,6 +5,11 @@ BASE_URL: /{{ .Release.Namespace }}{{ .Values.components.platform_gui.base_url }
 BASE_URL: {{ .Values.components.platform_gui.base_url }}
 {{- end }}
 API_HOST: http://gateway:5000/api
+{{- if .Values.url_prefix_namespace }}
+AUTH_ROOT_URL: {{ printf "%s://%s/%s/aai" .Values.protocol .Values.domain .Release.Namespace | quote }}
+{{- else }}
+AUTH_ROOT_URL: {{ printf "%s://%s/aai" .Values.protocol .Values.domain | quote }}
+{{- end }}
 {{- end -}}
 
 ---

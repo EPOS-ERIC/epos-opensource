@@ -27,8 +27,8 @@ type PlatformGUI struct {
 	BaseURL string `yaml:"base_url"`
 }
 
-// Aai configures AAI integration for gateway services.
-type Aai struct {
+// AAI configures AAI integration for gateway services.
+type AAI struct {
 	Enabled         bool   `yaml:"enabled"`
 	ServiceEndpoint string `yaml:"service_endpoint"`
 }
@@ -42,7 +42,7 @@ type SwaggerPage struct {
 
 // Gateway configures gateway URLs and auth integrations.
 type Gateway struct {
-	Aai         Aai         `yaml:"aai"`
+	AAI         AAI         `yaml:"aai"`
 	BaseURL     string      `yaml:"base_url"`
 	SwaggerPage SwaggerPage `yaml:"swagger_page"`
 }
@@ -145,6 +145,15 @@ type EmailSenderService struct {
 	MailAPIKey      string `yaml:"mail_api_key"`
 }
 
+// AAIService configures the embedded AAI service.
+type AAIService struct {
+	Enabled  bool   `yaml:"enabled"`
+	Name     string `yaml:"name"`
+	Surname  string `yaml:"surname"`
+	Email    string `yaml:"email"`
+	Password string `yaml:"password"`
+}
+
 // InitDBJob configures the init-db Kubernetes job.
 type InitDBJob struct {
 	Enabled               bool   `yaml:"enabled"`
@@ -183,6 +192,7 @@ type Components struct {
 	Rabbitmq              Rabbitmq              `yaml:"rabbitmq"`
 	MetadataDatabase      MetadataDatabase      `yaml:"metadata_database"`
 	EmailSenderService    EmailSenderService    `yaml:"email_sender_service"`
+	AAIService            AAIService            `yaml:"aai_service"`
 }
 
 // Monitoring configures optional monitoring integration.

@@ -41,6 +41,20 @@ func TestDockerEnvConfig_Render(t *testing.T) {
 			},
 		},
 		{
+			name: "backoffice uses embedded aai auth root url by default",
+			config: func() *config.EnvConfig {
+				cfg := NewTestConfig(t, "test-bo-aai").WithBackoffice(true).Build()
+				cfg.Components.Gateway.AAI.Enabled = true
+				cfg.Components.AAIService.Enabled = true
+				return cfg
+			}(),
+			wantErr: false,
+			wantContains: map[string][]string{
+				".env":                {"AUTH_ROOT_URL=http://localhost:35000"},
+				"docker-compose.yaml": {"dataportal:", "backoffice-ui:", "- AUTH_ROOT_URL"},
+			},
+		},
+		{
 			name:    "backoffice disabled excludes backoffice from compose",
 			config:  NewTestConfig(t, "test-no-bo").Build(),
 			wantErr: false,
@@ -73,6 +87,48 @@ func TestDockerEnvConfig_Render(t *testing.T) {
 			wantErr: false,
 			wantContains: map[string][]string{
 				"docker-compose.yaml": {"sharing-service:"},
+			},
+		},
+		{
+			name: "embedded aai enabled includes aai service and env vars",
+			config: func() *config.EnvConfig {
+				cfg := NewTestConfig(t, "test-aai").Build()
+				cfg.Components.Gateway.AAI.Enabled = true
+				cfg.Components.AAIService.Enabled = true
+				return cfg
+			}(),
+			wantErr: false,
+			wantContains: map[string][]string{
+				".env": {
+					"IS_AAI_ENABLED=true",
+					"AAI_SERVICE_ENDPOINT=http://aai-service:8080/oauth2/userinfo",
+					"ADMIN_NAME=EPOS",
+					"ADMIN_SURNAME=User",
+					"ADMIN_EMAIL=epos@epos.eu",
+					"ADMIN_PASSWORD=epos",
+					"AAI_SERVICE_PORT=35000",
+				},
+				"docker-compose.yaml": {"aai-service:", "${AAI_SERVICE_PORT}:8080"},
+			},
+		},
+		{
+			name: "embedded aai disabled excludes service specific env vars and compose service",
+			config: func() *config.EnvConfig {
+				cfg := NewTestConfig(t, "test-external-aai").Build()
+				cfg.Components.Gateway.AAI.Enabled = true
+				cfg.Components.Gateway.AAI.ServiceEndpoint = externalAAIUserinfoEndpoint
+				return cfg
+			}(),
+			wantErr: false,
+			wantContains: map[string][]string{
+				".env": {
+					"IS_AAI_ENABLED=true",
+					"AAI_SERVICE_ENDPOINT=" + externalAAIUserinfoEndpoint,
+				},
+			},
+			notContains: map[string][]string{
+				".env":                {"ADMIN_NAME=", "ADMIN_SURNAME=", "ADMIN_EMAIL=", "ADMIN_PASSWORD=", "AAI_SERVICE_PORT="},
+				"docker-compose.yaml": {"aai-service:"},
 			},
 		},
 		{
