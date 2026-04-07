@@ -14,6 +14,8 @@ import (
 	"github.com/EPOS-ERIC/epos-opensource/display"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"k8s.io/client-go/rest"
+	"k8s.io/klog/v2"
 )
 
 const homePageName = "home"
@@ -156,6 +158,11 @@ func (a *App) init() {
 	display.Stdout = a.outputWriter
 	display.Stderr = a.outputWriter
 	command.Stdout = a.outputWriter
+
+	// Keep Kubernetes library logs from writing directly into the terminal while the TUI is active.
+	rest.SetDefaultWarningHandler(rest.NewWarningWriter(a.outputWriter, rest.WarningWriterOptions{Color: false}))
+	klog.LogToStderr(false)
+	klog.SetOutput(a.outputWriter)
 
 	a.envList = NewEnvList(a)
 	a.detailsPanel = NewDetailsPanel(a)
