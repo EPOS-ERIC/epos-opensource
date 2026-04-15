@@ -1,23 +1,25 @@
 # Shared hostname/IP where all services are accessible (e.g., epos.example.com)
 domain: "localhost"
 
-# Protocol for accessing services. Must be http or https. If tls is enabled it must be https
+# Protocol for accessing services. Must be http or https. If any ingress tls is enabled it must be https
 protocol: "http"
-
-# TLS configuration for ingress resources (dataportal, gateway, and backoffice-ui)
-tls:
-  # Enable TLS termination on ingresses
-  enabled: false
-  # Name of an existing Kubernetes TLS secret in the release namespace
-  secret_name: ""
 
 # prefix the generated url for the ingresses with the name of the namespace (the name of the environment)
 url_prefix_namespace: true
+
+# create the namespace to deploy in if it doesn't exist
+create_namespace: true
 
 components:
   platform_gui:
     # URL path prefix for accessing the platform GUI interface. Must end with a /
     base_url: "/"
+
+    tls:
+      # Enable TLS termination on ingress
+      enabled: false
+      # Name of an existing Kubernetes TLS secret in the release namespace
+      secret_name: ""
 
   gateway:
     aai:
@@ -40,6 +42,12 @@ components:
       # Contact email displayed in Swagger documentation
       contact_email: ""
 
+    tls:
+      # Enable TLS termination on ingress
+      enabled: false
+      # Name of an existing Kubernetes TLS secret in the release namespace
+      secret_name: ""
+
   backoffice:
     # Enable/disable the backoffice module
     enabled: false
@@ -54,6 +62,12 @@ components:
         enabled: false
         # Restrict backoffice access to admin users only
         only_admin: false
+
+    tls:
+      # Enable TLS termination on ingress
+      enabled: false
+      # Name of an existing Kubernetes TLS secret in the release namespace
+      secret_name: ""
 
   converter:
     # Enable/disable the converter service
@@ -178,6 +192,12 @@ components:
     email: "epos@epos.eu"
     password: "epos"
 
+    tls:
+      # Enable TLS termination on ingress
+      enabled: false
+      # Name of an existing Kubernetes TLS secret in the release namespace
+      secret_name: ""
+
 jobs:
   # When false, no job will run.
   enabled: false
@@ -224,6 +244,9 @@ image_pull_secrets:
   registry_username: ""
   # Password or token used to authenticate to the container registry
   registry_password: ""
+
+# cert-manager ClusterIssuer name used in ingress annotations when tls is enabled
+cert_manager_issuer: "letsencrypt"
 
 # Container images used by EPOS services and supporting components.
 # Override tags/repositories to pin versions or use private registries.

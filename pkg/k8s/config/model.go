@@ -7,12 +7,13 @@ type Config struct {
 	Name               string           `yaml:"name"`
 	Domain             string           `yaml:"domain"`
 	Protocol           string           `yaml:"protocol"`
-	TLS                TLS              `yaml:"tls"`
 	URLPrefixNamespace bool             `yaml:"url_prefix_namespace"`
+	CreateNamespace    bool             `yaml:"create_namespace"`
 	Components         Components       `yaml:"components"`
 	Jobs               Jobs             `yaml:"jobs"`
 	Monitoring         Monitoring       `yaml:"monitoring"`
 	ImagePullSecrets   ImagePullSecrets `yaml:"image_pull_secrets"`
+	CertManagerIssuer  string           `yaml:"cert_manager_issuer"`
 	Images             common.Images    `yaml:"images"`
 }
 
@@ -25,6 +26,7 @@ type TLS struct {
 // PlatformGUI configures the platform GUI endpoint.
 type PlatformGUI struct {
 	BaseURL string `yaml:"base_url"`
+	TLS     TLS    `yaml:"tls"`
 }
 
 // AAI configures AAI integration for gateway services.
@@ -45,6 +47,7 @@ type Gateway struct {
 	AAI         AAI         `yaml:"aai"`
 	BaseURL     string      `yaml:"base_url"`
 	SwaggerPage SwaggerPage `yaml:"swagger_page"`
+	TLS         TLS         `yaml:"tls"`
 }
 
 // GUI configures a generic GUI service endpoint.
@@ -68,6 +71,7 @@ type Backoffice struct {
 	Enabled bool    `yaml:"enabled"`
 	GUI     GUI     `yaml:"gui"`
 	Service Service `yaml:"service"`
+	TLS     TLS     `yaml:"tls"`
 }
 
 // SecurityContext configures optional pod security context settings.
@@ -152,6 +156,7 @@ type AAIService struct {
 	Surname  string `yaml:"surname"`
 	Email    string `yaml:"email"`
 	Password string `yaml:"password"`
+	TLS      TLS    `yaml:"tls"`
 }
 
 // InitDBJob configures the init-db Kubernetes job.
@@ -219,12 +224,6 @@ func (c *Config) String() string {
 	}
 
 	out := "name=" + c.Name + ", domain=" + c.Domain + ", protocol=" + c.Protocol
-
-	if c.TLS.Enabled {
-		out += ", tls.enabled=true"
-	} else {
-		out += ", tls.enabled=false"
-	}
 
 	if c.URLPrefixNamespace {
 		out += ", url_prefix_namespace=true"

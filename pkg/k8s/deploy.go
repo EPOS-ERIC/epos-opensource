@@ -73,7 +73,7 @@ func Deploy(opts DeployOpts) (*Env, error) {
 	client := action.NewInstall(actionConfig)
 	client.ReleaseName = opts.Config.Name
 	client.Namespace = opts.Config.Name
-	client.CreateNamespace = true
+	client.CreateNamespace = opts.Config.CreateNamespace
 	client.Wait = true
 	client.WaitForJobs = true
 	client.Atomic = true
