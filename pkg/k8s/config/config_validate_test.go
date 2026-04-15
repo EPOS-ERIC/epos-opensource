@@ -89,6 +89,50 @@ func TestConfigValidate_Requirements(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "create namespace can be disabled",
+			mutate: func(cfg *Config) {
+				cfg.CreateNamespace = false
+			},
+			wantErr: false,
+		},
+		{
+			name: "platform gui tls secret_name required when tls enabled",
+			mutate: func(cfg *Config) {
+				cfg.Components.PlatformGUI.TLS.Enabled = true
+			},
+			wantErr:     true,
+			errContains: "platform gui tls secret_name is required when tls is enabled",
+		},
+		{
+			name: "gateway tls secret_name required when tls enabled",
+			mutate: func(cfg *Config) {
+				cfg.Components.Gateway.TLS.Enabled = true
+			},
+			wantErr:     true,
+			errContains: "gateway tls secret_name is required when tls is enabled",
+		},
+		{
+			name: "backoffice tls secret_name required when backoffice and tls enabled",
+			mutate: func(cfg *Config) {
+				cfg.Components.Backoffice.Enabled = true
+				cfg.Components.Backoffice.Service.Auth.Enabled = true
+				cfg.Components.Backoffice.TLS.Enabled = true
+				cfg.Components.Gateway.AAI.Enabled = true
+			},
+			wantErr:     true,
+			errContains: "backoffice tls secret_name is required when tls is enabled",
+		},
+		{
+			name: "aai service tls secret_name required when aai service and tls enabled",
+			mutate: func(cfg *Config) {
+				enableAAI(cfg)
+				cfg.Components.AAIService.Enabled = true
+				cfg.Components.AAIService.TLS.Enabled = true
+			},
+			wantErr:     true,
+			errContains: "aai service tls secret_name is required when tls is enabled",
+		},
+		{
 			name: "aai service endpoint is required when aai is enabled",
 			mutate: func(cfg *Config) {
 				enableAAI(cfg)
@@ -165,6 +209,22 @@ func TestConfigValidate_DefaultConfigIsValid(t *testing.T) {
 
 	if err := cfg.Validate(); err != nil {
 		t.Fatalf("Validate() error = %v, want nil", err)
+	}
+}
+
+func TestConfigValidate_DefaultCreateNamespaceEnabled(t *testing.T) {
+	cfg := GetDefaultConfig()
+
+	if !cfg.CreateNamespace {
+		t.Fatal("GetDefaultConfig().CreateNamespace = false, want true")
+	}
+}
+
+func TestConfigValidate_DefaultCertManagerIssuerConfigured(t *testing.T) {
+	cfg := GetDefaultConfig()
+
+	if cfg.CertManagerIssuer == "" {
+		t.Fatal("GetDefaultConfig().CertManagerIssuer = empty, want non-empty")
 	}
 }
 

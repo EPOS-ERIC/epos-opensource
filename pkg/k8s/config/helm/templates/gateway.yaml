@@ -142,6 +142,10 @@ metadata:
     {{- else }}
     nginx.ingress.kubernetes.io/rewrite-target: {{ .Values.components.gateway.base_url }}
     {{- end }}
+
+    {{- if and .Values.components.gateway.tls.enabled .Values.cert_manager_issuer }}
+    cert-manager.io/cluster-issuer: {{ .Values.cert_manager_issuer }}
+    {{- end }}
 spec:
   ingressClassName: nginx
   rules:
@@ -159,9 +163,9 @@ spec:
             name: gateway
             port:
               number: 5000
-  {{- if .Values.tls.enabled }}
+  {{- if .Values.components.gateway.tls.enabled }}
   tls:
   - hosts:
     - {{ .Values.domain }}
-    secretName: {{ .Values.tls.secret_name }}
+    secretName: {{ .Values.components.gateway.tls.secret_name }}
   {{- end }}

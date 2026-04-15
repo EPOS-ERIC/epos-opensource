@@ -125,6 +125,14 @@ func validateAuthDependsOnGatewayAAI(serviceName string, auth Auth, gatewayAAIEn
 	return nil
 }
 
+func validateIngressTLSSecret(serviceName string, tls TLS) error {
+	if tls.Enabled && tls.SecretName == "" {
+		return fmt.Errorf("%s tls secret_name is required when tls is enabled", serviceName)
+	}
+
+	return nil
+}
+
 // Validate checks whether the configuration contains all required values.
 func (c *Config) Validate() error {
 	// Basic required fields
@@ -134,9 +142,20 @@ func (c *Config) Validate() error {
 	if c.Protocol != "http" && c.Protocol != "https" {
 		return fmt.Errorf("protocol must be http or https")
 	}
-	if c.TLS.Enabled {
-		if c.TLS.SecretName == "" {
-			return fmt.Errorf("tls secret_name is required when tls is enabled")
+	if err := validateIngressTLSSecret("platform gui", c.Components.PlatformGUI.TLS); err != nil {
+		return err
+	}
+	if err := validateIngressTLSSecret("gateway", c.Components.Gateway.TLS); err != nil {
+		return err
+	}
+	if c.Components.Backoffice.Enabled {
+		if err := validateIngressTLSSecret("backoffice", c.Components.Backoffice.TLS); err != nil {
+			return err
+		}
+	}
+	if c.Components.AAIService.Enabled {
+		if err := validateIngressTLSSecret("aai service", c.Components.AAIService.TLS); err != nil {
+			return err
 		}
 	}
 

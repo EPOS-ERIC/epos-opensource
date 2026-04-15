@@ -10,6 +10,9 @@ import (
 
 const (
 	externalAAIUserinfoEndpoint = "https://auth.example.com/oauth2/userinfo"
+	dataportalTLSSecret         = "dataportal-tls"
+	gatewayTLSSecret            = "gateway-tls"
+	certManagerIssuerAnnotation = "cert-manager.io/cluster-issuer: letsencrypt"
 )
 
 func TestConfigRender(t *testing.T) {
@@ -176,6 +179,95 @@ func TestConfigRender(t *testing.T) {
 					"MONITORING_USER: monitor-user",
 					"MONITORING_PWD: monitor-password",
 				},
+			},
+		},
+		{
+			name: "service ingress tls renders dedicated secret per ingress",
+			mutate: func(cfg *config.Config) {
+				cfg.Name = "test-ingress-tls"
+				cfg.Components.PlatformGUI.TLS.Enabled = true
+				cfg.Components.PlatformGUI.TLS.SecretName = dataportalTLSSecret
+				cfg.Components.Gateway.TLS.Enabled = true
+				cfg.Components.Gateway.TLS.SecretName = gatewayTLSSecret
+				cfg.Components.Backoffice.Enabled = true
+				cfg.Components.Backoffice.TLS.Enabled = true
+				cfg.Components.Backoffice.TLS.SecretName = "backoffice-tls"
+				cfg.Components.AAIService.Enabled = true
+				cfg.Components.AAIService.TLS.Enabled = true
+				cfg.Components.AAIService.TLS.SecretName = "aai-tls"
+			},
+			wantContains: map[string][]string{
+				"templates/dataportal.yaml": {
+					"secretName: " + dataportalTLSSecret,
+					certManagerIssuerAnnotation,
+				},
+				"templates/gateway.yaml": {
+					"secretName: " + gatewayTLSSecret,
+					certManagerIssuerAnnotation,
+				},
+				"templates/backoffice-ui.yaml": {
+					"secretName: backoffice-tls",
+					certManagerIssuerAnnotation,
+				},
+				"templates/aai-service.yaml": {
+					"secretName: aai-tls",
+					certManagerIssuerAnnotation,
+				},
+			},
+			notContains: map[string][]string{
+				"templates/dataportal.yaml":    {gatewayTLSSecret, "backoffice-tls", "aai-tls"},
+				"templates/gateway.yaml":       {dataportalTLSSecret, "backoffice-tls", "aai-tls"},
+				"templates/backoffice-ui.yaml": {dataportalTLSSecret, gatewayTLSSecret, "aai-tls"},
+				"templates/aai-service.yaml":   {dataportalTLSSecret, gatewayTLSSecret, "backoffice-tls"},
+			},
+		},
+		{
+			name: "service ingress tls disabled omits ingress tls block",
+			mutate: func(cfg *config.Config) {
+				cfg.Name = "test-ingress-tls-toggle"
+				cfg.Components.PlatformGUI.TLS.Enabled = true
+				cfg.Components.PlatformGUI.TLS.SecretName = dataportalTLSSecret
+				cfg.Components.Gateway.TLS.Enabled = false
+				cfg.Components.Gateway.TLS.SecretName = gatewayTLSSecret
+			},
+			wantContains: map[string][]string{
+				"templates/dataportal.yaml": {
+					"secretName: " + dataportalTLSSecret,
+					certManagerIssuerAnnotation,
+				},
+			},
+			notContains: map[string][]string{
+				"templates/gateway.yaml": {"secretName:", "cert-manager.io/cluster-issuer:"},
+			},
+		},
+		{
+			name: "gateway cert manager annotation does not depend on aai tls",
+			mutate: func(cfg *config.Config) {
+				cfg.Name = "test-gateway-cert-issuer"
+				cfg.Components.Gateway.TLS.Enabled = true
+				cfg.Components.Gateway.TLS.SecretName = gatewayTLSSecret
+				cfg.Components.AAIService.TLS.Enabled = false
+			},
+			wantContains: map[string][]string{
+				"templates/gateway.yaml": {
+					"secretName: " + gatewayTLSSecret,
+					certManagerIssuerAnnotation,
+				},
+			},
+		},
+		{
+			name: "cert manager annotation omitted when issuer is empty",
+			mutate: func(cfg *config.Config) {
+				cfg.Name = "test-empty-cert-issuer"
+				cfg.CertManagerIssuer = ""
+				cfg.Components.PlatformGUI.TLS.Enabled = true
+				cfg.Components.PlatformGUI.TLS.SecretName = dataportalTLSSecret
+			},
+			wantContains: map[string][]string{
+				"templates/dataportal.yaml": {"secretName: " + dataportalTLSSecret},
+			},
+			notContains: map[string][]string{
+				"templates/dataportal.yaml": {"cert-manager.io/cluster-issuer:"},
 			},
 		},
 	}

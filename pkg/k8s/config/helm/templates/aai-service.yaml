@@ -81,6 +81,10 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/rewrite-target: /$2
+
+    {{- if and .Values.components.aai_service.tls.enabled .Values.cert_manager_issuer }}
+    cert-manager.io/cluster-issuer: {{ .Values.cert_manager_issuer }}
+    {{- end }}
 spec:
   ingressClassName: nginx
   rules:
@@ -98,11 +102,11 @@ spec:
             name: aai-service
             port:
               number: 8080
-  {{- if .Values.tls.enabled }}
+  {{- if .Values.components.aai_service.tls.enabled }}
   tls:
   - hosts:
     - {{ .Values.domain }}
-    secretName: {{ .Values.tls.secret_name }}
+    secretName: {{ .Values.components.aai_service.tls.secret_name }}
   {{- end }}
 ---
 apiVersion: v1
