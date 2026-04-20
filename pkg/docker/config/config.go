@@ -274,8 +274,8 @@ func (e *EnvConfig) Validate() error {
 		}
 	}
 	if e.Components.Gateway.AAI.Enabled {
-		if e.Components.Gateway.AAI.ServiceEndpoint == "" {
-			return fmt.Errorf("aai service endpoint is required when aai is enabled")
+		if e.AAIAuthRootURL() == "" {
+			return fmt.Errorf("aai service endpoint is required when aai is enabled and embedded aai service is disabled")
 		}
 	}
 

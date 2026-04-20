@@ -77,7 +77,7 @@ func (b *TestConfigBuilder) Build() *config.EnvConfig {
 				Port:    b.gatewayPort,
 				AAI: config.AAI{
 					Enabled:         false,
-					ServiceEndpoint: "http://aai-service:8080/oauth2/userinfo",
+					ServiceEndpoint: "",
 				},
 			},
 			Backoffice: config.Backoffice{

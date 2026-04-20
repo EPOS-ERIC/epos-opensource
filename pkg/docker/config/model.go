@@ -1,6 +1,11 @@
 package config
 
-import "github.com/EPOS-ERIC/epos-opensource/common"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/EPOS-ERIC/epos-opensource/common"
+)
 
 // EnvConfig represents the full Docker environment configuration schema.
 type EnvConfig struct {
@@ -222,4 +227,25 @@ func (e *EnvConfig) UsingDefaultPorts() bool {
 		}
 	}
 	return true
+}
+
+// AAIAuthRootURL returns the externally reachable auth root URL used by UIs.
+func (e *EnvConfig) AAIAuthRootURL() string {
+	if !e.Components.Gateway.AAI.Enabled {
+		return ""
+	}
+
+	endpoint := strings.TrimSpace(e.Components.Gateway.AAI.ServiceEndpoint)
+	endpoint = strings.TrimSuffix(endpoint, "/")
+	endpoint = strings.TrimSuffix(endpoint, "/oauth2/userinfo")
+
+	if endpoint != "" {
+		return endpoint
+	}
+
+	if e.Components.AAIService.Enabled {
+		return fmt.Sprintf("%s://%s:%d", e.Protocol, e.Domain, e.Components.AAIService.Port)
+	}
+
+	return ""
 }
