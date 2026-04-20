@@ -227,8 +227,10 @@ func (c *Config) Validate() error {
 		}
 	}
 	if c.Components.Gateway.AAI.Enabled {
-		if c.Components.Gateway.AAI.ServiceEndpoint == "" {
-			return fmt.Errorf("aai service endpoint is required when aai is enabled")
+		aaiServiceEndpoint := common.TrimAuthURL(c.Components.Gateway.AAI.ServiceEndpoint)
+
+		if aaiServiceEndpoint == "" && !c.Components.AAIService.Enabled {
+			return fmt.Errorf("aai service endpoint is required when aai is enabled and embedded aai service is disabled")
 		}
 	}
 

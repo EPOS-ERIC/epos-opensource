@@ -27,9 +27,10 @@ components:
       # When enabled, the gateway will call the configured userinfo endpoint to validate authenticated requests.
       # This can point to the embedded aai_service below or to an external provider.
       enabled: false
-      # Userinfo endpoint used by the gateway when AAI is enabled.
-      # Use the embedded service default below for local auth, or replace it with an external provider endpoint.
-      service_endpoint: "http://aai-service:8080/oauth2/userinfo"
+      # External URL where the AAI service is reachable (e.g. https://auth.example.com).
+      # The gateway userinfo endpoint is derived from this URL by appending /oauth2/userinfo.
+      # Leave empty to auto-generate it as <protocol>://<domain>[/<namespace>]/aai.
+      service_endpoint: ""
 
     # Base URL path for the API gateway. Must start with / and end with /api/v1
     base_url: "/api/v1/" # it needs to end with /api/v1

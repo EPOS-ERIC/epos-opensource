@@ -82,3 +82,29 @@ jdbc:postgresql://{{ default .Values.components.metadata_database.host }}:{{ .Va
       sleep 1;
     done
 {{- end -}}
+
+{{- define "epos.defaultAAIAuthRootURL" -}}
+{{- if .Values.url_prefix_namespace -}}
+{{- printf "%s://%s/%s/aai" .Values.protocol .Values.domain .Release.Namespace -}}
+{{- else -}}
+{{- printf "%s://%s/aai" .Values.protocol .Values.domain -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "epos.aaiAuthRootURL" -}}
+{{- $endpoint := .Values.components.gateway.aai.service_endpoint | default "" | trim | trimSuffix "/" | trimSuffix "/oauth2/userinfo" -}}
+{{- if $endpoint -}}
+{{- $endpoint -}}
+{{- else -}}
+{{- include "epos.defaultAAIAuthRootURL" . -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "epos.gatewayAAIUserinfoEndpoint" -}}
+{{- if .Values.components.gateway.aai.enabled -}}
+{{- $authRootURL := include "epos.aaiAuthRootURL" . | trim | trimSuffix "/" -}}
+{{- if $authRootURL -}}
+{{- printf "%s/oauth2/userinfo" $authRootURL -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}

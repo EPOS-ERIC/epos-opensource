@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
 )
@@ -235,9 +234,7 @@ func (e *EnvConfig) AAIAuthRootURL() string {
 		return ""
 	}
 
-	endpoint := strings.TrimSpace(e.Components.Gateway.AAI.ServiceEndpoint)
-	endpoint = strings.TrimSuffix(endpoint, "/")
-	endpoint = strings.TrimSuffix(endpoint, "/oauth2/userinfo")
+	endpoint := common.TrimAuthURL(e.Components.Gateway.AAI.ServiceEndpoint)
 
 	if endpoint != "" {
 		return endpoint
