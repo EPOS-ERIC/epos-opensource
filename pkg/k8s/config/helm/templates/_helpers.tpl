@@ -100,11 +100,22 @@ jdbc:postgresql://{{ default .Values.components.metadata_database.host }}:{{ .Va
 {{- end -}}
 {{- end -}}
 
+{{- define "epos.gatewayAAIServiceEndpoint" -}}
+{{- if .Values.components.gateway.aai.enabled -}}
+{{- $endpoint := .Values.components.gateway.aai.service_endpoint | default "" | trim | trimSuffix "/" | trimSuffix "/oauth2/userinfo" -}}
+{{- if $endpoint -}}
+{{- $endpoint -}}
+{{- else if .Values.components.aai_service.enabled -}}
+http://aai-service:8080
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "epos.gatewayAAIUserinfoEndpoint" -}}
 {{- if .Values.components.gateway.aai.enabled -}}
-{{- $authRootURL := include "epos.aaiAuthRootURL" . | trim | trimSuffix "/" -}}
-{{- if $authRootURL -}}
-{{- printf "%s/oauth2/userinfo" $authRootURL -}}
+{{- $serviceEndpoint := include "epos.gatewayAAIServiceEndpoint" . | trim | trimSuffix "/" -}}
+{{- if $serviceEndpoint -}}
+{{- printf "%s/oauth2/userinfo" $serviceEndpoint -}}
 {{- end -}}
 {{- end -}}
 {{- end -}}

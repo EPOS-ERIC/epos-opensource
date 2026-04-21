@@ -125,8 +125,11 @@ func TestConfigRender(t *testing.T) {
 			wantContains: map[string][]string{
 				"templates/gateway.yaml": {
 					`IS_AAI_ENABLED: "true"`,
-					`AAI_SERVICE_ENDPOINT: "http://localhost/test-aai/aai/oauth2/userinfo"`,
+					`AAI_SERVICE_ENDPOINT: "http://aai-service:8080/oauth2/userinfo"`,
 					"wait-for-aai-service",
+				},
+				"templates/dataportal.yaml": {
+					`AUTH_ROOT_URL: "http://localhost/test-aai/aai"`,
 				},
 				"templates/aai-service.yaml": {
 					"name: aai-service",

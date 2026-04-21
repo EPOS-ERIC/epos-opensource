@@ -246,3 +246,22 @@ func (e *EnvConfig) AAIAuthRootURL() string {
 
 	return ""
 }
+
+// AAIServiceEndpoint returns gateway-reachable AAI service endpoint.
+func (e *EnvConfig) AAIServiceEndpoint() string {
+	if !e.Components.Gateway.AAI.Enabled {
+		return ""
+	}
+
+	endpoint := common.TrimAuthURL(e.Components.Gateway.AAI.ServiceEndpoint)
+
+	if endpoint != "" {
+		return endpoint
+	}
+
+	if e.Components.AAIService.Enabled {
+		return "http://aai-service:8080"
+	}
+
+	return ""
+}

@@ -179,6 +179,8 @@ func (e *EnvConfig) EnsurePortsFree() error {
 		}
 	}
 
+	// TODO: add the free port check for the aai service too
+
 	return nil
 }
 

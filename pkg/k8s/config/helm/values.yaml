@@ -29,7 +29,8 @@ components:
       enabled: false
       # External URL where the AAI service is reachable (e.g. https://auth.example.com).
       # The gateway userinfo endpoint is derived from this URL by appending /oauth2/userinfo.
-      # Leave empty to auto-generate it as <protocol>://<domain>[/<namespace>]/aai.
+      # Leave empty to use the embedded aai_service endpoint when enabled.
+      # UI auth root URL still defaults to <protocol>://<domain>[/<namespace>]/aai.
       service_endpoint: ""
 
     # Base URL path for the API gateway. Must start with / and end with /api/v1

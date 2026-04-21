@@ -101,7 +101,7 @@ func TestDockerEnvConfig_Render(t *testing.T) {
 			wantContains: map[string][]string{
 				".env": {
 					"IS_AAI_ENABLED=true",
-					"AAI_SERVICE_ENDPOINT=http://localhost:35000/oauth2/userinfo",
+					"AAI_SERVICE_ENDPOINT=http://aai-service:8080/oauth2/userinfo",
 					"AUTH_ROOT_URL=http://localhost:35000",
 					"ADMIN_NAME=EPOS",
 					"ADMIN_SURNAME=User",
