@@ -13,12 +13,13 @@ import (
 
 type renderFormData struct {
 	envName    string
+	k8sContext string
 	outputPath string
 }
 
 func (a *App) showRenderForm() {
 	a.PushFocus()
-	envName, isDocker, _ := a.envList.GetSelected()
+	envName, isDocker, k8sContext := a.envList.GetSelected()
 	if envName == "" {
 		return
 	}
@@ -32,6 +33,7 @@ func (a *App) showRenderForm() {
 
 	data := &renderFormData{
 		envName:    envName,
+		k8sContext: k8sContext,
 		outputPath: envName,
 	}
 
@@ -81,13 +83,27 @@ func (a *App) handleRender(data *renderFormData, isDocker bool) {
 	}
 
 	if isDocker {
+		dockerCfg, cfgErr := a.loadDockerUpdateSeed(data.envName)
+		if cfgErr != nil {
+			a.ShowError(cfgErr.Error())
+			return
+		}
+
 		_, err = docker.Render(docker.RenderOpts{
 			Name:       data.envName,
+			Config:     dockerCfg,
 			OutputPath: outputPath,
 		})
 	} else {
+		k8sCfg, cfgErr := a.loadK8sUpdateSeed(data.envName, data.k8sContext)
+		if cfgErr != nil {
+			a.ShowError(cfgErr.Error())
+			return
+		}
+
 		_, err = k8s.Render(k8s.RenderOpts{
 			Name:       data.envName,
+			Config:     k8sCfg,
 			OutputPath: outputPath,
 		})
 	}
