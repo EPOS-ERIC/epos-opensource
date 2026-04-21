@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	externalAAIUserinfoEndpoint = "https://auth.example.com/oauth2/userinfo"
+	externalAAIAuthRootURL      = "https://auth.example.com"
+	externalAAIUserinfoEndpoint = externalAAIAuthRootURL + "/oauth2/userinfo"
 	dataportalTLSSecret         = "dataportal-tls"
 	gatewayTLSSecret            = "gateway-tls"
 	certManagerIssuerAnnotation = "cert-manager.io/cluster-issuer: letsencrypt"
@@ -127,6 +128,9 @@ func TestConfigRender(t *testing.T) {
 					`AAI_SERVICE_ENDPOINT: "http://aai-service:8080/oauth2/userinfo"`,
 					"wait-for-aai-service",
 				},
+				"templates/dataportal.yaml": {
+					`AUTH_ROOT_URL: "http://localhost/test-aai/aai"`,
+				},
 				"templates/aai-service.yaml": {
 					"name: aai-service",
 					"kind: Ingress",
@@ -141,7 +145,7 @@ func TestConfigRender(t *testing.T) {
 			},
 		},
 		{
-			name: "embedded aai disabled supports external endpoint without manifest",
+			name: "embedded aai disabled supports external endpoint and auth root without manifest",
 			mutate: func(cfg *config.Config) {
 				cfg.Name = "test-external-aai"
 				cfg.Components.Gateway.AAI.Enabled = true
@@ -151,6 +155,9 @@ func TestConfigRender(t *testing.T) {
 				"templates/gateway.yaml": {
 					`IS_AAI_ENABLED: "true"`,
 					`AAI_SERVICE_ENDPOINT: "` + externalAAIUserinfoEndpoint + `"`,
+				},
+				"templates/dataportal.yaml": {
+					`AUTH_ROOT_URL: "` + externalAAIAuthRootURL + `"`,
 				},
 			},
 			notContains: map[string][]string{

@@ -5,7 +5,10 @@ import (
 	"testing"
 )
 
-const externalAAIUserinfoEndpoint = "https://auth.example.com/oauth2/userinfo"
+const (
+	externalAAIAuthRootURL      = "https://auth.example.com"
+	externalAAIUserinfoEndpoint = externalAAIAuthRootURL + "/oauth2/userinfo"
+)
 
 func TestConfigValidate_Requirements(t *testing.T) {
 	tests := []struct {
@@ -133,13 +136,13 @@ func TestConfigValidate_Requirements(t *testing.T) {
 			errContains: "aai service tls secret_name is required when tls is enabled",
 		},
 		{
-			name: "aai service endpoint is required when aai is enabled",
+			name: "aai service endpoint is required when aai is enabled and embedded aai is disabled",
 			mutate: func(cfg *Config) {
 				enableAAI(cfg)
 				cfg.Components.Gateway.AAI.ServiceEndpoint = ""
 			},
 			wantErr:     true,
-			errContains: "aai service endpoint is required when aai is enabled",
+			errContains: "aai service endpoint is required when aai is enabled and embedded aai service is disabled",
 		},
 		{
 			name: "monitoring url is required when monitoring is enabled",
@@ -308,8 +311,30 @@ func TestConfigValidate_AAI(t *testing.T) {
 func TestConfigValidate_GatewayAAIWithExternalEndpointIsValid(t *testing.T) {
 	cfg := GetDefaultConfig()
 	cfg.Components.Gateway.AAI.Enabled = true
+	cfg.Components.Gateway.AAI.ServiceEndpoint = externalAAIAuthRootURL
+	cfg.Components.AAIService.Enabled = false
+
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("Validate() error = %v, want nil", err)
+	}
+}
+
+func TestConfigValidate_GatewayAAIWithExternalUserinfoEndpointIsValid(t *testing.T) {
+	cfg := GetDefaultConfig()
+	cfg.Components.Gateway.AAI.Enabled = true
 	cfg.Components.Gateway.AAI.ServiceEndpoint = externalAAIUserinfoEndpoint
 	cfg.Components.AAIService.Enabled = false
+
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("Validate() error = %v, want nil", err)
+	}
+}
+
+func TestConfigValidate_GatewayAAIWithEmbeddedAAIAndEmptyEndpointIsValid(t *testing.T) {
+	cfg := GetDefaultConfig()
+	cfg.Components.Gateway.AAI.Enabled = true
+	cfg.Components.Gateway.AAI.ServiceEndpoint = ""
+	cfg.Components.AAIService.Enabled = true
 
 	if err := cfg.Validate(); err != nil {
 		t.Fatalf("Validate() error = %v, want nil", err)
@@ -408,7 +433,7 @@ func TestConfigValidate_ServiceAuthRequiresGatewayAAI(t *testing.T) {
 func TestConfigValidate_ServiceAuthIsValidWithGatewayAAI(t *testing.T) {
 	cfg := GetDefaultConfig()
 	cfg.Components.Gateway.AAI.Enabled = true
-	cfg.Components.Gateway.AAI.ServiceEndpoint = externalAAIUserinfoEndpoint
+	cfg.Components.Gateway.AAI.ServiceEndpoint = externalAAIAuthRootURL
 	cfg.Components.ResourcesService.Auth.Enabled = true
 
 	if err := cfg.Validate(); err != nil {

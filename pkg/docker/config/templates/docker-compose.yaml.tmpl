@@ -413,9 +413,13 @@ services:
 {{- end}}
 
 volumes:
-  converter:
   psqldata:
+{{- if .Components.Converter.Enabled}}
+  converter:
+{{- end}}
+{{- if .Components.AAIService.Enabled}}
   aai:
+{{- end}}
 
 networks:
   epos_network:

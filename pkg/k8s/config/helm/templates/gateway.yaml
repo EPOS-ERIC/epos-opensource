@@ -16,7 +16,7 @@ LOAD_EMAIL_SENDER_API: "{{ .Values.components.email_sender_service.auth.enabled 
 {{- end}}
 
 IS_AAI_ENABLED: "{{ .Values.components.gateway.aai.enabled }}"
-AAI_SERVICE_ENDPOINT: "{{ .Values.components.gateway.aai.service_endpoint }}"
+AAI_SERVICE_ENDPOINT: "{{ include "epos.gatewayAAIUserinfoEndpoint" . }}"
 
 {{- if .Values.url_prefix_namespace }}
 BASECONTEXT: "/{{ .Release.Namespace }}"

@@ -102,6 +102,7 @@ func TestDockerEnvConfig_Render(t *testing.T) {
 				".env": {
 					"IS_AAI_ENABLED=true",
 					"AAI_SERVICE_ENDPOINT=http://aai-service:8080/oauth2/userinfo",
+					"AUTH_ROOT_URL=http://localhost:35000",
 					"ADMIN_NAME=EPOS",
 					"ADMIN_SURNAME=User",
 					"ADMIN_EMAIL=epos@epos.eu",
@@ -112,11 +113,11 @@ func TestDockerEnvConfig_Render(t *testing.T) {
 			},
 		},
 		{
-			name: "embedded aai disabled excludes service specific env vars and compose service",
+			name: "embedded aai disabled supports external auth root url",
 			config: func() *config.EnvConfig {
 				cfg := NewTestConfig(t, "test-external-aai").Build()
 				cfg.Components.Gateway.AAI.Enabled = true
-				cfg.Components.Gateway.AAI.ServiceEndpoint = externalAAIUserinfoEndpoint
+				cfg.Components.Gateway.AAI.ServiceEndpoint = externalAAIAuthRootURL
 				return cfg
 			}(),
 			wantErr: false,
@@ -124,6 +125,7 @@ func TestDockerEnvConfig_Render(t *testing.T) {
 				".env": {
 					"IS_AAI_ENABLED=true",
 					"AAI_SERVICE_ENDPOINT=" + externalAAIUserinfoEndpoint,
+					"AUTH_ROOT_URL=" + externalAAIAuthRootURL,
 				},
 			},
 			notContains: map[string][]string{
@@ -187,4 +189,19 @@ func TestDockerEnvConfig_Render_EmailSenderAuth(t *testing.T) {
 
 	got := MustRender(t, cfg)
 	ContentContains(t, got[".env"], ".env", []string{"LOAD_EMAIL_SENDER_API=true:true"})
+}
+
+func TestDockerEnvConfig_Render_AAIEndpointNormalization(t *testing.T) {
+	cfg := NewTestConfig(t, "test-aai-normalize").Build()
+	cfg.Components.Gateway.AAI.Enabled = true
+	cfg.Components.Gateway.AAI.ServiceEndpoint = externalAAIUserinfoEndpoint
+
+	got := MustRender(t, cfg)
+	ContentContains(t, got[".env"], ".env", []string{
+		"AAI_SERVICE_ENDPOINT=" + externalAAIUserinfoEndpoint,
+		"AUTH_ROOT_URL=" + externalAAIAuthRootURL,
+	})
+	ContentExcludes(t, got[".env"], ".env", []string{
+		"AAI_SERVICE_ENDPOINT=" + externalAAIUserinfoEndpoint + "/oauth2/userinfo",
+	})
 }
