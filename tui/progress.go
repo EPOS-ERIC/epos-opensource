@@ -307,12 +307,11 @@ func (op *OperationProgress) returnToHome() {
 	op.app.outputWriter.ClearView()
 
 	op.app.ResetToHome(ResetOptions{
-		PageNames:      []string{pageName, "completion-overlay"},
-		ClearDetails:   op.operation == opDelete && op.state == StateSuccess,
-		RefreshFiles:   (op.operation == opPopulate || op.operation == opClean || op.operation == opUpdate) && op.state == StateSuccess,
-		RestoreFocus:   op.operation != opDeploy || op.state != StateSuccess,
-		ForceEnvFocus:  op.operation == opDeploy && op.state == StateSuccess,
-		SyncEnvRefresh: (op.operation == opDelete || op.operation == opDeploy) && op.state == StateSuccess,
+		PageNames:     []string{pageName, "completion-overlay"},
+		ClearDetails:  op.operation == opDelete && op.state == StateSuccess,
+		RefreshFiles:  (op.operation == opPopulate || op.operation == opClean || op.operation == opUpdate) && op.state == StateSuccess,
+		RestoreFocus:  op.operation != opDeploy || op.state != StateSuccess,
+		ForceEnvFocus: op.operation == opDeploy && op.state == StateSuccess,
 	})
 
 	// If we were in details and it wasn't a delete, we might need a full update

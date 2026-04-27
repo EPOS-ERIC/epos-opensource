@@ -33,9 +33,11 @@ type App struct {
 	homeFlex     *tview.Flex
 	focusStack   []tview.Primitive
 
-	refreshTicker *time.Ticker
-	refreshMutex  sync.Mutex
-	refreshing    bool
+	refreshTicker    *time.Ticker
+	dockerRefreshMu  sync.Mutex
+	dockerRefreshing bool
+	k8sRefreshMu     sync.Mutex
+	k8sRefreshing    bool
 
 	currentFooterSection string
 	currentFooterKeys    []string
@@ -48,12 +50,11 @@ type App struct {
 
 // ResetOptions configures the return to home screen.
 type ResetOptions struct {
-	PageNames      []string // Pages to remove
-	ClearDetails   bool     // Clear details panel (e.g., after delete)
-	RefreshFiles   bool     // Refresh files list (e.g., after populate)
-	RestoreFocus   bool     // Restore focus from stack
-	ForceEnvFocus  bool     // Explicitly focus environment list
-	SyncEnvRefresh bool     // Refresh env list synchronously before focus restore
+	PageNames     []string // Pages to remove
+	ClearDetails  bool     // Clear details panel (e.g., after delete)
+	RefreshFiles  bool     // Refresh files list (e.g., after populate)
+	RestoreFocus  bool     // Restore focus from stack
+	ForceEnvFocus bool     // Explicitly focus environment list
 }
 
 // ConfirmationOptions defines settings for the standardized confirmation modal.
@@ -194,39 +195,66 @@ func (a *App) run() error {
 
 // startRefreshTicker starts background list refresh every 3 seconds.
 func (a *App) startRefreshTicker() {
-	a.refreshEnvListSync()
+	a.refreshEnvListsAsync(false)
 
 	a.refreshTicker = time.NewTicker(3 * time.Second)
 	go func() {
 		for range a.refreshTicker.C {
-			a.refreshEnvListAsync()
+			a.refreshEnvListsAsync(false)
 		}
 	}()
 }
 
-func (a *App) refreshEnvListSync() {
-	data := a.envList.loadData()
-	a.envList.applyData(data)
+func (a *App) refreshEnvListsAsync(showLoading bool) {
+	if showLoading {
+		a.envList.showDockerLoading()
+		a.envList.showK8sLoading()
+	}
+
+	a.refreshDockerAsync()
+	a.refreshK8sAsync()
 }
 
-func (a *App) refreshEnvListAsync() {
-	a.refreshMutex.Lock()
-	if a.refreshing {
-		a.refreshMutex.Unlock()
+func (a *App) refreshDockerAsync() {
+	a.dockerRefreshMu.Lock()
+	if a.dockerRefreshing {
+		a.dockerRefreshMu.Unlock()
 		return
 	}
-	a.refreshing = true
-	a.refreshMutex.Unlock()
+	a.dockerRefreshing = true
+	a.dockerRefreshMu.Unlock()
 
 	go func() {
-		data := a.envList.loadData()
+		data := a.envList.loadDockerData()
 
 		a.tview.QueueUpdateDraw(func() {
-			a.envList.applyData(data)
+			a.envList.applyDockerData(data)
 
-			a.refreshMutex.Lock()
-			a.refreshing = false
-			a.refreshMutex.Unlock()
+			a.dockerRefreshMu.Lock()
+			a.dockerRefreshing = false
+			a.dockerRefreshMu.Unlock()
+		})
+	}()
+}
+
+func (a *App) refreshK8sAsync() {
+	a.k8sRefreshMu.Lock()
+	if a.k8sRefreshing {
+		a.k8sRefreshMu.Unlock()
+		return
+	}
+	a.k8sRefreshing = true
+	a.k8sRefreshMu.Unlock()
+
+	go func() {
+		data := a.envList.loadK8sData()
+
+		a.tview.QueueUpdateDraw(func() {
+			a.envList.applyK8sData(data)
+
+			a.k8sRefreshMu.Lock()
+			a.k8sRefreshing = false
+			a.k8sRefreshMu.Unlock()
 		})
 	}()
 }
@@ -329,11 +357,7 @@ func (a *App) ResetToHome(opts ResetOptions) {
 
 	a.pages.SwitchToPage(homePageName)
 	a.currentPage = homePageName
-	if opts.SyncEnvRefresh {
-		a.refreshEnvListSync()
-	} else {
-		a.refreshEnvListAsync()
-	}
+	a.refreshEnvListsAsync(true)
 
 	if opts.RefreshFiles {
 		a.detailsPanel.RefreshFiles()
