@@ -11,6 +11,7 @@ import (
 const (
 	externalAAIAuthRootURL      = "https://auth.example.com"
 	externalAAIUserinfoEndpoint = externalAAIAuthRootURL + "/oauth2/userinfo"
+	gatewayAAIUserinfoEndpoint  = "https://gateway-auth.example.com/oauth2/userinfo"
 	dataportalTLSSecret         = "dataportal-tls"
 	gatewayTLSSecret            = "gateway-tls"
 	certManagerIssuerAnnotation = "cert-manager.io/cluster-issuer: letsencrypt"
@@ -164,6 +165,30 @@ func TestConfigRender(t *testing.T) {
 				"templates/gateway.yaml":     {"wait-for-aai-service"},
 				"templates/aai-service.yaml": {"name: aai-service"},
 				"templates/pvc.yaml":         {"name: aai"},
+			},
+		},
+		{
+			name: "gateway endpoint overrides gateway aai endpoint only",
+			mutate: func(cfg *config.Config) {
+				cfg.Name = "test-gateway-aai-endpoint"
+				cfg.Components.Gateway.AAI.Enabled = true
+				cfg.Components.Gateway.AAI.ServiceEndpoint = externalAAIAuthRootURL
+				cfg.Components.Gateway.AAI.GatewayEndpoint = gatewayAAIUserinfoEndpoint + "/"
+			},
+			wantContains: map[string][]string{
+				"templates/gateway.yaml": {
+					`IS_AAI_ENABLED: "true"`,
+					`AAI_SERVICE_ENDPOINT: "` + gatewayAAIUserinfoEndpoint + `"`,
+				},
+				"templates/dataportal.yaml": {
+					`AUTH_ROOT_URL: "` + externalAAIAuthRootURL + `"`,
+				},
+			},
+			notContains: map[string][]string{
+				"templates/gateway.yaml": {
+					`AAI_SERVICE_ENDPOINT: "` + externalAAIUserinfoEndpoint + `"`,
+					`AAI_SERVICE_ENDPOINT: "` + gatewayAAIUserinfoEndpoint + `/oauth2/userinfo"`,
+				},
 			},
 		},
 		{

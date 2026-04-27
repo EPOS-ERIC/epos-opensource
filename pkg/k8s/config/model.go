@@ -33,6 +33,7 @@ type PlatformGUI struct {
 type AAI struct {
 	Enabled         bool   `yaml:"enabled"`
 	ServiceEndpoint string `yaml:"service_endpoint"`
+	GatewayEndpoint string `yaml:"gateway_endpoint"`
 }
 
 // SwaggerPage configures API documentation metadata.

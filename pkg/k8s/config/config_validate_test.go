@@ -145,6 +145,16 @@ func TestConfigValidate_Requirements(t *testing.T) {
 			errContains: "aai service endpoint is required when aai is enabled and embedded aai service is disabled",
 		},
 		{
+			name: "gateway endpoint does not replace service endpoint validation",
+			mutate: func(cfg *Config) {
+				enableAAI(cfg)
+				cfg.Components.Gateway.AAI.ServiceEndpoint = ""
+				cfg.Components.Gateway.AAI.GatewayEndpoint = externalAAIAuthRootURL
+			},
+			wantErr:     true,
+			errContains: "aai service endpoint is required when aai is enabled and embedded aai service is disabled",
+		},
+		{
 			name: "monitoring url is required when monitoring is enabled",
 			mutate: func(cfg *Config) {
 				enableMonitoring(cfg)
