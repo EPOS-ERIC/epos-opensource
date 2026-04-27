@@ -12,6 +12,7 @@ const (
 	externalAAIAuthRootURL      = "https://auth.example.com"
 	externalAAIUserinfoEndpoint = externalAAIAuthRootURL + "/oauth2/userinfo"
 	gatewayAAIUserinfoEndpoint  = "https://gateway-auth.example.com/oauth2/userinfo"
+	gatewayAAIKeycloakUserinfo  = "https://login.envri.eu/auth/realms/envri/protocol/openid-connect/userinfo"
 	dataportalTLSSecret         = "dataportal-tls"
 	gatewayTLSSecret            = "gateway-tls"
 	certManagerIssuerAnnotation = "cert-manager.io/cluster-issuer: letsencrypt"
@@ -188,6 +189,30 @@ func TestConfigRender(t *testing.T) {
 				"templates/gateway.yaml": {
 					`AAI_SERVICE_ENDPOINT: "` + externalAAIUserinfoEndpoint + `"`,
 					`AAI_SERVICE_ENDPOINT: "` + gatewayAAIUserinfoEndpoint + `/oauth2/userinfo"`,
+				},
+			},
+		},
+		{
+			name: "gateway endpoint keeps existing userinfo suffix",
+			mutate: func(cfg *config.Config) {
+				cfg.Name = "test-gateway-aai-keycloak-endpoint"
+				cfg.Components.Gateway.AAI.Enabled = true
+				cfg.Components.Gateway.AAI.ServiceEndpoint = externalAAIAuthRootURL
+				cfg.Components.Gateway.AAI.GatewayEndpoint = gatewayAAIKeycloakUserinfo + "/"
+			},
+			wantContains: map[string][]string{
+				"templates/gateway.yaml": {
+					`IS_AAI_ENABLED: "true"`,
+					`AAI_SERVICE_ENDPOINT: "` + gatewayAAIKeycloakUserinfo + `"`,
+				},
+				"templates/dataportal.yaml": {
+					`AUTH_ROOT_URL: "` + externalAAIAuthRootURL + `"`,
+				},
+			},
+			notContains: map[string][]string{
+				"templates/gateway.yaml": {
+					`AAI_SERVICE_ENDPOINT: "` + gatewayAAIKeycloakUserinfo + `/oauth2/userinfo"`,
+					`AAI_SERVICE_ENDPOINT: "` + externalAAIUserinfoEndpoint + `"`,
 				},
 			},
 		},
