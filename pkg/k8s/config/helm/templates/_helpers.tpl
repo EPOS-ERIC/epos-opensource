@@ -120,7 +120,11 @@ http://aai-service:8080
 {{- if .Values.components.gateway.aai.enabled -}}
 {{- $serviceEndpoint := include "epos.gatewayAAIServiceEndpoint" . | trim | trimSuffix "/" -}}
 {{- if $serviceEndpoint -}}
+{{- if regexMatch "/userinfo$" $serviceEndpoint -}}
+{{- $serviceEndpoint -}}
+{{- else -}}
 {{- printf "%s/oauth2/userinfo" $serviceEndpoint -}}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 {{- end -}}

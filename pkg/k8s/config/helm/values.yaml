@@ -27,13 +27,18 @@ components:
       # When enabled, the gateway will call the configured userinfo endpoint to validate authenticated requests.
       # This can point to the embedded aai_service below or to an external provider.
       enabled: false
-      # External URL where the AAI service is reachable (e.g. https://auth.example.com).
-      # The gateway userinfo endpoint is derived from this URL by appending /oauth2/userinfo.
-      # Leave empty to use the embedded aai_service endpoint when enabled.
-      # UI auth root URL still defaults to <protocol>://<domain>[/<namespace>]/aai.
+      # Base URL of your AAI/identity provider (for example https://auth.example.com).
+      # This is the main auth URL used by the platform login pages. For API auth checks:
+      # - if it already ends with /userinfo, it is used as written
+      # - otherwise /oauth2/userinfo is added automatically
+      # Required when aai.enabled is true and built-in aai_service is disabled.
+      # Leave empty only when you want to use the built-in aai_service.
       service_endpoint: ""
-      # Optional endpoint override used only by the gateway for AAI_SERVICE_ENDPOINT.
-      # Leave empty to keep existing behavior and use service_endpoint (or embedded aai_service).
+      # Optional override for API auth checks.
+      # Use this when API auth should call a different endpoint than service_endpoint. Leave empty to use service_endpoint.
+      # (for example .../protocol/openid-connect/userinfo).
+      # - if it already ends with /userinfo, it is used as written
+      # - otherwise /oauth2/userinfo is added automatically
       gateway_endpoint: ""
 
     # Base URL path for the API gateway. Must start with / and end with /api/v1

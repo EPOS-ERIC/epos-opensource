@@ -224,3 +224,22 @@ func TestDockerEnvConfig_Render_GatewayAAIEndpointOverride(t *testing.T) {
 		"AAI_SERVICE_ENDPOINT=" + gatewayAAIUserinfoEndpoint + "/oauth2/userinfo",
 	})
 }
+
+func TestDockerEnvConfig_Render_GatewayAAIEndpointOverridePreservesUserinfoEndpoint(t *testing.T) {
+	const gatewayAAIKeycloakUserinfoEndpoint = "https://login.envri.eu/auth/realms/envri/protocol/openid-connect/userinfo"
+
+	cfg := NewTestConfig(t, "test-aai-gateway-keycloak-override").Build()
+	cfg.Components.Gateway.AAI.Enabled = true
+	cfg.Components.Gateway.AAI.ServiceEndpoint = externalAAIAuthRootURL
+	cfg.Components.Gateway.AAI.GatewayEndpoint = gatewayAAIKeycloakUserinfoEndpoint
+
+	got := MustRender(t, cfg)
+	ContentContains(t, got[".env"], ".env", []string{
+		"AAI_SERVICE_ENDPOINT=" + gatewayAAIKeycloakUserinfoEndpoint,
+		"AUTH_ROOT_URL=" + externalAAIAuthRootURL,
+	})
+	ContentExcludes(t, got[".env"], ".env", []string{
+		"AAI_SERVICE_ENDPOINT=" + externalAAIUserinfoEndpoint,
+		"AAI_SERVICE_ENDPOINT=" + gatewayAAIKeycloakUserinfoEndpoint + "/oauth2/userinfo",
+	})
+}

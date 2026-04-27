@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/EPOS-ERIC/epos-opensource/common"
 )
@@ -271,4 +272,20 @@ func (e *EnvConfig) AAIServiceEndpoint() string {
 	}
 
 	return ""
+}
+
+// AAIUserinfoEndpoint returns gateway-reachable AAI userinfo endpoint.
+func (e *EnvConfig) AAIUserinfoEndpoint() string {
+	endpoint := strings.TrimSpace(e.AAIServiceEndpoint())
+	endpoint = strings.TrimSuffix(endpoint, "/")
+
+	if endpoint == "" {
+		return ""
+	}
+
+	if strings.HasSuffix(endpoint, "/userinfo") {
+		return endpoint
+	}
+
+	return endpoint + "/oauth2/userinfo"
 }
