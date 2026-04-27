@@ -2,7 +2,7 @@
 
 A command-line tool for deploying the EPOS Platform locally using Docker Compose or K8s.
 
-![Image](https://epos-eric.github.io/opensource-docs/assets/images/docker_deploy_urls-2450973de00d8b8da4bc1e0ae57eae47.png)
+![Image](https://epos-eric.github.io/opensource-docs/assets/images/docker-deploy-urls-2450973de00d8b8da4bc1e0ae57eae47.png)
 
 ---
 
