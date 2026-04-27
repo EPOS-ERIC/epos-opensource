@@ -17,10 +17,14 @@ type k8sEnvRef struct {
 	Context string
 }
 
-type envListData struct {
-	dockerEnvs []string
-	k8sEnvs    []k8sEnvRef
-	dockerErr  error
+type dockerListData struct {
+	envs []string
+	err  error
+}
+
+type k8sListData struct {
+	envs []k8sEnvRef
+	err  error
 }
 
 // EnvList manages the left-side navigation for environment selection.
@@ -98,7 +102,8 @@ func (el *EnvList) buildUI() *tview.Flex {
 	el.buttonFlexK8s.AddItem(el.createNewButtonK8s, 26, 0, true)
 	el.buttonFlexK8s.AddItem(tview.NewBox(), 0, 1, false)
 
-	el.applyData(envListData{})
+	el.showDockerLoading()
+	el.showK8sLoading()
 
 	envsFlex := tview.NewFlex().
 		SetDirection(tview.FlexRow).
@@ -114,27 +119,47 @@ func (el *EnvList) GetFlex() *tview.Flex {
 	return el.flex
 }
 
-func (el *EnvList) loadData() envListData {
-	data := envListData{
-		dockerEnvs: []string{},
-		k8sEnvs:    []k8sEnvRef{},
-	}
+func (el *EnvList) showDockerLoading() {
+	el.dockerFlexInner.Clear()
+	el.dockerEmpty.SetText(DefaultTheme.MutedTag("i") + "Loading Docker environments...")
+	el.dockerFlexInner.AddItem(el.dockerEmpty, 0, 1, false)
+	el.dockerFlexInner.AddItem(el.buttonFlex, 1, 0, true)
+}
+
+func (el *EnvList) showK8sLoading() {
+	el.k8sFlexInner.Clear()
+	el.k8sEmpty.SetText(DefaultTheme.MutedTag("i") + "Loading K8s environments...")
+	el.k8sFlexInner.AddItem(el.k8sEmpty, 0, 1, false)
+	el.k8sFlexInner.AddItem(el.buttonFlexK8s, 1, 0, true)
+}
+
+func (el *EnvList) loadDockerData() dockerListData {
+	data := dockerListData{envs: []string{}}
 
 	envs, err := docker.List()
 	if err != nil {
-		data.dockerErr = err
-	} else {
-		for _, env := range envs {
-			data.dockerEnvs = append(data.dockerEnvs, env.Name)
-		}
+		data.err = err
+		return data
 	}
 
-	data.k8sEnvs = el.loadK8sEnvs()
+	for _, env := range envs {
+		data.envs = append(data.envs, env.Name)
+	}
 
 	return data
 }
 
-func (el *EnvList) loadK8sEnvs() []k8sEnvRef {
+func (el *EnvList) loadK8sData() k8sListData {
+	data := k8sListData{envs: []k8sEnvRef{}}
+
+	envs, err := el.loadK8sEnvs()
+	data.envs = envs
+	data.err = err
+
+	return data
+}
+
+func (el *EnvList) loadK8sEnvs() ([]k8sEnvRef, error) {
 	k8sEnvs := []k8sEnvRef{}
 
 	contexts, err := common.GetKubeContexts()
@@ -148,7 +173,17 @@ func (el *EnvList) loadK8sEnvs() []k8sEnvRef {
 		}
 	}
 
+	if len(contexts) == 0 {
+		if err != nil {
+			return k8sEnvs, err
+		}
+
+		return k8sEnvs, nil
+	}
+
 	seenContexts := make(map[string]struct{}, len(contexts))
+	var firstErr error
+
 	for _, context := range contexts {
 		context = strings.TrimSpace(context)
 		if context == "" {
@@ -163,6 +198,9 @@ func (el *EnvList) loadK8sEnvs() []k8sEnvRef {
 		envs, listErr := k8s.List(context)
 		if listErr != nil {
 			log.Printf("failed to list k8s environments in context %q: %v", context, listErr)
+			if firstErr == nil {
+				firstErr = listErr
+			}
 			continue
 		}
 
@@ -182,29 +220,28 @@ func (el *EnvList) loadK8sEnvs() []k8sEnvRef {
 		return k8sEnvs[i].Name < k8sEnvs[j].Name
 	})
 
-	return k8sEnvs
+	if len(k8sEnvs) == 0 && firstErr != nil {
+		return k8sEnvs, firstErr
+	}
+
+	return k8sEnvs, nil
 }
 
-func (el *EnvList) applyData(data envListData) {
+func (el *EnvList) applyDockerData(data dockerListData) {
 	dockerIndex := el.docker.GetCurrentItem()
-	k8sIndex := el.k8s.GetCurrentItem()
 	selectedDocker := ""
-	selectedK8s := k8sEnvRef{}
 
 	if dockerIndex >= 0 && dockerIndex < len(el.dockerEnvs) {
 		selectedDocker = el.dockerEnvs[dockerIndex]
 	}
 
-	if k8sIndex >= 0 && k8sIndex < len(el.k8sEnvs) {
-		selectedK8s = el.k8sEnvs[k8sIndex]
-	}
-
 	el.dockerFlexInner.Clear()
 	el.docker.Clear()
-	el.dockerEnvs = append(el.dockerEnvs[:0], data.dockerEnvs...)
+	el.dockerEnvs = append(el.dockerEnvs[:0], data.envs...)
+	el.dockerEmpty.SetText(DefaultTheme.MutedTag("i") + "No Docker environments found")
 
-	if data.dockerErr != nil {
-		el.app.ShowError("Failed to load Docker environments")
+	if data.err != nil {
+		el.dockerEmpty.SetText("\n" + DefaultTheme.DestructiveTag("i") + "Failed to load Docker environments")
 	}
 
 	if len(el.dockerEnvs) == 0 {
@@ -235,10 +272,24 @@ func (el *EnvList) applyData(data envListData) {
 	}
 
 	el.dockerFlexInner.AddItem(el.buttonFlex, 1, 0, true)
+	el.syncFocusWithVisibleItems()
+}
+
+func (el *EnvList) applyK8sData(data k8sListData) {
+	k8sIndex := el.k8s.GetCurrentItem()
+	selectedK8s := k8sEnvRef{}
+
+	if k8sIndex >= 0 && k8sIndex < len(el.k8sEnvs) {
+		selectedK8s = el.k8sEnvs[k8sIndex]
+	}
 
 	el.k8sFlexInner.Clear()
 	el.k8s.Clear()
-	el.k8sEnvs = append(el.k8sEnvs[:0], data.k8sEnvs...)
+	el.k8sEnvs = append(el.k8sEnvs[:0], data.envs...)
+	el.k8sEmpty.SetText(DefaultTheme.MutedTag("i") + "No K8s environments found")
+	if data.err != nil {
+		el.k8sEmpty.SetText("\n" + DefaultTheme.DestructiveTag("i") + "Failed to load K8s environments")
+	}
 
 	if len(el.k8sEnvs) == 0 {
 		el.k8sFlexInner.AddItem(el.k8sEmpty, 0, 1, false)
@@ -341,7 +392,7 @@ func (el *EnvList) SetInitialFocus() {
 	if el.docker.GetItemCount() > 0 {
 		el.app.tview.SetFocus(el.docker)
 	} else {
-		el.app.tview.SetFocus(el.createNewButton)
+		el.app.tview.SetFocus(el.dockerEmpty)
 	}
 }
 
