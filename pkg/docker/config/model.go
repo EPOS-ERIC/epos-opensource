@@ -26,6 +26,7 @@ type PlatformGUI struct {
 type AAI struct {
 	Enabled         bool   `yaml:"enabled"`
 	ServiceEndpoint string `yaml:"service_endpoint"`
+	GatewayEndpoint string `yaml:"gateway_endpoint"`
 }
 
 // SwaggerPage configures API documentation metadata.
@@ -251,6 +252,12 @@ func (e *EnvConfig) AAIAuthRootURL() string {
 func (e *EnvConfig) AAIServiceEndpoint() string {
 	if !e.Components.Gateway.AAI.Enabled {
 		return ""
+	}
+
+	gatewayEndpoint := common.TrimAuthURL(e.Components.Gateway.AAI.GatewayEndpoint)
+
+	if gatewayEndpoint != "" {
+		return gatewayEndpoint
 	}
 
 	endpoint := common.TrimAuthURL(e.Components.Gateway.AAI.ServiceEndpoint)

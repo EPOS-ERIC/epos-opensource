@@ -195,6 +195,16 @@ func TestEnvConfigValidate_AAI(t *testing.T) {
 			},
 			errContains: "aai service endpoint is required when aai is enabled and embedded aai service is disabled",
 		},
+		{
+			name: "gateway endpoint does not replace service endpoint validation",
+			mutate: func(cfg *config.EnvConfig) {
+				cfg.Components.Gateway.AAI.Enabled = true
+				cfg.Components.Gateway.AAI.ServiceEndpoint = ""
+				cfg.Components.Gateway.AAI.GatewayEndpoint = externalAAIAuthRootURL
+				cfg.Components.AAIService.Enabled = false
+			},
+			errContains: "aai service endpoint is required when aai is enabled and embedded aai service is disabled",
+		},
 	}
 
 	for _, tt := range tests {

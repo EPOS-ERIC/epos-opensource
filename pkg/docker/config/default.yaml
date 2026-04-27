@@ -24,6 +24,9 @@ components:
       # The gateway userinfo endpoint is derived from this URL by appending /oauth2/userinfo.
       # Leave empty to auto-generate it as <protocol>://<domain>:<aai_service.port> when embedded aai_service is enabled.
       service_endpoint: ""
+      # Optional endpoint override used only by the gateway for AAI_SERVICE_ENDPOINT.
+      # Leave empty to keep existing behavior and use service_endpoint (or embedded aai_service).
+      gateway_endpoint: ""
 
     # Base URL path for the API gateway. Must start with / and end with /api/v1
     base_url: "/api/v1"

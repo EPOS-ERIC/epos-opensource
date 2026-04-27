@@ -32,6 +32,9 @@ components:
       # Leave empty to use the embedded aai_service endpoint when enabled.
       # UI auth root URL still defaults to <protocol>://<domain>[/<namespace>]/aai.
       service_endpoint: ""
+      # Optional endpoint override used only by the gateway for AAI_SERVICE_ENDPOINT.
+      # Leave empty to keep existing behavior and use service_endpoint (or embedded aai_service).
+      gateway_endpoint: ""
 
     # Base URL path for the API gateway. Must start with / and end with /api/v1
     base_url: "/api/v1/" # it needs to end with /api/v1

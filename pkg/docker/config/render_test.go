@@ -205,3 +205,22 @@ func TestDockerEnvConfig_Render_AAIEndpointNormalization(t *testing.T) {
 		"AAI_SERVICE_ENDPOINT=" + externalAAIUserinfoEndpoint + "/oauth2/userinfo",
 	})
 }
+
+func TestDockerEnvConfig_Render_GatewayAAIEndpointOverride(t *testing.T) {
+	const gatewayAAIUserinfoEndpoint = "https://gateway-auth.example.com/oauth2/userinfo"
+
+	cfg := NewTestConfig(t, "test-aai-gateway-override").Build()
+	cfg.Components.Gateway.AAI.Enabled = true
+	cfg.Components.Gateway.AAI.ServiceEndpoint = externalAAIAuthRootURL
+	cfg.Components.Gateway.AAI.GatewayEndpoint = gatewayAAIUserinfoEndpoint
+
+	got := MustRender(t, cfg)
+	ContentContains(t, got[".env"], ".env", []string{
+		"AAI_SERVICE_ENDPOINT=" + gatewayAAIUserinfoEndpoint,
+		"AUTH_ROOT_URL=" + externalAAIAuthRootURL,
+	})
+	ContentExcludes(t, got[".env"], ".env", []string{
+		"AAI_SERVICE_ENDPOINT=" + externalAAIUserinfoEndpoint,
+		"AAI_SERVICE_ENDPOINT=" + gatewayAAIUserinfoEndpoint + "/oauth2/userinfo",
+	})
+}
