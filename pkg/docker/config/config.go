@@ -119,6 +119,36 @@ func (e *EnvConfig) BuildEnvURLs() (*common.URLs, error) {
 	return urls, nil
 }
 
+// BackofficeURL returns the externally reachable backoffice base URL.
+func (e *EnvConfig) BackofficeURL() string {
+	base := &url.URL{
+		Scheme: e.Protocol,
+		Host:   net.JoinHostPort(e.Domain, strconv.Itoa(e.Components.Backoffice.GUI.Port)),
+	}
+
+	backofficeURL, err := url.JoinPath(base.String(), e.Components.Backoffice.GUI.BaseURL)
+	if err != nil {
+		return ""
+	}
+
+	return backofficeURL
+}
+
+// PlatformURL returns the externally reachable platform GUI base URL.
+func (e *EnvConfig) PlatformURL() string {
+	base := &url.URL{
+		Scheme: e.Protocol,
+		Host:   net.JoinHostPort(e.Domain, strconv.Itoa(e.Components.PlatformGUI.Port)),
+	}
+
+	platformURL, err := url.JoinPath(base.String(), e.Components.PlatformGUI.BaseURL)
+	if err != nil {
+		return ""
+	}
+
+	return platformURL
+}
+
 // CheckForUpdates checks configured container images for newer tags.
 func (e *EnvConfig) CheckForUpdates() ([]display.ImageUpdateInfo, error) {
 	updates, err := common.CheckImagesForUpdates(e.ActiveImages())
