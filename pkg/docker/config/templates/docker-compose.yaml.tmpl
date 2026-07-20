@@ -404,6 +404,10 @@ services:
       - INITIAL_ADMIN_EMAIL=${ADMIN_EMAIL}
       - INITIAL_ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - APP_CORS_ALLOW_ORIGIN=*
+      - PLATFORM_URL=${PLATFORM_URL}
+      {{- if .Components.Backoffice.Enabled}}
+      - BACKOFFICE_URL=${BACKOFFICE_URL}
+      {{- end}}
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/healthz || exit 1"]
       interval: 10s

@@ -91,6 +91,30 @@ jdbc:postgresql://{{ default .Values.components.metadata_database.host }}:{{ .Va
 {{- end -}}
 {{- end -}}
 
+{{- define "epos.backofficeBasePath" -}}
+{{- if .Values.url_prefix_namespace -}}
+{{- printf "/%s%s" .Release.Namespace .Values.components.backoffice.gui.base_url -}}
+{{- else -}}
+{{- .Values.components.backoffice.gui.base_url -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "epos.backofficeURL" -}}
+{{- printf "%s://%s%s" .Values.protocol .Values.domain (include "epos.backofficeBasePath" .) -}}
+{{- end -}}
+
+{{- define "epos.platformBasePath" -}}
+{{- if .Values.url_prefix_namespace -}}
+{{- printf "/%s%s" .Release.Namespace .Values.components.platform_gui.base_url -}}
+{{- else -}}
+{{- .Values.components.platform_gui.base_url -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "epos.platformURL" -}}
+{{- printf "%s://%s%s" .Values.protocol .Values.domain (include "epos.platformBasePath" .) -}}
+{{- end -}}
+
 {{- define "epos.aaiAuthRootURL" -}}
 {{- $endpoint := .Values.components.gateway.aai.service_endpoint | default "" | trim | trimSuffix "/" | trimSuffix "/oauth2/userinfo" -}}
 {{- if $endpoint -}}

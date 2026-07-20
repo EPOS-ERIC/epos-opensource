@@ -50,8 +50,8 @@ func TestDockerEnvConfig_Render(t *testing.T) {
 			}(),
 			wantErr: false,
 			wantContains: map[string][]string{
-				".env":                {"AUTH_ROOT_URL=http://localhost:35000"},
-				"docker-compose.yaml": {"dataportal:", "backoffice-ui:", "- AUTH_ROOT_URL"},
+				".env":                {"AUTH_ROOT_URL=http://localhost:35000", "PLATFORM_URL=http://localhost:32000", "BACKOFFICE_URL=http://localhost:34000/backoffice"},
+				"docker-compose.yaml": {"dataportal:", "backoffice-ui:", "- AUTH_ROOT_URL", "BACKOFFICE_URL=${BACKOFFICE_URL}"},
 			},
 		},
 		{
@@ -103,13 +103,14 @@ func TestDockerEnvConfig_Render(t *testing.T) {
 					"IS_AAI_ENABLED=true",
 					"AAI_SERVICE_ENDPOINT=http://aai-service:8080/oauth2/userinfo",
 					"AUTH_ROOT_URL=http://localhost:35000",
+					"PLATFORM_URL=http://localhost:32000",
 					"ADMIN_NAME=EPOS",
 					"ADMIN_SURNAME=User",
 					"ADMIN_EMAIL=epos@epos.eu",
 					"ADMIN_PASSWORD=epos",
 					"AAI_SERVICE_PORT=35000",
 				},
-				"docker-compose.yaml": {"aai-service:", "${AAI_SERVICE_PORT}:8080"},
+				"docker-compose.yaml": {"aai-service:", "${AAI_SERVICE_PORT}:8080", "PLATFORM_URL=${PLATFORM_URL}"},
 			},
 		},
 		{

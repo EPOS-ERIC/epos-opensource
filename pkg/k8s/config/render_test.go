@@ -123,6 +123,7 @@ func TestConfigRender(t *testing.T) {
 				cfg.Name = "test-aai"
 				cfg.Components.Gateway.AAI.Enabled = true
 				cfg.Components.AAIService.Enabled = true
+				cfg.Components.Backoffice.Enabled = true
 			},
 			wantContains: map[string][]string{
 				"templates/gateway.yaml": {
@@ -142,8 +143,26 @@ func TestConfigRender(t *testing.T) {
 					`INITIAL_ADMIN_EMAIL: "epos@epos.eu"`,
 					`INITIAL_ADMIN_PASSWORD: "epos"`,
 					`APP_CORS_ALLOW_ORIGIN: "*"`,
+					`PLATFORM_URL: "http://localhost/test-aai/"`,
+					`BACKOFFICE_URL: "http://localhost/test-aai/backoffice/"`,
 				},
 				"templates/pvc.yaml": {"name: aai"},
+			},
+		},
+		{
+			name: "embedded aai backoffice URL omits namespace when prefix is disabled",
+			mutate: func(cfg *config.Config) {
+				cfg.Name = "test-aai-no-prefix"
+				cfg.URLPrefixNamespace = false
+				cfg.Components.Gateway.AAI.Enabled = true
+				cfg.Components.AAIService.Enabled = true
+				cfg.Components.Backoffice.Enabled = true
+			},
+			wantContains: map[string][]string{
+				"templates/aai-service.yaml": {
+					`PLATFORM_URL: "http://localhost/"`,
+					`BACKOFFICE_URL: "http://localhost/backoffice/"`,
+				},
 			},
 		},
 		{

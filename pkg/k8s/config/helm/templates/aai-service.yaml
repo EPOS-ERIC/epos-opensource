@@ -9,6 +9,11 @@ INITIAL_ADMIN_SURNAME: {{ .Values.components.aai_service.surname | quote }}
 INITIAL_ADMIN_EMAIL: {{ .Values.components.aai_service.email | quote }}
 INITIAL_ADMIN_PASSWORD: {{ .Values.components.aai_service.password | quote }}
 APP_CORS_ALLOW_ORIGIN: "*"
+OIDC_ISSUER: {{ printf "%s/oauth2" (include "epos.defaultAAIAuthRootURL" .) | quote }}
+PLATFORM_URL: {{ include "epos.platformURL" . | quote }}
+{{- if .Values.components.backoffice.enabled }}
+BACKOFFICE_URL: {{ include "epos.backofficeURL" . | quote }}
+{{- end }}
 {{- end -}}
 
 {{- if .Values.components.aai_service.enabled }}

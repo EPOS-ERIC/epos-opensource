@@ -1,9 +1,5 @@
 {{- define "epos.dataportalConfigData" -}}
-{{- if .Values.url_prefix_namespace }}
-BASE_URL: /{{ .Release.Namespace }}{{ .Values.components.platform_gui.base_url }}
-{{- else }}
-BASE_URL: {{ .Values.components.platform_gui.base_url }}
-{{- end }}
+BASE_URL: {{ include "epos.platformBasePath" . }}
 API_HOST: http://gateway:5000/api
 AUTH_ROOT_URL: {{ include "epos.aaiAuthRootURL" . | quote }}
 {{- end -}}
@@ -70,11 +66,7 @@ metadata:
     {{- include "epos.labels" . | nindent 4 }}
     app.kubernetes.io/component: dataportal
   annotations:
-    {{- if .Values.url_prefix_namespace }}
-    nginx.ingress.kubernetes.io/rewrite-target: /{{ .Release.Namespace }}{{ .Values.components.platform_gui.base_url }}
-    {{- else }}
-    nginx.ingress.kubernetes.io/rewrite-target: {{ .Values.components.platform_gui.base_url }}
-    {{- end }}
+    nginx.ingress.kubernetes.io/rewrite-target: {{ include "epos.platformBasePath" . }}
 
     {{- if and .Values.components.platform_gui.tls.enabled .Values.cert_manager_issuer }}
     cert-manager.io/cluster-issuer: {{ .Values.cert_manager_issuer }}
@@ -85,11 +77,7 @@ spec:
   - host: {{ .Values.domain }}
     http:
       paths:
-      {{- if .Values.url_prefix_namespace }}
-      - path: /{{ .Release.Namespace }}{{ .Values.components.platform_gui.base_url }}
-      {{- else }}
-      - path: {{ .Values.components.platform_gui.base_url }}
-      {{- end }}
+      - path: {{ include "epos.platformBasePath" . }}
         pathType: Prefix
         backend:
           service:
