@@ -35,6 +35,7 @@ spec:
       containers:
       - name: backoffice-ui
         image: {{ .Values.images.backoffice_ui_image }}
+        {{- include "epos.image_pull_policy" . | nindent 8 }}
         envFrom:
         - configMapRef:
             name: backoffice-ui

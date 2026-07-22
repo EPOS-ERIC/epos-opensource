@@ -47,6 +47,7 @@ spec:
       containers:
       - name: email-sender-service
         image: {{ .Values.images.email_sender_service_image }}
+        {{- include "epos.image_pull_policy" . | nindent 8 }}
         ports:
         - containerPort: 8080
           name: http

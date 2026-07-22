@@ -43,6 +43,7 @@ spec:
       containers:
       - name: aai-service
         image: {{ .Values.images.aai_service_image }}
+        {{- include "epos.image_pull_policy" . | nindent 8 }}
         ports:
         - containerPort: 8080
           name: http

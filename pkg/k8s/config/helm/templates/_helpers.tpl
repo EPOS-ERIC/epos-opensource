@@ -39,6 +39,10 @@ imagePullSecrets:
 {{- end }}
 {{- end -}}
 
+{{- define "epos.image_pull_policy" -}}
+imagePullPolicy: {{ .Values.image_pull_policy | default "IfNotPresent" }}
+{{- end -}}
+
 {{- define "epos.nodeSelector" -}}
 {{- if .Values.nodeSelector }}
 nodeSelector:

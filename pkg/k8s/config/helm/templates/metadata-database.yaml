@@ -23,6 +23,7 @@ spec:
       containers:
       - name: metadata-database
         image: {{ .Values.images.metadata_database_image }}
+        {{- include "epos.image_pull_policy" . | nindent 8 }}
         ports:
         - containerPort: {{ .Values.components.metadata_database.port | int }}
           name: postgresql

@@ -9,6 +9,7 @@ type Config struct {
 	Protocol           string           `yaml:"protocol"`
 	URLPrefixNamespace bool             `yaml:"url_prefix_namespace"`
 	CreateNamespace    bool             `yaml:"create_namespace"`
+	ImagePullPolicy    string           `yaml:"image_pull_policy"`
 	Components         Components       `yaml:"components"`
 	Jobs               Jobs             `yaml:"jobs"`
 	Monitoring         Monitoring       `yaml:"monitoring"`

@@ -40,7 +40,7 @@ func TestConfigRender(t *testing.T) {
 			},
 			wantContains: map[string][]string{
 				"templates/dataportal.yaml":        {"name: dataportal", `AUTH_ROOT_URL: "http://localhost/test-default/aai"`},
-				"templates/gateway.yaml":           {"name: gateway", `IS_AAI_ENABLED: "false"`},
+				"templates/gateway.yaml":           {"name: gateway", `IS_AAI_ENABLED: "false"`, "imagePullPolicy: IfNotPresent"},
 				"templates/rabbitmq.yaml":          {"name: rabbitmq"},
 				"templates/metadata-database.yaml": {"name: metadata-database"},
 				"templates/resources-service.yaml": {"name: resources-service", `MONITORING: "false"`},
@@ -65,6 +65,19 @@ func TestConfigRender(t *testing.T) {
 				"templates/converter-routine.yaml":    {"name: converter-routine"},
 				"templates/email-sender-service.yaml": {"name: email-sender-service"},
 				"templates/sharing-service.yaml":      {"name: sharing-service"},
+			},
+		},
+		{
+			name: "image pull policy is configurable",
+			mutate: func(cfg *config.Config) {
+				cfg.Name = "test-image-policy"
+				cfg.ImagePullPolicy = "Always"
+				cfg.Jobs.Enabled = true
+			},
+			wantContains: map[string][]string{
+				"templates/gateway.yaml":                {"imagePullPolicy: Always"},
+				"templates/init-db-job.yaml":            {"imagePullPolicy: Always"},
+				"templates/ontology-populator-job.yaml": {"imagePullPolicy: Always"},
 			},
 		},
 		{

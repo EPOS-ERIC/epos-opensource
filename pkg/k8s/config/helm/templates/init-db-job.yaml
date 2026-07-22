@@ -26,6 +26,7 @@ spec:
       containers:
       - name: {{ $name }}
         image: {{ .Values.jobs.init_db.image }}
+        {{- include "epos.image_pull_policy" . | nindent 8 }}
         command: [ "/bin/sh", "-c" ]
         args:
         - |

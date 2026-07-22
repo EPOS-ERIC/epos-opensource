@@ -225,6 +225,42 @@ func TestConfigValidate_DefaultConfigIsValid(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_ImagePullPolicy(t *testing.T) {
+	tests := []struct {
+		name        string
+		policy      string
+		wantPolicy  string
+		wantErrText string
+	}{
+		{name: "default", policy: "", wantPolicy: "IfNotPresent"},
+		{name: "always", policy: "Always", wantPolicy: "Always"},
+		{name: "never", policy: "Never", wantPolicy: "Never"},
+		{name: "invalid", policy: "Sometimes", wantErrText: "image_pull_policy must be"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := GetDefaultConfig()
+			cfg.ImagePullPolicy = tt.policy
+
+			err := cfg.Validate()
+			if tt.wantErrText != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErrText) {
+					t.Fatalf("Validate() error = %v, want substring %q", err, tt.wantErrText)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("Validate() error = %v, want nil", err)
+			}
+			if cfg.ImagePullPolicy != tt.wantPolicy {
+				t.Fatalf("ImagePullPolicy = %q, want %q", cfg.ImagePullPolicy, tt.wantPolicy)
+			}
+		})
+	}
+}
+
 func TestConfigValidate_DefaultCreateNamespaceEnabled(t *testing.T) {
 	cfg := GetDefaultConfig()
 
