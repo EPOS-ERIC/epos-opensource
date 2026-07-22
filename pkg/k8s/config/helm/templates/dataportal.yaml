@@ -32,6 +32,7 @@ spec:
       containers:
       - name: dataportal
         image: {{ .Values.images.dataportal_image }}
+        {{- include "epos.image_pull_policy" . | nindent 8 }}
         envFrom:
         - configMapRef:
             name: dataportal

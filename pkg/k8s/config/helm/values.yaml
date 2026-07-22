@@ -10,6 +10,9 @@ url_prefix_namespace: true
 # create the namespace to deploy in if it doesn't exist
 create_namespace: true
 
+# Image pull policy for application images and jobs.
+image_pull_policy: "IfNotPresent"
+
 components:
   platform_gui:
     # URL path prefix for accessing the platform GUI interface. Must end with a /

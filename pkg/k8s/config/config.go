@@ -17,6 +17,8 @@ import (
 	"helm.sh/helm/v3/pkg/chartutil"
 )
 
+const defaultImagePullPolicy = "IfNotPresent"
+
 //go:embed all:helm/**
 var chartFS embed.FS
 
@@ -135,6 +137,12 @@ func validateIngressTLSSecret(serviceName string, tls TLS) error {
 
 // Validate checks whether the configuration contains all required values.
 func (c *Config) Validate() error {
+	if c.ImagePullPolicy == "" {
+		c.ImagePullPolicy = defaultImagePullPolicy
+	}
+	if c.ImagePullPolicy != "Always" && c.ImagePullPolicy != "IfNotPresent" && c.ImagePullPolicy != "Never" {
+		return fmt.Errorf("image_pull_policy must be Always, IfNotPresent, or Never")
+	}
 	// Basic required fields
 	if c.Domain == "" {
 		return fmt.Errorf("domain is required")

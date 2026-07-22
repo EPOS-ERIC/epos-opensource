@@ -39,6 +39,7 @@ spec:
       containers:
       - name: external-access-service
         image: {{ .Values.images.external_access_image }}
+        {{- include "epos.image_pull_policy" . | nindent 8 }}
         ports:
         - containerPort: 8080
           name: http

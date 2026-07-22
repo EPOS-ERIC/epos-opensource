@@ -41,6 +41,7 @@ spec:
       containers:
       - name: converter-service
         image: {{ .Values.images.converter_service_image }}
+        {{- include "epos.image_pull_policy" . | nindent 8 }}
         ports:
         - containerPort: 8080
           name: http

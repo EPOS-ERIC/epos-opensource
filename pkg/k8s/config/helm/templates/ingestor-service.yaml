@@ -36,6 +36,7 @@ spec:
       containers:
       - name: ingestor-service
         image: {{ .Values.images.ingestor_service_image }}
+        {{- include "epos.image_pull_policy" . | nindent 8 }}
         ports:
         - containerPort: 8080
           name: http
