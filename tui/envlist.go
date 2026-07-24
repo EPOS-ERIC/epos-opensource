@@ -296,7 +296,7 @@ func (el *EnvList) applyK8sData(data k8sListData) {
 	} else {
 		el.k8sFlexInner.AddItem(el.k8s, 0, 1, true)
 		for _, env := range el.k8sEnvs {
-			item := "[::b] • " + env.Name + "  [" + env.Context + "] "
+			item := "[::b] • " + tview.Escape(env.Name+"  ["+env.Context+"] ")
 			el.k8s.AddItem(item, "", 0, nil)
 		}
 
