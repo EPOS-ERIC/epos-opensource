@@ -637,8 +637,8 @@ func (a *App) ShowModalForm(opts ModalFormOptions) {
 			return false
 		}
 
-		a.tview.SetFocus(form)
 		form.SetFocus(0)
+		a.tview.SetFocus(form)
 
 		return true
 	}
@@ -648,8 +648,8 @@ func (a *App) ShowModalForm(opts ModalFormOptions) {
 			return false
 		}
 
-		a.tview.SetFocus(form)
 		form.SetFocus(formItemCount - 1)
+		a.tview.SetFocus(form)
 
 		return true
 	}
