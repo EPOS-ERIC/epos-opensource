@@ -195,22 +195,17 @@ func (a *App) run() error {
 
 // startRefreshTicker starts background list refresh every 3 seconds.
 func (a *App) startRefreshTicker() {
-	a.refreshEnvListsAsync(false)
+	a.refreshEnvListsAsync()
 
 	a.refreshTicker = time.NewTicker(3 * time.Second)
 	go func() {
 		for range a.refreshTicker.C {
-			a.refreshEnvListsAsync(false)
+			a.refreshEnvListsAsync()
 		}
 	}()
 }
 
-func (a *App) refreshEnvListsAsync(showLoading bool) {
-	if showLoading {
-		a.envList.showDockerLoading()
-		a.envList.showK8sLoading()
-	}
-
+func (a *App) refreshEnvListsAsync() {
 	a.refreshDockerAsync()
 	a.refreshK8sAsync()
 }
@@ -357,7 +352,7 @@ func (a *App) ResetToHome(opts ResetOptions) {
 
 	a.pages.SwitchToPage(homePageName)
 	a.currentPage = homePageName
-	a.refreshEnvListsAsync(true)
+	a.refreshEnvListsAsync()
 
 	if opts.RefreshFiles {
 		a.detailsPanel.RefreshFiles()
