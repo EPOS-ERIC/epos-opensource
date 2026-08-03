@@ -43,6 +43,7 @@ type App struct {
 	currentFooterKeys    []string
 	currentContext       ScreenKey
 	currentPage          string
+	terminalTooSmall     bool
 	footerMutex          sync.Mutex
 
 	outputWriter *OutputWriter
@@ -129,6 +130,18 @@ func (a *App) init(debug bool) {
 	a.tview = tview.NewApplication()
 	a.tview.EnableMouse(true)
 	a.tview.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if a.terminalTooSmall {
+			if event.Rune() == 'q' {
+				a.Quit()
+				return nil
+			}
+			if event.Key() == tcell.KeyCtrlC {
+				return event
+			}
+
+			return nil
+		}
+
 		// Don't handle global keys when focused on input components
 		if current := a.tview.GetFocus(); current != nil {
 			switch current.(type) {
@@ -188,7 +201,7 @@ func (a *App) init(debug bool) {
 
 // run starts the tview event loop.
 func (a *App) run() error {
-	a.tview.SetRoot(a.frame, true)
+	a.tview.SetRoot(newTerminalSizeGuard(a, a.frame), true)
 	a.envList.SetInitialFocus()
 	return a.tview.Run()
 }
