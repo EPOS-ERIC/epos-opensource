@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"unicode/utf8"
 
+	"github.com/EPOS-ERIC/epos-opensource/common"
 	"github.com/EPOS-ERIC/epos-opensource/db"
+	"github.com/EPOS-ERIC/epos-opensource/display"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/docker"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s"
 	"github.com/gdamore/tcell/v2"
@@ -216,8 +219,9 @@ func (dp *DetailsPanel) buildUI() {
 	dp.detailsListFlex.AddItem(dp.detailsList, 0, 1, false)
 
 	dp.detailsEmpty = NewStyledTextView()
-	dp.detailsEmpty.SetText(DefaultTheme.MutedTag("i") + "\nSelect an environment to view details")
+	dp.detailsEmpty.SetText(emptyDetailsText())
 	dp.detailsEmpty.SetTextAlign(tview.AlignCenter)
+	dp.detailsEmpty.SetWordWrap(false)
 	dp.detailsEmpty.SetTextColor(DefaultTheme.OnSurface)
 
 	dp.details = tview.NewFlex().SetDirection(tview.FlexRow)
@@ -227,6 +231,49 @@ func (dp *DetailsPanel) buildUI() {
 	dp.details.SetTitleColor(DefaultTheme.Secondary)
 	dp.details.SetBorderPadding(1, 0, 1, 1)
 	dp.details.AddItem(dp.detailsEmpty, 0, 1, true)
+}
+
+func emptyDetailsText() string {
+	return strings.Join([]string{
+		DefaultTheme.PrimaryTag("") + display.LogoHollow + "[-]",
+		DefaultTheme.MutedTag("i") + "v" + common.GetVersion(),
+		"",
+		"",
+		"Manage local EPOS environments.",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		DefaultTheme.SecondaryTag("b") + "QUICK START",
+		DefaultTheme.MutedTag("") + strings.Repeat("─", 61),
+		quickStartRow("↑↓", "Navigate environments", "enter", "Open details"),
+		quickStartRow("tab", "Switch Docker / K8s", "n", "Create environment"),
+		quickStartRow("?", "View all shortcuts", "q", "Quit"),
+	}, "\n")
+}
+
+func quickStartRow(leftKey, leftText, rightKey, rightText string) string {
+	const (
+		keyWidth  = 6
+		textWidth = 24
+		lastWidth = 19
+	)
+
+	return DefaultTheme.PrimaryTag("b") + padRight(leftKey, keyWidth) + "  " +
+		DefaultTheme.Tag(DefaultTheme.OnSurface, "") + padRight(leftText, textWidth) + "  " +
+		DefaultTheme.PrimaryTag("b") + padRight(rightKey, keyWidth) + "  " +
+		DefaultTheme.Tag(DefaultTheme.OnSurface, "") + padRight(rightText, lastWidth)
+}
+
+func padRight(value string, width int) string {
+	padding := width - utf8.RuneCountInString(value)
+	if padding <= 0 {
+		return value
+	}
+
+	return value + strings.Repeat(" ", padding)
 }
 
 // Update fetches and displays environment details in the panel.

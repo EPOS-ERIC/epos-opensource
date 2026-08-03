@@ -41,7 +41,8 @@ const (
 	blueSeq      = "\033[34m"
 	purpleSeq    = "\033[35m"
 	cyanSeq      = "\033[36m"
-	logoHollow   = `⣠⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣠⣤⣶⣶⣶⣶⣶⣤⣤⣀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣤⣤⣶⣶⣦⣤⣤⣀⡀⠀⠀⠀
+	// LogoHollow is the EPOS hollow logo rendered with Braille characters.
+	LogoHollow = `⣠⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣠⣤⣶⣶⣶⣶⣶⣤⣤⣀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣤⣤⣶⣶⣦⣤⣤⣀⡀⠀⠀⠀
 ⣿⣿⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⣿⣿⠛⠛⠛⠛⠛⠛⠛⠛⠿⠿⣿⣿⣷⣄⠀⠀⠀⣀⣴⣿⣿⡿⠿⠛⠛⠛⠛⠛⠻⢿⣿⣿⣦⣄⠀⠀⠀⣠⣾⣿⣿⠿⠟⠛⠛⠛⠿⠿⣿⣿⣷⣤⡀
 ⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⢻⣿⣷⣀⣾⣿⡿⠛⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⢿⣿⣷⣄⣾⣿⡟⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⣻⣿⣷
 ⣿⣿⠀⠀⠀⠀⢠⣤⣤⣤⣤⣤⣤⣤⣤⣿⣿⠀⠀⠀⠀⢀⣴⣶⣷⣶⣄⠀⠀⠀⢻⣿⣿⣿⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⣿⣿⣿⡟⠀⠀⠀⠀⣠⣤⣤⣤⣄⡀⣠⣾⣿⡿⠁
@@ -129,7 +130,7 @@ func URLs(portalURL, gatewayURL, title string, backofficeURL *string) {
 	})
 
 	// Add content
-	t.AppendRow(table.Row{logoHollow, logoHollow}, table.RowConfig{AutoMerge: true, AutoMergeAlign: text.AlignCenter})
+	t.AppendRow(table.Row{LogoHollow, LogoHollow}, table.RowConfig{AutoMerge: true, AutoMergeAlign: text.AlignCenter})
 	t.AppendSeparator()
 	t.AppendRow(table.Row{"EPOS Platform UI", portalURL})
 	t.AppendSeparator()
