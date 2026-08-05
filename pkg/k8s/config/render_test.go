@@ -81,6 +81,16 @@ func TestConfigRender(t *testing.T) {
 			},
 		},
 		{
+			name: "ontology populator deadline is configurable",
+			mutate: func(cfg *config.Config) {
+				cfg.Name = "test-ontology-deadline"
+				cfg.Jobs.OntologyPopulator.ActiveDeadlineSeconds = 900
+			},
+			wantContains: map[string][]string{
+				"templates/ontology-populator-job.yaml": {"activeDeadlineSeconds: 900"},
+			},
+		},
+		{
 			name: "backoffice enabled renders backoffice manifests and gateway flag",
 			mutate: func(cfg *config.Config) {
 				cfg.Name = "test-backoffice"

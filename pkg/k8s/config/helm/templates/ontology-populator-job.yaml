@@ -21,7 +21,7 @@ metadata:
     app.kubernetes.io/component: {{ $name }}
 spec:
   backoffLimit: 3
-  activeDeadlineSeconds: 300
+  activeDeadlineSeconds: {{ .Values.jobs.ontology_populator.active_deadline_seconds }}
   template:
     metadata:
       name: {{ $name }}
