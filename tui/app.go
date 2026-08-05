@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -524,7 +526,12 @@ func (a *App) RunBackgroundTask(opts TaskOptions) {
 	go func() {
 		msg, err := opts.Task()
 		if err != nil {
-			progress.Complete(false, err.Error())
+			errorMessage := err.Error()
+			if !opts.IsDocker && errors.Is(err, context.DeadlineExceeded) {
+				display.Error("Kubernetes %s timeout details: %v", strings.ToLower(opts.Operation), err)
+				errorMessage = fmt.Sprintf("Kubernetes %s timed out while waiting for resources. Check operation logs for details.", strings.ToLower(opts.Operation))
+			}
+			progress.Complete(false, errorMessage)
 		} else {
 			if msg == "" {
 				msg = fmt.Sprintf("%s completed successfully!", opts.Operation)

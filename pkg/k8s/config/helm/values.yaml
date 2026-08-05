@@ -234,6 +234,11 @@ jobs:
     backoff_limit: 3
     active_deadline_seconds: 3600
 
+  # Ontology registration job settings.
+  ontology_populator:
+    # Max runtime in seconds before Kubernetes terminates the Job.
+    active_deadline_seconds: 300
+
 # Monitoring support is currently partially implemented
 monitoring:
   # Enable/disable monitoring integration

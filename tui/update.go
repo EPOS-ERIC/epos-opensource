@@ -14,9 +14,10 @@ import (
 type updateFormData struct {
 	name          string
 	k8sContext    string
-	pullImages    bool // Docker only
-	force         bool // Docker: reset DB; K8s: reset namespace
-	reset         bool // Reset config to defaults
+	timeout       time.Duration // K8s only
+	pullImages    bool          // Docker only
+	force         bool          // Docker: reset DB; K8s: reset namespace
+	reset         bool          // Reset config to defaults
 	configSession *configEditSession
 }
 
@@ -44,6 +45,7 @@ func (a *App) showUpdateForm() {
 	data := &updateFormData{
 		name:       envName,
 		k8sContext: k8sContext,
+		timeout:    defaultK8sTimeout(),
 	}
 
 	fields := []FormField{}
@@ -56,6 +58,9 @@ func (a *App) showUpdateForm() {
 	} else {
 		fields = append(fields,
 			FormField{Type: "checkbox", Label: "Force (reset namespace)", CheckboxChangedFunc: func(checked bool) { data.force = checked }},
+			FormField{Type: "dropdown", Label: "Timeout", Value: defaultK8sTimeoutOption(), Options: k8sTimeoutOptions(), SelectedFunc: func(option string, index int) {
+				data.timeout, _ = time.ParseDuration(option)
+			}},
 		)
 	}
 
@@ -78,13 +83,18 @@ func (a *App) showUpdateForm() {
 		}},
 	}
 
+	height := 12
+	if !isDocker {
+		height = 14
+	}
+
 	opts := ModalFormOptions{
 		PageName: "update",
 		Title:    title,
 		Fields:   fields,
 		Buttons:  buttons,
 		Width:    64,
-		Height:   12,
+		Height:   height,
 		BottomButton: &FormButton{
 			Label:        "Edit Config",
 			SelectedFunc: func() { a.editUpdateConfig(data, isDocker) },
@@ -109,6 +119,11 @@ func (a *App) handleUpdate(data *updateFormData, isDocker bool) {
 		return
 	}
 
+	var timeout time.Duration
+	if !isDocker {
+		timeout = data.timeout
+	}
+
 	dockerCfg, k8sCfg, err := a.buildUpdateConfig(data, isDocker)
 	if err != nil {
 		a.ShowError(err.Error())
@@ -116,11 +131,11 @@ func (a *App) handleUpdate(data *updateFormData, isDocker bool) {
 	}
 
 	data.cleanupConfigSession()
-	a.showUpdateProgress(data, isDocker, dockerCfg, k8sCfg)
+	a.showUpdateProgress(data, isDocker, dockerCfg, k8sCfg, timeout)
 }
 
 // showUpdateProgress displays the update progress with live output.
-func (a *App) showUpdateProgress(data *updateFormData, isDocker bool, dockerCfg *dockerconfig.EnvConfig, k8sCfg *k8sconfig.Config) {
+func (a *App) showUpdateProgress(data *updateFormData, isDocker bool, dockerCfg *dockerconfig.EnvConfig, k8sCfg *k8sconfig.Config, timeout time.Duration) {
 	a.RunBackgroundTask(TaskOptions{
 		Operation: "Update",
 		EnvName:   data.name,
@@ -139,6 +154,7 @@ func (a *App) showUpdateProgress(data *updateFormData, isDocker bool, dockerCfg 
 				_, err = k8s.Update(k8s.UpdateOpts{
 					OldEnvName: data.name,
 					Context:    data.k8sContext,
+					Timeout:    timeout,
 					Force:      data.force,
 					Reset:      data.reset,
 					NewConfig:  k8sCfg,

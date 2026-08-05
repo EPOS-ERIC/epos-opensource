@@ -15,8 +15,9 @@ import (
 // deployFormData holds the form field values.
 type deployFormData struct {
 	name          string
-	pullImages    bool   // Docker only
-	context       string // K8s only
+	pullImages    bool          // Docker only
+	context       string        // K8s only
+	timeout       time.Duration // K8s only
 	configSession *configEditSession
 }
 
@@ -52,6 +53,7 @@ func (a *App) showDeployForm() {
 			},
 		)
 	} else {
+		data.timeout = defaultK8sTimeout()
 		currentContext := ""
 		if ctx, err := common.GetCurrentKubeContext(); err == nil {
 			currentContext = ctx
@@ -75,6 +77,15 @@ func (a *App) showDeployForm() {
 				SelectedFunc: func(option string, index int) { data.context = option },
 			})
 		}
+		fields = append(fields, FormField{
+			Type:    "dropdown",
+			Label:   "Timeout",
+			Value:   defaultK8sTimeoutOption(),
+			Options: k8sTimeoutOptions(),
+			SelectedFunc: func(option string, index int) {
+				data.timeout, _ = time.ParseDuration(option)
+			},
+		})
 		// Keep K8s form minimal: most settings are edited via config file.
 	}
 
@@ -122,6 +133,11 @@ func (a *App) handleDeploy(data *deployFormData, isDocker bool) {
 		return
 	}
 
+	var timeout time.Duration
+	if !isDocker {
+		timeout = data.timeout
+	}
+
 	dockerCfg, k8sCfg, err := a.buildDeployConfig(data, isDocker)
 	if err != nil {
 		a.ShowError(err.Error())
@@ -129,11 +145,11 @@ func (a *App) handleDeploy(data *deployFormData, isDocker bool) {
 	}
 
 	data.cleanupConfigSession()
-	a.showDeployProgress(data, isDocker, dockerCfg, k8sCfg)
+	a.showDeployProgress(data, isDocker, dockerCfg, k8sCfg, timeout)
 }
 
 // showDeployProgress displays the deployment progress with live output.
-func (a *App) showDeployProgress(data *deployFormData, isDocker bool, dockerCfg *dockerconfig.EnvConfig, k8sCfg *k8sconfig.Config) {
+func (a *App) showDeployProgress(data *deployFormData, isDocker bool, dockerCfg *dockerconfig.EnvConfig, k8sCfg *k8sconfig.Config, timeout time.Duration) {
 	a.RunBackgroundTask(TaskOptions{
 		Operation: "Deploy",
 		EnvName:   data.name,
@@ -158,6 +174,7 @@ func (a *App) showDeployProgress(data *deployFormData, isDocker bool, dockerCfg 
 			} else {
 				env, kerr := k8s.Deploy(k8s.DeployOpts{
 					Context: data.context,
+					Timeout: timeout,
 					Config:  k8sCfg,
 				})
 				err = kerr
