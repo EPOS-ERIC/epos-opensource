@@ -112,7 +112,7 @@ func PopulateEnv(ttlPath, endpointURL string, parallel int) ([]string, error) {
 }
 
 var client = http.Client{
-	Timeout: 3 * time.Minute,
+	Timeout: 5 * time.Minute,
 }
 
 func postFile(path string, url url.URL) error {

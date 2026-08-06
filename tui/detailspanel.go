@@ -236,7 +236,7 @@ func (dp *DetailsPanel) buildUI() {
 func emptyDetailsText() string {
 	return strings.Join([]string{
 		DefaultTheme.PrimaryTag("") + display.LogoHollow + "[-]",
-		DefaultTheme.MutedTag("i") + "v" + common.GetVersion(),
+		DefaultTheme.MutedTag("i") + common.GetVersion(),
 		"",
 		"",
 		"Manage local EPOS environments.",
