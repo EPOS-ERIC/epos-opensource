@@ -1,6 +1,6 @@
 module github.com/EPOS-ERIC/epos-opensource
 
-go 1.26.0
+go 1.27
 
 tool github.com/sqlc-dev/sqlc/cmd/sqlc
 
@@ -17,7 +17,6 @@ require (
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/sync v0.21.0
 	golang.org/x/term v0.43.0
-	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.20.0
 	k8s.io/client-go v0.35.0
