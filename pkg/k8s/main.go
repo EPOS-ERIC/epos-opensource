@@ -8,7 +8,7 @@ import (
 
 	"github.com/EPOS-ERIC/epos-opensource/command"
 	"github.com/EPOS-ERIC/epos-opensource/pkg/k8s/config"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 	"helm.sh/helm/v3/pkg/release"
 )
 
