@@ -6,7 +6,7 @@ import (
 	"regexp"
 )
 
-var validEnv = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
+var validEnv = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
 
 // Name validates environment name
 func Name(name string) error {
@@ -14,8 +14,12 @@ func Name(name string) error {
 		return fmt.Errorf("environment name must not be empty")
 	}
 
+	if len(name) > 63 {
+		return fmt.Errorf("environment name %s is too long (max 63 characters)", name)
+	}
+
 	if !validEnv.MatchString(name) {
-		return fmt.Errorf("invalid environment name %s: only letters, digits, '.', '_' and '-' allowed", name)
+		return fmt.Errorf("invalid environment name %s: only lowercase letters, digits, and '-' allowed. Must fulfill regex %s", name, validEnv)
 	}
 	return nil
 }
