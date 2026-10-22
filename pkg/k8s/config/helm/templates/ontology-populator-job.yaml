@@ -1,5 +1,4 @@
 {{- $name := "ontology-populator-job" -}}
-{{- if .Values.jobs.enabled -}}
 ---
 apiVersion: batch/v1
 kind: Job
@@ -70,4 +69,3 @@ spec:
           register_ontology "EPOS-DCAT-AP-V3" "BASE" "https://raw.githubusercontent.com/epos-eu/EPOS-DCAT-AP/EPOS-DCAT-AP-v3.0/docs/epos-dcat-ap_v3.0.0_shacl.ttl"
            register_ontology "EDM-TO-DCAT-AP" "MAPPING" "https://raw.githubusercontent.com/epos-eu/EPOS_Data_Model_Mapping/main/edm-schema-shapes.ttl"
            log INFO "Ontology registration completed successfully"
-{{- end -}}

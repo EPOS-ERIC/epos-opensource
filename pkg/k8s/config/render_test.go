@@ -64,7 +64,6 @@ func TestConfigRender(t *testing.T) {
 				"templates/converter-service.yaml":      {"name: converter-service"},
 				"templates/converter-routine.yaml":      {"name: converter-routine"},
 				"templates/email-sender-service.yaml":   {"name: email-sender-service"},
-				"templates/ontology-populator-job.yaml": {"kind: Job"},
 				"templates/sharing-service.yaml":        {"name: sharing-service"},
 			},
 		},
@@ -85,7 +84,6 @@ func TestConfigRender(t *testing.T) {
 			name: "ontology populator deadline is configurable",
 			mutate: func(cfg *config.Config) {
 				cfg.Name = "test-ontology-deadline"
-				cfg.Jobs.Enabled = true
 				cfg.Jobs.OntologyPopulator.ActiveDeadlineSeconds = 900
 			},
 			wantContains: map[string][]string{
