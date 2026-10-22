@@ -8,7 +8,10 @@ metadata:
     app.kubernetes.io/component: converter
 spec:
   accessModes:
-    - ReadWriteOnce
+    - {{ default "ReadWriteOnce" .Values.components.converter.access_mode | quote }}
+  {{- if .Values.components.converter.storage_class_name }}
+  storageClassName: {{ .Values.components.converter.storage_class_name | quote }}
+  {{- end }}
   resources:
     requests:
       storage: 1Gi
@@ -24,7 +27,10 @@ metadata:
     app.kubernetes.io/component: metadata-database
 spec:
   accessModes:
-    - ReadWriteOnce
+    - {{ default "ReadWriteOnce" .Values.components.metadata_database.access_mode | quote }}
+  {{- if .Values.components.metadata_database.storage_class_name }}
+  storageClassName: {{ .Values.components.metadata_database.storage_class_name | quote }}
+  {{- end }}
   resources:
     requests:
       storage: 5Gi

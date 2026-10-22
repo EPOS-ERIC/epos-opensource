@@ -85,6 +85,10 @@ components:
   converter:
     # Enable/disable the converter service
     enabled: false
+    # Optional StorageClass for the converter plugins PVC. Leave empty to use the cluster default.
+    storage_class_name: ""
+    # Access mode for the converter plugins PVC.
+    access_mode: "ReadWriteOnce"
     security_context:
       # Enable/disable a pod-level securityContext for converter pods.
       enabled: false
@@ -146,6 +150,10 @@ components:
   metadata_database:
     # Enable/disable deployment of the in-cluster metadata database. If set to false the system will assume you have set up an external database
     enabled: true
+    # Optional StorageClass for the metadata database PVC. Leave empty to use the cluster default.
+    storage_class_name: ""
+    # Access mode for the metadata database PVC.
+    access_mode: "ReadWriteOnce"
     # Database user for authentication
     user: "metadatauser"
     # Database password for authentication

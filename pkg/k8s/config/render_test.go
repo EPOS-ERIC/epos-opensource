@@ -109,11 +109,25 @@ func TestConfigRender(t *testing.T) {
 			mutate: func(cfg *config.Config) {
 				cfg.Name = "test-converter"
 				cfg.Components.Converter.Enabled = true
+				cfg.Components.Converter.StorageClassName = "converter-storage"
+				cfg.Components.Converter.AccessMode = "ReadWriteMany"
 			},
 			wantContains: map[string][]string{
 				"templates/gateway.yaml":           {`LOAD_CONVERTER_API: "false:false"`},
 				"templates/converter-service.yaml": {"name: converter-service"},
 				"templates/converter-routine.yaml": {"name: converter-routine"},
+				"templates/pvc.yaml":               {`- "ReadWriteMany"`, `storageClassName: "converter-storage"`},
+			},
+		},
+		{
+			name: "metadata database PVC storage is configurable",
+			mutate: func(cfg *config.Config) {
+				cfg.Name = "test-database-storage"
+				cfg.Components.MetadataDatabase.StorageClassName = "database-storage"
+				cfg.Components.MetadataDatabase.AccessMode = "ReadWriteMany"
+			},
+			wantContains: map[string][]string{
+				"templates/pvc.yaml": {`- "ReadWriteMany"`, `storageClassName: "database-storage"`},
 			},
 		},
 		{
