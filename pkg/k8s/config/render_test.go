@@ -118,17 +118,6 @@ func TestConfigRender(t *testing.T) {
 			},
 		},
 		{
-			name: "metadata database PVC storage is configurable",
-			mutate: func(cfg *config.Config) {
-				cfg.Name = "test-database-storage"
-				cfg.Components.MetadataDatabase.StorageClassName = "database-storage"
-				cfg.Components.MetadataDatabase.AccessMode = "ReadWriteMany"
-			},
-			wantContains: map[string][]string{
-				"templates/pvc.yaml": {`- "ReadWriteMany"`, `storageClassName: "database-storage"`},
-			},
-		},
-		{
 			name: "sharing enabled renders sharing manifest and gateway flag",
 			mutate: func(cfg *config.Config) {
 				cfg.Name = "test-sharing"
