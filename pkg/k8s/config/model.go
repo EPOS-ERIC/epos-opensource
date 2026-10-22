@@ -84,9 +84,11 @@ type SecurityContext struct {
 
 // Converter configures the converter service.
 type Converter struct {
-	Enabled         bool            `yaml:"enabled"`
-	SecurityContext SecurityContext `yaml:"security_context"`
-	Auth            Auth            `yaml:"auth"`
+	Enabled          bool            `yaml:"enabled"`
+	StorageClassName string          `yaml:"storage_class_name"`
+	AccessMode       string          `yaml:"access_mode"`
+	SecurityContext  SecurityContext `yaml:"security_context"`
+	Auth             Auth            `yaml:"auth"`
 }
 
 // ResourcesService configures the resources service.

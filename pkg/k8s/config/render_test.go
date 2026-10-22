@@ -107,11 +107,14 @@ func TestConfigRender(t *testing.T) {
 			mutate: func(cfg *config.Config) {
 				cfg.Name = "test-converter"
 				cfg.Components.Converter.Enabled = true
+				cfg.Components.Converter.StorageClassName = "converter-storage"
+				cfg.Components.Converter.AccessMode = "ReadWriteMany"
 			},
 			wantContains: map[string][]string{
 				"templates/gateway.yaml":           {`LOAD_CONVERTER_API: "false:false"`},
 				"templates/converter-service.yaml": {"name: converter-service"},
 				"templates/converter-routine.yaml": {"name: converter-routine"},
+				"templates/pvc.yaml":               {`- "ReadWriteMany"`, `storageClassName: "converter-storage"`},
 			},
 		},
 		{
