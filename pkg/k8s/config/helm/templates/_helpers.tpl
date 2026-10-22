@@ -64,6 +64,17 @@ affinity:
 {{- end }}
 {{- end -}}
 
+{{- define "epos.converterRoutineAffinity" -}}
+{{- $affinity := deepCopy (default (dict) .Values.affinity) -}}
+{{- $podAffinity := deepCopy (default (dict) (get $affinity "podAffinity")) -}}
+{{- $requiredRules := default (list) (get $podAffinity "requiredDuringSchedulingIgnoredDuringExecution") -}}
+{{- $converterServiceRule := dict "labelSelector" (dict "matchLabels" (dict "app.kubernetes.io/name" (include "epos.name" .) "app.kubernetes.io/instance" .Release.Name "app.kubernetes.io/component" "converter-service")) "topologyKey" "kubernetes.io/hostname" -}}
+{{- $_ := set $podAffinity "requiredDuringSchedulingIgnoredDuringExecution" (append $requiredRules $converterServiceRule) -}}
+{{- $_ := set $affinity "podAffinity" $podAffinity -}}
+affinity:
+  {{- $affinity | toYaml | nindent 2 }}
+{{- end -}}
+
 {{- define "epos.securityContext" -}}
 {{- if .Values.securityContext }}
 securityContext:
