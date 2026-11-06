@@ -1,6 +1,6 @@
 module github.com/EPOS-ERIC/epos-opensource
 
-go 1.27
+go 1.27.3
 
 tool github.com/sqlc-dev/sqlc/cmd/sqlc
 
